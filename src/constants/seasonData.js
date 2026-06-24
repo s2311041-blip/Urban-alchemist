@@ -1,0 +1,38 @@
+export const SEASON_TINT = {
+  spring: {
+    agri: [1.03, 1.06, 0.98],
+    terrainWater: [1.0, 1.03, 1.08],
+    terrainSoil: [1.02, 1.0, 0.97],
+    islandGrass: [1.0, 1.01, 0.99],
+    natureLeaf: [1.03, 1.06, 0.98],
+    natureFlower: [1.06, 1.02, 1.03],
+    natureGround: [1.03, 1.06, 0.98],
+  },
+  summer: {
+    agri: [1.03, 1.03, 0.94],
+    terrainWater: [0.94, 1.0, 1.06],
+    terrainSoil: [1.02, 1.01, 0.94],
+    islandGrass: [0.98, 1.02, 0.96],
+    natureLeaf: [0.95, 1.03, 0.9],
+    natureFlower: [1.02, 1.0, 0.96],
+    natureGround: [0.95, 1.03, 0.9],
+  },
+  autumn: {
+    agri: [1.08, 0.95, 0.86],
+    terrainWater: [0.98, 0.95, 0.9],
+    terrainSoil: [1.08, 0.95, 0.85],
+    islandGrass: [1.03, 0.97, 0.92],
+    natureLeaf: [1.12, 0.93, 0.78],
+    natureFlower: [1.1, 0.94, 0.85],
+    natureGround: [1.05, 0.95, 0.84],
+  },
+  winter: {
+    agri: [0.9, 0.95, 1.05],
+    terrainWater: [0.88, 0.93, 1.08],
+    terrainSoil: [0.92, 0.95, 1.02],
+    islandGrass: [0.94, 0.96, 1.02],
+    natureLeaf: [0.86, 0.93, 1.03],
+    natureFlower: [0.9, 0.95, 1.05],
+    natureGround: [0.9, 0.96, 1.04],
+  },
+};

@@ -1,0 +1,15 @@
+import { createInitialState } from './slices/initialState';
+import { createSetterSlice } from './slices/setterSlice';
+import { createStudioSlice } from './slices/studioSlice';
+import { createFarmingSlice } from './slices/farmingSlice';
+import { createBuildSlice } from './slices/buildSlice';
+import { createBugSlice } from './slices/bugSlice';
+
+export const buildGameStore = (set, get, savedData) => ({
+  ...createInitialState(savedData),
+  ...createSetterSlice(set, get),
+  ...createStudioSlice(set, get),
+  ...createFarmingSlice(set, get),
+  ...createBuildSlice(set, get),
+  ...createBugSlice(set, get),
+});
