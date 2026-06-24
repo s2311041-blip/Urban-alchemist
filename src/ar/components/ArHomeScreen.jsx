@@ -106,7 +106,7 @@ export function ArHomeScreen({
             }}
             >
               <Sparkles size={14} />
-              東京都江東区
+              現地AR
             </div>
             <h1 style={{
               margin: 0,

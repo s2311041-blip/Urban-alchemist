@@ -4,7 +4,6 @@ import { Camera, ChevronLeft, Map as MapIcon } from 'lucide-react';
 import {
   KOTO_CENTER,
   KOTO_MAP_ZOOM,
-  isInsideKotoBounds,
 } from '../constants/kotoArea';
 import { AR_THEME } from '../constants/arTheme';
 import { createArMapPinIcon } from '../utils/arMapPinIcon';
@@ -28,7 +27,7 @@ export function ArMapView({
     return annotations.find((a) => a.id === initialPinId) ?? null;
   });
 
-  const pins = annotations.filter((a) => a.worldPin && isInsideKotoBounds(a.worldPin.lat, a.worldPin.lng));
+  const pins = annotations.filter((a) => a.worldPin);
 
   if (panel === 'camera') {
     return (
@@ -58,7 +57,7 @@ export function ArMapView({
           ホーム
         </button>
         <div style={{ flex: 1, textAlign: 'center' }}>
-          <div style={{ fontSize: 11, color: AR_THEME.accent }}>東京都江東区</div>
+          <div style={{ fontSize: 11, color: AR_THEME.accent }}>地図</div>
           <div style={{ fontWeight: 'bold', fontSize: 16 }}>地図で見る</div>
         </div>
         <button type="button" onClick={() => setPanel('camera')} style={headerBtnStyle} title="現地で見る（任意）">

@@ -1,6 +1,7 @@
-/** 東京都江東区（ワークショップ想定エリア） */
+/** 地図の初期中心（GPS 未取得時のフォールバック・江東区） */
 export const KOTO_CENTER = { lat: 35.653, lng: 139.826 };
 
+/** @deprecated 投稿範囲ロック廃止。互換のため残す */
 export const KOTO_BOUNDS = {
   minLat: 35.618,
   maxLat: 35.692,
@@ -12,7 +13,7 @@ export const KOTO_MAP_ZOOM = 14;
 export const MAX_AR_VIEW_DISTANCE_M = 120;
 export const DEFAULT_PIN_DISTANCE_M = 8;
 
-/** ゲーム placeArchetype 互換の場所チップ（江東区向けラベル） */
+/** ゲーム placeArchetype 互換の場所チップ */
 export const KOTO_PLACE_OPTIONS = [
   { id: 'station', label: '駅・駅前' },
   { id: 'bus_stop', label: 'バス停' },
@@ -24,11 +25,15 @@ export const KOTO_PLACE_OPTIONS = [
   { id: 'none', label: 'どれにも当てはまらない' },
 ];
 
+export function isValidGeoCoordinate(lat, lng) {
+  if (typeof lat !== 'number' || typeof lng !== 'number') return false;
+  if (Number.isNaN(lat) || Number.isNaN(lng)) return false;
+  return lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
+}
+
+/** 全世界の有効な緯度経度を許可（旧名互換） */
 export function isInsideKotoBounds(lat, lng) {
-  return lat >= KOTO_BOUNDS.minLat
-    && lat <= KOTO_BOUNDS.maxLat
-    && lng >= KOTO_BOUNDS.minLng
-    && lng <= KOTO_BOUNDS.maxLng;
+  return isValidGeoCoordinate(lat, lng);
 }
 
 /** @deprecated 旧名互換 */

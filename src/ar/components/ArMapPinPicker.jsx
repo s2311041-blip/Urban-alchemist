@@ -4,7 +4,6 @@ import { ChevronLeft } from 'lucide-react';
 import {
   KOTO_CENTER,
   KOTO_MAP_ZOOM,
-  isInsideKotoBounds,
 } from '../constants/kotoArea';
 import { AR_THEME } from '../constants/arTheme';
 import { createArMapPinIcon, createArMapUserIcon } from '../utils/arMapPinIcon';
@@ -30,8 +29,6 @@ export function ArMapPinPicker({
 }) {
   const start = initialPin ?? userGeo ?? KOTO_CENTER;
   const [pin, setPin] = useState(start);
-
-  const valid = isInsideKotoBounds(pin.lat, pin.lng);
 
   return (
     <div style={{
@@ -107,25 +104,19 @@ export function ArMapPinPicker({
       </div>
 
       <div style={{ padding: '12px 16px 20px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-        {!valid && (
-          <p style={{ margin: '0 0 10px', fontSize: 13, color: '#ffb74d' }}>
-            江東区外です。ピンを区内に移動してください。
-          </p>
-        )}
         <button
           type="button"
-          disabled={!valid}
           onClick={() => onConfirm(pin)}
           style={{
             width: '100%',
             padding: 16,
             borderRadius: 14,
             border: 'none',
-            background: valid ? AR_THEME.accent : 'rgba(255,255,255,0.12)',
-            color: valid ? '#0d1b2a' : AR_THEME.muted,
+            background: AR_THEME.accent,
+            color: '#0d1b2a',
             fontWeight: 'bold',
             fontSize: 16,
-            cursor: valid ? 'pointer' : 'not-allowed',
+            cursor: 'pointer',
           }}
         >
           この位置に刺す

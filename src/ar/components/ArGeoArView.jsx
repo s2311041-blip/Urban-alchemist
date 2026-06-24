@@ -4,7 +4,7 @@ import { ChevronLeft, Compass } from 'lucide-react';
 import { useCameraStream } from '../hooks/useCameraStream';
 import { useDevicePose } from '../hooks/useDevicePose';
 import { usePointerLabel, pointerActionPhrase } from '../hooks/usePointerLabel';
-import { isInsideKotoBounds, MAX_AR_VIEW_DISTANCE_M } from '../constants/kotoArea';
+import { MAX_AR_VIEW_DISTANCE_M } from '../constants/kotoArea';
 import { AR_THEME } from '../constants/arTheme';
 import {
   listPinsInCameraView,
@@ -130,7 +130,6 @@ export function ArGeoArView({
     };
   }, [geo, compassActive, visiblePins.length, nearbyPins.length, deviceHeading, devicePitch, annotations, geoUsable]);
 
-  const outOfBounds = geo && !isInsideKotoBounds(geo.lat, geo.lng);
   const sessionOriginGeo = sessionOriginRef.current;
   const isBrowse = context === 'browse';
   const showPinOverlay = isBrowse && mode === 'view' && geo && compassActive && geoUsable;
@@ -666,7 +665,7 @@ export function ArGeoArView({
         </div>
       )}
 
-      {(geoError || camError || outOfBounds) && !needsHttps && (
+      {(geoError || camError) && !needsHttps && (
         <div
           data-ar-ui
           style={{
@@ -683,7 +682,7 @@ export function ArGeoArView({
             lineHeight: 1.5,
           }}
         >
-          {outOfBounds ? '江東区外です。' : (camError || geoError)}
+          {camError || geoError}
         </div>
       )}
 

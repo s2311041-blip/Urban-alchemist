@@ -1,4 +1,4 @@
-import { isInsideKotoBounds } from '../constants/kotoArea';
+import { isValidGeoCoordinate } from '../constants/kotoArea';
 
 const MIN_COMMENT_LEN = 1;
 const MAX_COMMENT_LEN = 500;
@@ -9,8 +9,8 @@ export function validateDraftForSubmit(draft) {
 
   if (!draft.worldPin) {
     errors.push('場所（ピン）が指定されていません');
-  } else if (!isInsideKotoBounds(draft.worldPin.lat, draft.worldPin.lng)) {
-    errors.push('江東区外の位置には投稿できません');
+  } else if (!isValidGeoCoordinate(draft.worldPin.lat, draft.worldPin.lng)) {
+    errors.push('位置情報が不正です');
   }
 
   const comment = draft.comment?.trim() ?? '';
@@ -39,8 +39,8 @@ export function mapPostErrorMessage(error) {
   if (msg.includes('rate_limit')) {
     return '投稿が多すぎます。1時間後に再度お試しください';
   }
-  if (msg.includes('koto') || msg.includes('check constraint')) {
-    return '江東区外の位置には投稿できません';
+  if (msg.includes('check constraint') || msg.includes('ar_world_')) {
+    return '位置情報が不正です';
   }
   if (msg.includes('row-level security') || msg.includes('JWT')) {
     return 'ログインに失敗しました。ページを再読み込みしてください';

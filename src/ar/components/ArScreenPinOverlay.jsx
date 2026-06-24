@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { isInsideKotoBounds, MAX_AR_VIEW_DISTANCE_M } from '../constants/kotoArea';
+import { MAX_AR_VIEW_DISTANCE_M } from '../constants/kotoArea';
 import { projectPinToScreen } from '../utils/geoProjection';
 import { ArPinMarker } from './ArPinMarker';
 
@@ -17,7 +17,7 @@ export function ArScreenPinOverlay({
   const markers = useMemo(() => {
     if (!viewerGeo) return [];
     return annotations
-      .filter((a) => a.worldPin && isInsideKotoBounds(a.worldPin.lat, a.worldPin.lng))
+      .filter((a) => a.worldPin)
       .map((a) => {
         const screen = projectPinToScreen({
           viewerGeo,

@@ -1,7 +1,7 @@
 import React, { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { PerspectiveCamera } from '@react-three/drei';
-import { MAX_AR_VIEW_DISTANCE_M, isInsideKotoBounds } from '../../constants/kotoArea';
+import { MAX_AR_VIEW_DISTANCE_M } from '../../constants/kotoArea';
 import { geoToWorldNorth, viewerWorldPosition } from '../../utils/geo3dWorld';
 import { computePinWorldPosition } from '../../utils/pinAnchor';
 import { V_FOV } from '../../utils/pinAnchor';
@@ -62,7 +62,7 @@ export function GeoAr3dScene({
   const pins = useMemo(() => {
     if (!sessionOriginGeo) return [];
     return annotations
-      .filter((a) => a.worldPin && isInsideKotoBounds(a.worldPin.lat, a.worldPin.lng))
+      .filter((a) => a.worldPin)
       .map((a) => {
         const w = geoToWorldNorth(sessionOriginGeo, a.worldPin);
         if (w.distM > MAX_AR_VIEW_DISTANCE_M) return null;

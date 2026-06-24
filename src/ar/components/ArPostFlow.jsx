@@ -2,7 +2,7 @@ import React, { useRef, useState } from 'react';
 import { Camera, Check, MapPin, Crosshair, Video } from 'lucide-react';
 import { useDevicePose } from '../hooks/useDevicePose';
 import { usePointerLabel, pointerActionPhrase } from '../hooks/usePointerLabel';
-import { isInsideKotoBounds } from '../constants/kotoArea';
+import { isValidGeoCoordinate } from '../constants/kotoArea';
 import { annotationToDraft, getFormStepIds } from '../utils/postFormSteps';
 import { computePinWorldPosition } from '../utils/pinAnchor';
 import { computePinAtFeet, computePinFromMap, buildCapturePoseAtPhoto } from '../utils/pinPlacement';
@@ -146,8 +146,8 @@ export function ArPostFlow({
   };
 
   const handleSubmit = async () => {
-    if (!isEdit && (!draft.worldPin || !isInsideKotoBounds(draft.worldPin.lat, draft.worldPin.lng))) {
-      alert('ピンが江東区エリア外です。場所を決め直してください。');
+    if (!isEdit && (!draft.worldPin || !isValidGeoCoordinate(draft.worldPin.lat, draft.worldPin.lng))) {
+      alert('位置情報が不正です。場所を決め直してください。');
       setPhase('place');
       return;
     }

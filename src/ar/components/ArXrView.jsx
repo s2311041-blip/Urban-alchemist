@@ -3,7 +3,7 @@ import { Canvas } from '@react-three/fiber';
 import { XR, useXR } from '@react-three/xr';
 import { ChevronLeft, Camera, RefreshCw } from 'lucide-react';
 import { useDevicePose } from '../hooks/useDevicePose';
-import { isInsideKotoBounds } from '../constants/kotoArea';
+import { isValidGeoCoordinate } from '../constants/kotoArea';
 import { AR_THEME } from '../constants/arTheme';
 import {
   XR_CAPTURE_STEP,
@@ -90,8 +90,8 @@ export function ArXrView({
   const confirmHitPlacement = () => {
     if (!hitRef.current || !sessionOrigin) return;
     const placement = placementFromXrHit(sessionOrigin, hitRef.current);
-    if (!isInsideKotoBounds(placement.worldPin.lat, placement.worldPin.lng)) {
-      alert('江東区外です。別の場所を指定してください。');
+    if (!isValidGeoCoordinate(placement.worldPin.lat, placement.worldPin.lng)) {
+      alert('位置情報が不正です。別の場所を指定してください。');
       return;
     }
     onXrPlacement?.(placement);
@@ -118,7 +118,6 @@ export function ArXrView({
     return 1;
   }, [sessionActive, mode, hitLocal, xrPlacement]);
 
-  const outOfBounds = geo && !isInsideKotoBounds(geo.lat, geo.lng);
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: '#000', color: AR_THEME.text }}>
@@ -185,7 +184,7 @@ export function ArXrView({
           >
             <ArXrGuideOverlay steps={guideSteps} activeStep={0} compact={false} />
 
-            {(enterError || geoError || outOfBounds) && (
+            {(enterError || geoError) && (
               <div style={{
                 padding: 12,
                 borderRadius: 12,
@@ -195,15 +194,15 @@ export function ArXrView({
                 lineHeight: 1.5,
               }}
               >
-                {outOfBounds ? '江東区外です。江東区内でお試しください。' : (enterError || geoError)}
+                {enterError || geoError}
               </div>
             )}
 
             <button
               type="button"
               onClick={handleEnterAr}
-              disabled={!geo || outOfBounds}
-              style={primaryBtnStyle(!!geo && !outOfBounds)}
+              disabled={!geo}
+              style={primaryBtnStyle(!!geo)}
             >
               ① カメラを起動する
             </button>

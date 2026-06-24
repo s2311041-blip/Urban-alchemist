@@ -10,8 +10,8 @@ create table if not exists public.ar_annotations (
   world_pin_lng double precision not null,
   photo_path text,
   payload jsonb not null default '{}'::jsonb,
-  constraint ar_koto_lat check (world_pin_lat between 35.618 and 35.692),
-  constraint ar_koto_lng check (world_pin_lng between 139.792 and 139.912)
+  constraint ar_world_lat_range check (world_pin_lat between -90 and 90),
+  constraint ar_world_lng_range check (world_pin_lng between -180 and 180)
 );
 
 create index if not exists ar_annotations_created_at_idx

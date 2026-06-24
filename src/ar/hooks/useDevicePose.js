@@ -110,7 +110,7 @@ export function useDevicePose({ enabled = true } = {}) {
       const { short, detail } = geolocationErrorMessage(error);
       setGeo(KOTO_CENTER);
       setGeoDemo(true);
-      setGeoError(`${short}（デモ位置・江東区中心） — ${detail}`);
+      setGeoError(`${short}（デモ位置） — ${detail}`);
     };
 
     const onGeoError = (error) => {

@@ -97,7 +97,7 @@ export function ArHelpSheet({ onClose }) {
           color: AR_THEME.muted,
         }}
         >
-          現地カメラ AR は数 m の誤差があります。正確な位置は地図のピンで確認してください。投稿は江東区内のみ。
+          現地カメラ AR は数 m の誤差があります。正確な位置は地図のピンで確認してください。
         </div>
       </div>
     </div>
