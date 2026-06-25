@@ -27,9 +27,11 @@ export const PLACE_ARCHETYPE_LABELS = {
 };
 export const PLACE_ARCHETYPE_OPTIONS = Object.entries(PLACE_ARCHETYPE_LABELS).map(([id, label]) => ({ id, label }));
 
-const normalizeArchetypeId = (archetype) => (
+export const normalizePlaceArchetypeId = (archetype) => (
   typeof archetype === 'string' ? (PLACE_ARCHETYPE_ALIASES[archetype] ?? archetype) : archetype
 );
+
+const normalizeArchetypeId = normalizePlaceArchetypeId;
 
 const NEED_TYPE_TO_ARCHETYPE_PRIORITY = {
   P: ['station', 'bus_stop', 'plaza', 'road', 'lane'],
@@ -169,6 +171,74 @@ export const buildQuestPlacementPreview = ({
     orbPos: basePos,
     label: preset.label,
     reusesSite: false,
+  };
+};
+
+/** L2: needType に合わせた不満 accent ブロックのみ（reuse 時・場所型 none 時） */
+export const createDissatisfactionAccentOnly = ({
+  quest,
+  basePos,
+  islandChunks = [],
+  existingBlocks = [],
+}) => {
+  const archetype = resolvePlaceArchetype(quest);
+  const needType = resolveNeedTypeFromQuest(quest);
+  const normalizedArchetype = archetype ? normalizeArchetypeId(archetype) : null;
+  const template = normalizedArchetype ? PRESET_TEMPLATES[normalizedArchetype] : null;
+  const accentDefs = template?.accents?.[needType] ?? [];
+
+  if (accentDefs.length === 0) {
+    return { blocks: [], needType, archetype: normalizedArchetype };
+  }
+
+  const questId = typeof quest?.id === 'string' ? quest.id : null;
+  const blocks = accentDefs
+    .map((def) => tagExpressionAccent(def, needType, questId))
+    .map((def) => toBlock(basePos, islandChunks, {
+      ...def,
+      presetArchetype: normalizedArchetype,
+    }))
+    .filter((block) => !isOverlapping(block, existingBlocks));
+
+  return { blocks, needType, archetype: normalizedArchetype };
+};
+
+export const buildQuestSpawnBlocks = ({
+  quest,
+  spawnPos,
+  islandChunks = [],
+  placedBlocks = [],
+}) => {
+  const archetype = quest?.placeArchetype;
+  const reuseSite = hasExistingPlaceSite(archetype, placedBlocks);
+
+  if (!reuseSite && archetype !== 'none') {
+    const preset = createPresetForQuestPlacement({
+      quest,
+      basePos: spawnPos,
+      islandChunks,
+      existingBlocks: placedBlocks,
+    });
+    return {
+      blocks: preset.blocks,
+      archetype: preset.archetype,
+      label: preset.label,
+      reuseSite: false,
+    };
+  }
+
+  const accent = createDissatisfactionAccentOnly({
+    quest,
+    basePos: spawnPos,
+    islandChunks,
+    existingBlocks: placedBlocks,
+  });
+
+  return {
+    blocks: accent.blocks,
+    archetype: accent.archetype,
+    label: accent.archetype ? PLACE_ARCHETYPE_LABELS[accent.archetype] ?? null : null,
+    reuseSite: !!reuseSite,
   };
 };
 

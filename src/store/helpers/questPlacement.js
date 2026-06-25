@@ -1,4 +1,4 @@
-import { createPresetForQuestPlacement } from '../../utils/placePresets';
+import { buildQuestSpawnBlocks } from '../../utils/placePresets';
 import {
   questToBug,
   snapManualQuestPosition,
@@ -34,15 +34,15 @@ export const commitQuestPlacement = (questPos, { getState, setState }) => {
     return false;
   }
 
-  const preset = createPresetForQuestPlacement({
+  const spawnBlocks = buildQuestSpawnBlocks({
     quest: current.placingQuest,
-    basePos: questPos,
+    spawnPos: questPos,
     islandChunks: current.islandChunks,
-    existingBlocks: current.placedBlocks,
+    placedBlocks: current.placedBlocks,
   });
   const nextBug = questToBug(current.placingQuest, questPos);
-  if (preset.archetype) {
-    nextBug.placeArchetype = preset.archetype;
+  if (spawnBlocks.archetype) {
+    nextBug.placeArchetype = spawnBlocks.archetype;
   }
 
   const nextQuests = current.quests.map((q) => (
@@ -58,8 +58,8 @@ export const commitQuestPlacement = (questPos, { getState, setState }) => {
   setState({
     bugs: [...current.bugs, nextBug],
     quests: nextQuests,
-    placedBlocks: preset.blocks.length > 0
-      ? [...current.placedBlocks, ...preset.blocks]
+    placedBlocks: spawnBlocks.blocks.length > 0
+      ? [...current.placedBlocks, ...spawnBlocks.blocks]
       : current.placedBlocks,
     placingQuest: null,
     hoverPosition: null,
@@ -73,11 +73,18 @@ export const commitQuestPlacement = (questPos, { getState, setState }) => {
       : {}),
   });
 
-  if (preset.blocks.length > 0) {
+  if (spawnBlocks.label && !spawnBlocks.reuseSite) {
     setTimedToast({
       set: setState,
       get: getState,
-      message: `${preset.label}の場所セットを配置しました。`,
+      message: `${spawnBlocks.label}の場所セットを配置しました。`,
+      durationMs: 2200,
+    });
+  } else if (spawnBlocks.reuseSite && spawnBlocks.blocks.length > 0) {
+    setTimedToast({
+      set: setState,
+      get: getState,
+      message: '不満の演出を追加しました。',
       durationMs: 2200,
     });
   }

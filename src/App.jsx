@@ -46,6 +46,7 @@ export default function App() {
     goodSpots: state.goodSpots,
     startPlacingQuest: state.startPlacingQuest,
     focusQuestOnIsland: state.focusQuestOnIsland,
+    importArAnnotations: state.importArAnnotations,
     setActiveBug: state.setActiveBug,
     setIsReturning: state.setIsReturning,
     removeBug: state.removeBug,
@@ -133,6 +134,7 @@ export default function App() {
           quests={store.quests}
           startPlacingQuest={store.startPlacingQuest}
           focusQuestOnIsland={store.focusQuestOnIsland}
+          importArAnnotations={store.importArAnnotations}
         />
 
         {/* 不満詳細オーバーレイ */}

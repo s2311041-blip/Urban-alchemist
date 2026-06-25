@@ -46,18 +46,28 @@ export function ArPostingApp() {
 
   useEffect(() => {
     let cancelled = false;
-    (async () => {
+    const boot = (async () => {
       try {
         const { authorId: cloudAuthorId } = await initArBackend();
         if (!cancelled && cloudAuthorId) setAuthorId(cloudAuthorId);
         await syncAnnotations();
+      } catch {
+        // 同期失敗は syncStatus: error でホームに表示
       } finally {
         if (!cancelled) setBootReady(true);
       }
     })();
+
+    const timeout = setTimeout(() => {
+      if (!cancelled) setBootReady(true);
+    }, 10000);
+
+    boot.finally(() => clearTimeout(timeout));
+
     const id = setInterval(() => syncAnnotations(), 10000);
     return () => {
       cancelled = true;
+      clearTimeout(timeout);
       clearInterval(id);
     };
   }, [setAuthorId, syncAnnotations]);

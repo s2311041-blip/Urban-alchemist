@@ -1,8 +1,9 @@
 import { getIslandTopYAt, isOnIsland } from '../../utils/terrainPlacement';
 import {
-  createPresetForQuestPlacement,
+  buildQuestSpawnBlocks,
   hasExistingPlaceSite,
   PLACE_ARCHETYPE_LABELS,
+  normalizePlaceArchetypeId,
   snapQuestPositionIfOnIsland,
 } from '../../utils/placePresets';
 import { normalizePostStats } from '../../constants/economyData';
@@ -47,21 +48,30 @@ const hasNearbyBug = (candidate, bugs = [], minDistance = 3) => bugs.some((bug) 
 });
 
 const findExistingSiteAnchor = (archetype, existingBlocks = []) => {
+  const normalized = normalizePlaceArchetypeId(archetype);
+  if (typeof normalized !== 'string') return null;
   const siteBlock = existingBlocks.find(
-    (block) => block?.presetLocked && block?.presetArchetype === archetype,
+    (block) => block?.presetLocked
+      && normalizePlaceArchetypeId(block?.presetArchetype) === normalized,
   );
   return siteBlock?.pos ?? null;
 };
 
 export const createQuestFromPost = (post = {}) => {
-  const questId = `quest_${Date.now()}`;
+  const sourceAnnotationId = post.sourceAnnotationId ?? null;
+  const questId = typeof post.id === 'string' && post.id.startsWith('quest_')
+    ? post.id
+    : sourceAnnotationId
+      ? `quest_${sourceAnnotationId}`
+      : `quest_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
   return {
     ...post,
     id: questId,
+    sourceAnnotationId,
     postKind: 'bad',
     questStatus: QUEST_STATUS.PENDING_SPAWN,
     linkedBugId: null,
-    isMine: true,
+    isMine: !!post.isMine,
   };
 };
 
@@ -80,10 +90,11 @@ export const resolveSpawnPosition = ({
 
   const archetype = quest?.placeArchetype;
   if (typeof archetype === 'string' && archetype !== 'none') {
+    const normalizedArchetype = normalizePlaceArchetypeId(archetype);
     const anchor = findExistingSiteAnchor(archetype, existingBlocks);
     if (anchor) {
       const sameSiteBugCount = bugs.filter(
-        (bug) => bug?.placeArchetype === archetype && !bug.solved,
+        (bug) => normalizePlaceArchetypeId(bug?.placeArchetype) === normalizedArchetype && !bug.solved,
       ).length;
       const offsetAngle = sameSiteBugCount * (Math.PI / 3);
       const radius = 1.5;
@@ -133,22 +144,20 @@ export const spawnQuestOnIslandState = ({
 
   const archetype = quest.placeArchetype;
   const reuseSite = hasExistingPlaceSite(archetype, placedBlocks);
-  const preset = (!reuseSite && archetype !== 'none')
-    ? createPresetForQuestPlacement({
-      quest,
-      basePos: spawnPos,
-      islandChunks,
-      existingBlocks: placedBlocks,
-    })
-    : { archetype: null, needType: quest.needType, label: null, blocks: [] };
+  const spawnBlocks = buildQuestSpawnBlocks({
+    quest,
+    spawnPos,
+    islandChunks,
+    placedBlocks,
+  });
 
   const bug = questToBug(quest, spawnPos);
-  if (preset.archetype) {
-    bug.placeArchetype = preset.archetype;
+  if (spawnBlocks.archetype) {
+    bug.placeArchetype = spawnBlocks.archetype;
   }
 
-  const nextBlocks = preset.blocks.length > 0
-    ? [...placedBlocks, ...preset.blocks]
+  const nextBlocks = spawnBlocks.blocks.length > 0
+    ? [...placedBlocks, ...spawnBlocks.blocks]
     : placedBlocks;
 
   const updatedQuest = {
@@ -158,12 +167,14 @@ export const spawnQuestOnIslandState = ({
   };
 
   let toast = 'あなたの投稿を島に載せました。';
-  if (preset.label) {
-    toast = `${preset.label}にあなたの投稿を載せました。`;
+  if (spawnBlocks.label && !reuseSite) {
+    toast = `${spawnBlocks.label}にあなたの投稿を載せました。`;
   } else if (archetype === 'none') {
     toast = 'あなたの投稿をオーブとして島に載せました。';
-  } else if (reuseSite && PLACE_ARCHETYPE_LABELS[archetype]) {
-    toast = `${PLACE_ARCHETYPE_LABELS[archetype]}の既存サイトに投稿を追加しました。`;
+  } else if (reuseSite && spawnBlocks.blocks.length > 0) {
+    toast = `${PLACE_ARCHETYPE_LABELS[normalizePlaceArchetypeId(archetype)] ?? 'この場所'}に不満の演出を追加しました。`;
+  } else if (reuseSite && PLACE_ARCHETYPE_LABELS[normalizePlaceArchetypeId(archetype)]) {
+    toast = `${PLACE_ARCHETYPE_LABELS[normalizePlaceArchetypeId(archetype)]}の既存サイトに投稿を追加しました。`;
   }
 
   return {

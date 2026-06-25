@@ -13,7 +13,15 @@ import {
   appendPostEvent,
   buildPostEventFromQuest,
   buildResolveEvent,
+  buildSpawnEvent,
+  spawnQuestOnIslandState,
 } from '../helpers/questLifecycle';
+import {
+  annotationToQuestPost,
+  fetchBadAnnotationsForImport,
+  isQuestAlreadyImported,
+  parseImportJson,
+} from '../../game/api/questImport';
 import {
   QUEST_STATUS,
   canFocusQuestOnIsland,
@@ -182,25 +190,103 @@ export const createBugSlice = (set, get) => ({
     return true;
   },
 
-  ingestQuestPost: (post = {}) => {
+  spawnQuestOnIsland: (questId, options = {}) => {
+    const state = get();
+    const quest = state.quests.find((q) => q.id === questId);
+    if (!quest) return false;
+
+    const result = spawnQuestOnIslandState({
+      quest,
+      islandChunks: state.islandChunks,
+      placedBlocks: state.placedBlocks,
+      bugs: state.bugs,
+    });
+    if (!result) return false;
+
+    const { bug, updatedQuest, nextBlocks, toast } = result;
+    const trackSpawn = !!quest.sourceAnnotationId || quest.isMine;
+
+    set({
+      bugs: [...state.bugs, bug],
+      quests: state.quests.map((q) => (q.id === questId ? updatedQuest : q)),
+      placedBlocks: nextBlocks,
+      placingQuest: null,
+      hoverPosition: null,
+      ...(trackSpawn
+        ? {
+          postStats: appendPostEvent(state.postStats, buildSpawnEvent({
+            questId: quest.id,
+            bugId: bug.id,
+          })),
+        }
+        : {}),
+    });
+    if (!options.silent) {
+      setTimedToast({ set, get, message: toast, durationMs: 3200 });
+    }
+    return true;
+  },
+
+  ingestQuestPost: (post = {}, options = {}) => {
     const quest = createQuestFromPost(post);
     const state = get();
-    const toast = '島の上を選んでダブルクリックで配置してください（半透明プレビュー）';
-    const withPostEvent = appendPostEvent(state.postStats, buildPostEventFromQuest({
+    const nextStats = appendPostEvent(state.postStats, buildPostEventFromQuest({
       ...quest,
       t: Date.now(),
     }));
 
     set({
       quests: [quest, ...state.quests],
-      placingQuest: quest,
       isQuestBoardOpen: false,
       hoverPosition: null,
-      postStats: withPostEvent,
+      postStats: {
+        ...nextStats,
+        totalPosts: nextStats.totalPosts + 1,
+      },
     });
-    setTimedToast({ set, get, message: toast, durationMs: 3200 });
 
+    get().spawnQuestOnIsland(quest.id, { silent: options.silent });
     return quest;
+  },
+
+  importArAnnotations: async ({ fromCloud = false, jsonText = null } = {}) => {
+    let posts = [];
+    try {
+      if (fromCloud) {
+        const annotations = await fetchBadAnnotationsForImport();
+        posts = annotations.map(annotationToQuestPost).filter(Boolean);
+      } else if (jsonText) {
+        posts = parseImportJson(jsonText);
+      } else {
+        throw new Error('取り込み元が指定されていません');
+      }
+    } catch (err) {
+      const message = err?.message ?? '取り込みに失敗しました';
+      setTimedToast({ set, get, message, durationMs: 4000 });
+      return { imported: 0, skipped: 0, error: message };
+    }
+
+    let imported = 0;
+    let skipped = 0;
+
+    for (const post of posts) {
+      const quests = get().quests;
+      if (isQuestAlreadyImported(quests, post.sourceAnnotationId)) {
+        skipped += 1;
+        continue;
+      }
+      get().ingestQuestPost(post, { silent: true });
+      imported += 1;
+    }
+
+    const summary = imported > 0
+      ? `${imported} 件を島に載せました${skipped > 0 ? `（${skipped} 件スキップ）` : ''}`
+      : skipped > 0
+        ? `新規投稿はありません（${skipped} 件は取り込み済み）`
+        : '取り込める Bad 投稿がありません';
+
+    setTimedToast({ set, get, message: summary, durationMs: 4500 });
+    return { imported, skipped };
   },
 
   startPlacingQuest: (quest) => {

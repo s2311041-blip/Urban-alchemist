@@ -14,6 +14,7 @@ import {
   getQuestActionButtonStyle,
   getQuestStatusMeta,
 } from '../../../constants/ui/questBoardOverlay';
+import { QuestImportPanel } from './QuestImportPanel';
 
 const getPlaceArchetypeLabel = (placeArchetype) => {
   if (placeArchetype === 'none') return 'どれにも当てはまらない（オーブのみ）';
@@ -26,6 +27,7 @@ export const QuestBoardOverlay = ({
   quests = [],
   startPlacingQuest,
   focusQuestOnIsland,
+  importArAnnotations,
   openAREditQuest,
 }) => {
   const [ownerFilter, setOwnerFilter] = useState('all');
@@ -54,6 +56,9 @@ export const QuestBoardOverlay = ({
           <button onClick={() => setIsQuestBoardOpen(false)} style={QUEST_BOARD_STYLE.closeButton}><X size={24} color="white" /></button>
         </div>
         <div style={QUEST_BOARD_STYLE.content}>
+          {importArAnnotations && (
+            <QuestImportPanel importArAnnotations={importArAnnotations} />
+          )}
           <div style={QUEST_BOARD_STYLE.filterRow}>
             {QUEST_OWNER_FILTER_OPTIONS.map((opt) => (
               <button
