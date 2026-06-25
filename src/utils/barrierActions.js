@@ -62,9 +62,9 @@ export const evaluateBugResolution = (bug, placedBlocks = [], context = {}) => {
   }
 
   if (ok) {
-    return { ok: true, message: 'この不満は解決しました。' };
+    return { ok: true, message: 'この不満は解決しました。', planId: plan };
   }
-  return { ok: false, message: getPlanFailMessage(plan, scale) };
+  return { ok: false, message: getPlanFailMessage(plan, scale), planId: plan };
 };
 
 export const evaluateActiveBuildResolution = (

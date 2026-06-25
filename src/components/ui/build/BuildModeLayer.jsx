@@ -6,6 +6,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { BuildModeGuide } from './BuildModeGuide';
 import { BuildResolutionBanner } from './BuildResolutionBanner';
 import { BuildShortcutsToggle } from './BuildShortcutsToggle';
+import { ImprovementHudPanel } from './ImprovementHudPanel';
 
 /**
  * 建築モード中の共通 UI（ショートカット・ガイド・下部パレット）
@@ -50,6 +51,7 @@ export const BuildModeLayer = ({
   return (
     <>
       <BuildResolutionBanner />
+      <ImprovementHudPanel />
 
       <BuildShortcutsOverlay
         open={showBuildShortcuts}

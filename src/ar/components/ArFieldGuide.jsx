@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { ChevronLeft, Download, Pencil, Search, Trash2 } from 'lucide-react';
+import { ChevronLeft, Download, Heart, Pencil, Search, Trash2 } from 'lucide-react';
 import { NEED_CATEGORY_OPTIONS } from '../../constants/barrierData';
 import { AR_THEME } from '../constants/arTheme';
 import { ArPinCard } from './ArPinCard';
@@ -13,6 +13,8 @@ export function ArFieldGuide({
   annotations,
   authorId,
   totalPoints,
+  availablePoints = totalPoints,
+  onLike,
   onExport,
   onDelete,
   onEdit,
@@ -63,7 +65,7 @@ export function ArFieldGuide({
         </button>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 11, color: AR_THEME.accent }}>街の記録図鑑</div>
-          <div style={{ fontWeight: 'bold', fontSize: 17 }}>{filtered.length} 件 · {totalPoints} pt</div>
+          <div style={{ fontWeight: 'bold', fontSize: 17 }}>{filtered.length} 件 · {availablePoints} pt 使える</div>
         </div>
       </header>
 
@@ -168,6 +170,8 @@ export function ArFieldGuide({
                 onOpen={() => setCardPin(item)}
                 onEdit={item.isMine ? () => onEdit?.(item) : undefined}
                 onDelete={item.isMine ? () => onDelete(item.id) : undefined}
+                onLike={!item.isMine ? () => onLike?.(item.id) : undefined}
+                canLike={!item.isMine && !item.likedByMe && availablePoints >= 1}
               />
             ))}
           </div>
@@ -216,7 +220,7 @@ export function ArFieldGuide({
   );
 }
 
-function FieldGuideCard({ item, onOpen, onEdit, onDelete }) {
+function FieldGuideCard({ item, onOpen, onEdit, onDelete, onLike, canLike = false }) {
   const needLabel = NEED_CATEGORY_OPTIONS.find((o) => o.needType === item.needType)?.label;
   const tags = getAnnotationTags(item).slice(0, 3);
 
@@ -271,10 +275,29 @@ function FieldGuideCard({ item, onOpen, onEdit, onDelete }) {
             </span>
           ))}
         </div>
-        {item.isMine && (
+        {item.isMine ? (
           <div style={{ display: 'flex', gap: 8, marginTop: 8 }} onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
             <button type="button" onClick={onEdit} style={iconBtnStyle} aria-label="編集"><Pencil size={14} /></button>
             <button type="button" onClick={onDelete} style={iconBtnStyle} aria-label="削除"><Trash2 size={14} /></button>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', gap: 8, marginTop: 8, alignItems: 'center' }} onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              disabled={!canLike && !item.likedByMe}
+              onClick={onLike}
+              style={{
+                ...iconBtnStyle,
+                color: item.likedByMe ? '#ef5350' : AR_THEME.muted,
+                opacity: canLike || item.likedByMe ? 1 : 0.45,
+              }}
+              aria-label="共感"
+            >
+              <Heart size={14} fill={item.likedByMe ? '#ef5350' : 'none'} />
+            </button>
+            <span style={{ fontSize: 10, color: AR_THEME.muted }}>
+              {item.likedByMe ? '共感済み' : canLike ? '1 pt で共感' : 'pt 不足'}
+            </span>
           </div>
         )}
       </div>

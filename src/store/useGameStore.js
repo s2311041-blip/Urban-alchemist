@@ -25,6 +25,7 @@ const saveToLocalStorage = () => {
       farmingProgress: state.farmingProgress,
       economy: state.economy,
       postStats: state.postStats,
+      competition: state.competition,
       goodSpots: state.goodSpots,
       activeRemoteHubId: state.activeRemoteHubId,
       remoteExpansionLevel: state.remoteExpansionLevel,

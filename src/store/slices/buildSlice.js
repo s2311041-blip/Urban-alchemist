@@ -11,6 +11,7 @@ import { computeFerryAutoDockBlocks } from '../../utils/placement/ferryAutoDockP
 import { realignAllFerryDocks } from '../../utils/ferryDockPlacement'
 import { setTimedToast } from '../helpers/uiFeedback'
 import { findClosestBlock, isPresetLockedBlock } from '../helpers/blockProtection'
+import { canPlaceShapeInSession } from '../../utils/improvementSession'
 import { ENABLE_FREE_BUILD_PLACE_PRESETS } from '../../constants/buildFeatureFlags'
 import { PLACE_PRESET_TEMPLATES } from '../../constants/placePresetTemplates'
 import {
@@ -265,6 +266,15 @@ export const createBuildSlice = (set, get) => ({
     if (selectedEditBlockId) return;
     if (selectedShape === 'diagonal' && isDesigningDiagonal) return;
 
+    const { buildMode, buildSession } = get();
+    if (buildMode && buildMode !== 'free' && buildSession && selectedShape !== 'eraser') {
+      const shapeCheck = canPlaceShapeInSession(buildSession, selectedShape);
+      if (!shapeCheck.ok) {
+        setTimedToast({ set, get, message: shapeCheck.message, durationMs: 2400 });
+        return;
+      }
+    }
+
     let finalPos = [...targetPos];
     if (get().isAdjustingSize && get().previewPositionOffset) {
       finalPos[0] += get().previewPositionOffset[0];
@@ -373,6 +383,7 @@ export const createBuildSlice = (set, get) => ({
         get().addToHistory(newBlock);
         const nextPlacedBlocks = [...placedBlocks, newBlock];
         set((state) => patchStateWithFerryRoutes(state, nextPlacedBlocks));
+        get().trackSessionBlockPlacement?.(newBlock);
       }
     } else {
       const exists = placedBlocks.some(b => 
@@ -419,6 +430,8 @@ export const createBuildSlice = (set, get) => ({
             if (get().islandToast === islandToast) set({ islandToast: null });
           }, 4200);
         }
+        get().trackSessionBlockPlacement?.(newBlock);
+        autoDockBlocks.forEach((dockBlock) => get().trackSessionBlockPlacement?.(dockBlock));
       }
     }
   },

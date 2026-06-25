@@ -15,6 +15,8 @@ import {
   getQuestStatusMeta,
 } from '../../../constants/ui/questBoardOverlay';
 import { QuestImportPanel } from './QuestImportPanel';
+import { CompetitionPanel } from './CompetitionPanel';
+import { ResearchToolsPanel } from './ResearchToolsPanel';
 
 const getPlaceArchetypeLabel = (placeArchetype) => {
   if (placeArchetype === 'none') return 'どれにも当てはまらない（オーブのみ）';
@@ -29,6 +31,13 @@ export const QuestBoardOverlay = ({
   focusQuestOnIsland,
   importArAnnotations,
   openAREditQuest,
+  competition,
+  voteCompetitionEntry,
+  resetCompetition,
+  setCompetitionTopic,
+  exportResearchLog,
+  loadDemoQuestSet,
+  postStats,
 }) => {
   const [ownerFilter, setOwnerFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -58,6 +67,21 @@ export const QuestBoardOverlay = ({
         <div style={QUEST_BOARD_STYLE.content}>
           {importArAnnotations && (
             <QuestImportPanel importArAnnotations={importArAnnotations} />
+          )}
+          {exportResearchLog && (
+            <ResearchToolsPanel
+              exportResearchLog={exportResearchLog}
+              loadDemoQuestSet={loadDemoQuestSet}
+              postStats={postStats}
+            />
+          )}
+          {competition && voteCompetitionEntry && (
+            <CompetitionPanel
+              competition={competition}
+              voteCompetitionEntry={voteCompetitionEntry}
+              resetCompetition={resetCompetition}
+              setCompetitionTopic={setCompetitionTopic}
+            />
           )}
           <div style={QUEST_BOARD_STYLE.filterRow}>
             {QUEST_OWNER_FILTER_OPTIONS.map((opt) => (

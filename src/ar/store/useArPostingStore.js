@@ -12,6 +12,12 @@ import {
   mergeAnnotations,
   getApiMode,
 } from '../api/annotationsClient';
+import {
+  countLocalLikesSpent,
+  fetchLikeMetaForAnnotations,
+  likeAnnotation,
+  mergeLikeMetaIntoAnnotations,
+} from '../api/likesClient';
 
 const STORAGE_KEY = 'urban_alchemist_ar_rq2_v2';
 
@@ -36,6 +42,7 @@ export const useArPostingStore = create(
       syncStatus: 'idle',
       lastSyncAt: null,
       helpSeenOnce: false,
+      likeRecords: [],
 
       setAuthorId: (authorId) => {
         if (authorId) set({ authorId });
@@ -50,17 +57,46 @@ export const useArPostingStore = create(
         try {
           const remote = await fetchAnnotations({ geo });
           const authorId = get().authorId;
-          set((state) => ({
-            annotations: mergeAnnotations(state.annotations, remote, state.deletedAnnotationIds).map((a) => ({
-              ...a,
-              isMine: a.authorId === authorId,
-            })),
+          const merged = mergeAnnotations(get().annotations, remote, get().deletedAnnotationIds).map((a) => ({
+            ...a,
+            isMine: a.authorId === authorId,
+          }));
+          const likeMeta = await fetchLikeMetaForAnnotations(merged.map((a) => a.id));
+          set({
+            annotations: mergeLikeMetaIntoAnnotations(merged, likeMeta),
             syncStatus: 'ok',
             lastSyncAt: Date.now(),
-          }));
+          });
         } catch {
           set({ syncStatus: 'error' });
         }
+      },
+
+      getAvailablePoints: () => {
+        const { totalPoints, authorId } = get();
+        const spent = countLocalLikesSpent(authorId);
+        return Math.max(0, totalPoints - spent);
+      },
+
+      likeAnnotationById: async (annotationId) => {
+        const { authorId, annotations } = get();
+        const target = annotations.find((a) => a.id === annotationId);
+        if (!target || target.isMine || target.authorId === authorId) {
+          throw new Error('not_allowed');
+        }
+        if (target.likedByMe) throw new Error('already_liked');
+
+        const availablePoints = get().getAvailablePoints();
+        await likeAnnotation(annotationId, { authorId, availablePoints });
+
+        set((state) => ({
+          annotations: state.annotations.map((a) => (
+            a.id === annotationId
+              ? { ...a, likedByMe: true, likeCount: (a.likeCount ?? 0) + 1 }
+              : a
+          )),
+          likeRecords: [...state.likeRecords, { annotationId, at: Date.now() }],
+        }));
       },
 
       submitDraft: async (draft) => {
@@ -172,6 +208,7 @@ export const useArPostingStore = create(
         annotations: state.annotations,
         deletedAnnotationIds: state.deletedAnnotationIds,
         helpSeenOnce: state.helpSeenOnce,
+        likeRecords: state.likeRecords,
       }),
     },
   ),

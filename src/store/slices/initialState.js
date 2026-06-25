@@ -15,6 +15,7 @@ import {
   loadFavorites,
 } from '../helpers/saveSchema'
 import { createDefaultPlacedBlocks } from '../../utils/placePresets'
+import { normalizeCompetition } from '../../constants/competitionData'
 
 export const createInitialState = (savedData) => {
   const islandChunks = savedData?.islandChunks || createDefaultIslandChunks();
@@ -107,6 +108,8 @@ export const createInitialState = (savedData) => {
   postStats: normalizePostStats(savedData?.postStats),
   farmingToast: null,
   buildFinishError: null,
+  buildSession: null,
+  competition: normalizeCompetition(savedData?.competition),
   interactionMode: null,
   interactionHint: null,
   mapPlayerPos: [0, 0],

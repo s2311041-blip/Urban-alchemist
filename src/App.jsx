@@ -15,6 +15,7 @@ import { IslandSpawnToast } from './components/ui/hud/IslandSpawnToast'
 import { TopLeftPanel } from './components/ui/TopLeftPanel'
 import { MainBottomNav } from './components/ui/MainBottomNav'
 import { QuestBoardOverlay } from './components/ui/quest/QuestBoardOverlay'
+import { QuestTutorialOverlay } from './components/ui/quest/QuestTutorialOverlay'
 import { BugReportOverlay } from './components/ui/bug/BugReportOverlay'
 import { PlacingQuestOverlay } from './components/ui/quest/PlacingQuestOverlay'
 import { PlacingPresetOverlay } from './components/ui/build/PlacingPresetOverlay'
@@ -47,6 +48,14 @@ export default function App() {
     startPlacingQuest: state.startPlacingQuest,
     focusQuestOnIsland: state.focusQuestOnIsland,
     importArAnnotations: state.importArAnnotations,
+    exportResearchLog: state.exportResearchLog,
+    loadDemoQuestSet: state.loadDemoQuestSet,
+    postStats: state.postStats,
+    competition: state.competition,
+    voteCompetitionEntry: state.voteCompetitionEntry,
+    resetCompetition: state.resetCompetition,
+    setCompetitionTopic: state.setCompetitionTopic,
+    submitCompetitionEntry: state.submitCompetitionEntry,
     setActiveBug: state.setActiveBug,
     setIsReturning: state.setIsReturning,
     removeBug: state.removeBug,
@@ -135,7 +144,16 @@ export default function App() {
           startPlacingQuest={store.startPlacingQuest}
           focusQuestOnIsland={store.focusQuestOnIsland}
           importArAnnotations={store.importArAnnotations}
+          exportResearchLog={store.exportResearchLog}
+          loadDemoQuestSet={store.loadDemoQuestSet}
+          postStats={store.postStats}
+          competition={store.competition}
+          voteCompetitionEntry={store.voteCompetitionEntry}
+          resetCompetition={store.resetCompetition}
+          setCompetitionTopic={store.setCompetitionTopic}
         />
+
+        <QuestTutorialOverlay quests={store.quests} />
 
         {/* 不満詳細オーバーレイ */}
         <BugReportOverlay

@@ -28,6 +28,8 @@ export function ArPostingApp() {
     updateDraft,
     removeAnnotation,
     downloadExport,
+    getAvailablePoints,
+    likeAnnotationById,
   } = useArPostingStore(useShallow((s) => ({
     authorId: s.authorId,
     annotations: s.annotations,
@@ -42,6 +44,8 @@ export function ArPostingApp() {
     updateDraft: s.updateDraft,
     removeAnnotation: s.removeAnnotation,
     downloadExport: s.downloadExport,
+    getAvailablePoints: s.getAvailablePoints,
+    likeAnnotationById: s.likeAnnotationById,
   })));
 
   useEffect(() => {
@@ -161,6 +165,14 @@ export function ArPostingApp() {
           annotations={mineMarked}
           authorId={authorId}
           totalPoints={totalPoints}
+          availablePoints={getAvailablePoints()}
+          onLike={async (id) => {
+            try {
+              await likeAnnotationById(id);
+            } catch (err) {
+              console.warn('like failed', err?.message ?? err);
+            }
+          }}
           onExport={downloadExport}
           onDelete={removeAnnotation}
           onEdit={startEdit}

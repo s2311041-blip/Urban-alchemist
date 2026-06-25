@@ -30,10 +30,61 @@ import {
 } from '../helpers/questState';
 import { buildResolveToast } from '../../utils/questFeedback';
 import { setTimedToast } from '../helpers/uiFeedback';
+import { DEMO_QUEST_POSTS } from '../../constants/demoQuestSet';
+import {
+  applyBuildSpend,
+  applyPlanCompletionBonus,
+  buildImprovementBuildEvent,
+  createImprovementSession,
+  exportResearchLogCsv,
+  extendResolveEvent,
+  validateFinishSession,
+} from '../../utils/improvementSession';
+import { createTradeoffBugFromResolution } from '../../utils/tradeoffSpawn';
+import { getImprovementBudgetLimit } from '../../constants/improvementConstraints';
 
 export const createBugSlice = (set, get) => ({
+  trackSessionBlockPlacement: (block) => {
+    const { buildMode, buildSession, bugs } = get();
+    if (!buildMode || buildMode === 'free' || !buildSession || !block) return;
+    const bug = findBugById(bugs, buildMode);
+    if (!bug) return;
+    const nextSession = applyBuildSpend(buildSession, block, bug);
+    set({ buildSession: nextSession });
+  },
+
+  exportResearchLog: () => {
+    const csv = exportResearchLogCsv(get().postStats);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `rq2-research-log-${Date.now()}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    setTimedToast({ set, get, message: '研究ログを CSV で保存しました。', durationMs: 2600 });
+  },
+
+  loadDemoQuestSet: () => {
+    let imported = 0;
+    let skipped = 0;
+    for (const post of DEMO_QUEST_POSTS) {
+      if (isQuestAlreadyImported(get().quests, post.sourceAnnotationId)) {
+        skipped += 1;
+        continue;
+      }
+      get().ingestQuestPost(post, { silent: true });
+      imported += 1;
+    }
+    const summary = imported > 0
+      ? `デモ ${imported} 件を島に載せました${skipped > 0 ? `（${skipped} 件スキップ）` : ''}`
+      : 'デモデータは取り込み済みです';
+    setTimedToast({ set, get, message: summary, durationMs: 4000 });
+    return { imported, skipped };
+  },
+
   finishBuildMode: () => {
-    const { buildMode, bugs, islandChunks, placedBlocks, ferryRoutes } = get();
+    const { buildMode, bugs, islandChunks, placedBlocks, ferryRoutes, buildSession } = get();
     set({
       selectedEditBlockId: null,
       diagonalFirstPoint: null,
@@ -41,7 +92,7 @@ export const createBugSlice = (set, get) => ({
     });
 
     if (buildMode === 'free') {
-      set({ buildMode: null, hoverPosition: null, placingPresetArchetype: null, isReturning: true });
+      set({ buildMode: null, buildSession: null, hoverPosition: null, placingPresetArchetype: null, isReturning: true });
       return;
     }
 
@@ -67,10 +118,34 @@ export const createBugSlice = (set, get) => ({
         return;
       }
 
+      let sessionForFinish = buildSession;
+      if (sessionForFinish) {
+        sessionForFinish = {
+          ...sessionForFinish,
+          stakeholderSatisfaction: applyPlanCompletionBonus(sessionForFinish, targetBug),
+        };
+        const sessionCheck = validateFinishSession(sessionForFinish);
+        if (!sessionCheck.ok) {
+          set({ buildFinishError: sessionCheck.message, farmingToast: sessionCheck.message });
+          setTimeout(() => {
+            if (get().farmingToast === sessionCheck.message) set({ farmingToast: null });
+          }, 2800);
+          return;
+        }
+      }
+
+      const tradeoffBug = createTradeoffBugFromResolution({
+        ...targetBug,
+        chosenPlan: resolution?.planId ?? targetBug.chosenPlan,
+      });
+
       const updatedBugs = bugs.map((b) => (
         sameBugId(b.id, buildMode) ? { ...b, solved: true } : b
       ));
-      const sideEffectToast = getBarrierSideEffectToast(targetBug, resolution);
+      const bugsWithTradeoff = tradeoffBug ? [...updatedBugs, tradeoffBug] : updatedBugs;
+      const sideEffectToast = tradeoffBug
+        ? '通行は改善しましたが、急な勾配で新たな不満が浮上しました…'
+        : getBarrierSideEffectToast(targetBug, resolution);
       const solvedCount = updatedBugs.filter((b) => b.solved).length;
       const resolvedQuestPatch = targetBug.sourceQuestId
         ? {
@@ -78,20 +153,33 @@ export const createBugSlice = (set, get) => ({
         }
         : {};
       const shouldTrackResolve = !!targetBug.sourceQuestId;
-      const resolveStatsPatch = shouldTrackResolve
+      const sessionValidation = sessionForFinish
+        ? {
+          sessionId: sessionForFinish.sessionId,
+          budgetSpent: sessionForFinish.budgetSpent,
+          budgetRemaining: sessionForFinish.budgetLimit - sessionForFinish.budgetSpent,
+          minStakeholderSatisfaction: validateFinishSession(sessionForFinish).minStakeholderSatisfaction,
+        }
+        : null;
+      const resolveStatsPatch = shouldTrackResolve || sessionForFinish
         ? (() => {
-          const nextStats = appendPostEvent(get().postStats, buildResolveEvent({
-            t: Date.now(),
-            questId: targetBug.sourceQuestId,
-            bugId: targetBug.id,
-            chosenPlan: resolution?.planId ?? targetBug.chosenPlan ?? null,
-          }));
-          return {
-            postStats: {
+          let nextStats = get().postStats;
+          if (shouldTrackResolve) {
+            nextStats = appendPostEvent(nextStats, extendResolveEvent(buildResolveEvent({
+              t: Date.now(),
+              questId: targetBug.sourceQuestId,
+              bugId: targetBug.id,
+              chosenPlan: resolution?.planId ?? targetBug.chosenPlan ?? null,
+            }), sessionValidation));
+            nextStats = {
               ...nextStats,
-              totalResolved: nextStats.totalResolved + 1,
-            },
-          };
+              totalResolved: nextStats.totalResolved + (shouldTrackResolve ? 1 : 0),
+            };
+          }
+          if (sessionForFinish) {
+            nextStats = appendPostEvent(nextStats, buildImprovementBuildEvent(sessionForFinish));
+          }
+          return { postStats: nextStats };
         })()
         : {};
       const resolveToast = targetBug.sourceQuestId
@@ -103,7 +191,7 @@ export const createBugSlice = (set, get) => ({
 
       if (solvedCount > 0) {
         const expansion = computeWorldExpansionAfterSolve({
-          updatedBugs,
+          updatedBugs: bugsWithTradeoff,
           islandChunks,
           placedBlocks,
           solvedCount,
@@ -115,6 +203,7 @@ export const createBugSlice = (set, get) => ({
         if (expansion) {
           set({
             ...expansion.patch,
+            buildSession: null,
             ...resolvedQuestPatch,
             ...resolveStatsPatch,
             ...(resolveToast ? { farmingToast: resolveToast } : sideEffectToast ? { farmingToast: sideEffectToast } : {}),
@@ -145,11 +234,13 @@ export const createBugSlice = (set, get) => ({
       } else {
         set({
           buildMode: null,
+          buildSession: null,
           hoverPosition: null,
           isReturning: true,
+          bugs: bugsWithTradeoff,
           ...resolvedQuestPatch,
           ...resolveStatsPatch,
-          ...(resolveToast ? { farmingToast: resolveToast } : {}),
+          ...(resolveToast ? { farmingToast: resolveToast } : sideEffectToast ? { farmingToast: sideEffectToast } : {}),
         });
         if (resolveToast) setTimedToast({ set, get, message: resolveToast, durationMs: 5000 });
       }
@@ -373,10 +464,20 @@ export const createBugSlice = (set, get) => ({
       ...buildModeDefaults,
       buildMode: bugId,
       buildFinishError: null,
+      buildSession: createImprovementSession(
+        { ...targetBug, chosenPlan: resolvedPlan ?? targetBug.chosenPlan },
+        state.placedBlocks,
+      ),
       selectedShape: initialShape,
       bugs: state.bugs.map((bug) => {
         if (!sameBugId(bug.id, bugId)) return bug;
-        return resolvedPlan ? normalizeBug({ ...bug, chosenPlan: resolvedPlan }) : normalizeBug(bug);
+        const normalized = resolvedPlan
+          ? normalizeBug({ ...bug, chosenPlan: resolvedPlan })
+          : normalizeBug(bug);
+        return {
+          ...normalized,
+          improvementBudgetLimit: getImprovementBudgetLimit(normalized),
+        };
       }),
     }));
   },

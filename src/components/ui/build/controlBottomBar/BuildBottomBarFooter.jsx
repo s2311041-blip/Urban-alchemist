@@ -13,7 +13,8 @@ export const BuildBottomBarFooter = (props) => {
     buildMode, finishBuildMode,
   } = props;
   const store = useGameStore(useShallow(state => ({
-    finishEditingInStudio: state.finishEditingInStudio
+    finishEditingInStudio: state.finishEditingInStudio,
+    submitCompetitionEntry: state.submitCompetitionEntry,
   })));
   return (
     <>
@@ -157,6 +158,31 @@ export const BuildBottomBarFooter = (props) => {
             <Check size={16} /> 編集を確定して島に戻る
           </button>
         ) : (
+          <>
+            {buildMode !== 'free' && (
+              <button
+                type="button"
+                onClick={() => store.submitCompetitionEntry?.()}
+                style={{
+                  width: '100%',
+                  background: 'rgba(255, 183, 77, 0.18)',
+                  color: '#ffe0b2',
+                  border: '1px solid rgba(255, 183, 77, 0.35)',
+                  padding: '10px',
+                  borderRadius: '12px',
+                  fontSize: '13px',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                }}
+              >
+                <Sparkles size={14} />
+                コンペに匿名エントリー
+              </button>
+            )}
           <button 
             type="button"
             onClick={() => finishBuildMode()}
@@ -174,6 +200,7 @@ export const BuildBottomBarFooter = (props) => {
             {buildMode === 'free' ? <Hammer size={16} /> : <Sparkles size={16} />}
             {buildMode === 'free' ? '建築モードを終了する' : '完成させる！'}
           </button>
+          </>
         )}
       </div>
     </>
