@@ -13,9 +13,10 @@ export const KOTO_MAP_ZOOM = 14;
 export const MAX_AR_VIEW_DISTANCE_M = 120;
 export const DEFAULT_PIN_DISTANCE_M = 8;
 
-/** ゲーム placeArchetype 互換の場所チップ */
+/** ゲーム placeArchetype 互換の場所チップ（id は spawn プリセットと一致） */
 export const KOTO_PLACE_OPTIONS = [
-  { id: 'station', label: '駅・駅前' },
+  { id: 'station', label: '駅（改札・ホーム）' },
+  { id: 'plaza', label: '駅前・広場' },
   { id: 'bus_stop', label: 'バス停' },
   { id: 'waterfront', label: '水辺・運河沿い' },
   { id: 'road', label: '歩道・道路' },

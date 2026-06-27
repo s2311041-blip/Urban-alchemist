@@ -35,6 +35,18 @@ describe('buildAnnotationFromDraft', () => {
     }, { authorId: 'u1' });
     expect(record.affectedOther).toBe('チャリ');
   });
+
+  it('preserves plaza for station-front posts', () => {
+    const record = buildAnnotationFromDraft({
+      postKind: 'bad',
+      needType: 'R',
+      placeArchetype: 'plaza',
+      affectedGroups: ['高齢者'],
+      comment: '駅前にベンチがなくて休めない',
+      worldPin: { lat: 35.65, lng: 139.82 },
+    }, { authorId: 'u1' });
+    expect(record.placeArchetype).toBe('plaza');
+  });
 });
 
 describe('computePinWorldPosition', () => {
