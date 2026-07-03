@@ -52,7 +52,7 @@ export const BuildModeLayer = ({
   return (
     <>
       <BuildResolutionBanner />
-      {!store.isSeriousMode && <ImprovementHudPanel />}
+      <ImprovementHudPanel />
 
       <BuildShortcutsOverlay
         open={showBuildShortcuts}

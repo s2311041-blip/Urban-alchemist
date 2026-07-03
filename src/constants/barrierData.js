@@ -36,14 +36,25 @@ export const BARRIER_GRID_TEMPLATE = {
 };
 
 export const PLAN_LABEL = {
-  lighting: '照明を増やす',
-  hard_fix: '段差を解消する',
-  detour_path: '迂回ルートを作る',
-  transit_link: '海列車をつなぐ',
-  mobility_support: '移動支援を導入する',
-  maintenance: '維持しやすい空間にする',
-  sign_info: '案内で誘導する',
-  care_point: '見守り拠点をつくる',
+  lighting: '照明を増やす（環境改善）',
+  hard_fix: '段差を解消する（ハード整備）',
+  detour_path: '迂回ルートを作る（動線変更）',
+  transit_link: '海列車をつなぐ（移動支援）',
+  mobility_support: '移動支援を導入する（交通手段の提供）',
+  maintenance: '維持しやすい空間にする（環境美化）',
+  sign_info: '案内で誘導する（ソフト整備・情報）',
+  care_point: '見守り拠点をつくる（人的・社会的支援）',
+};
+
+export const PLAN_DESCRIPTION = {
+  lighting: '暗い場所や死角に明かりを置き、不安を取り除きます。',
+  hard_fix: '物理的な障壁を取り除き、車椅子やベビーカーでも通れるようにします。',
+  detour_path: '通れない場所を避けて、安全に移動できる新しいルートを用意します。',
+  transit_link: '離れた場所同士を船などで結び、移動のハードルを下げます。',
+  mobility_support: 'バスやタクシーなど、歩かずに移動できる手段を提供します。',
+  maintenance: 'ゴミや放置自転車などを防ぐため、綺麗に保たれる空間をデザインします。',
+  sign_info: '迷いやすい場所に看板などを置き、正しい道順を案内します。',
+  care_point: '人が留まれる場所を作り、困っている人を誰かが見守れるようにします。',
 };
 
 /** 建築パレット（ControlBottomBar）と同じブロック表記 */

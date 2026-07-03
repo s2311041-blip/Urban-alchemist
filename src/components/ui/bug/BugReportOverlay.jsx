@@ -6,6 +6,7 @@ import {
   getScaleUi,
   NEED_CATEGORY_OPTIONS,
   PLAN_LABEL,
+  PLAN_DESCRIPTION,
   SEVERITY_OPTIONS,
   TARGET_GROUP_ICON_BY_LABEL,
   TIME_TAG_ICON_BY_LABEL,
@@ -213,6 +214,9 @@ export const BugReportOverlay = ({
                             <div style={getPlanOrdinalStyle({ active, accent })}>
                               {active ? BUG_REPORT_COPY.selected : `型 ${idx + 1}`}
                             </div>
+                          </div>
+                          <div style={{ fontSize: '12px', color: '#b0bec5', marginBottom: '8px', lineHeight: 1.4 }}>
+                            {PLAN_DESCRIPTION[plan] ?? ''}
                           </div>
                           <div style={BUG_REPORT_STYLE.planHint}>{getPlanHint(plan, bug.scale) ?? BUG_REPORT_COPY.planFallbackHint}</div>
                         </button>

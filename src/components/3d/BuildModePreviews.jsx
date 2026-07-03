@@ -172,7 +172,7 @@ export const BuildModePreviews = ({ islandChunks }) => {
               })() : null}
 
               {areaAction && clipboardBlocks.length > 0 ? (
-                <group>
+                <group raycast={() => null}>
                   {clipboardBlocks.map((b, i) => (
                     <Block 
                       key={`ghost-${i}`}
@@ -274,47 +274,51 @@ export const BuildModePreviews = ({ islandChunks }) => {
                 </mesh>
               ) : selectedShape === 'diagonal' ? (
                 !isDesigningDiagonal && customDiagonalPoints ? (
-                  <Block 
-                    position={hoverPosition} 
-                    shape="diagonal" 
-                    material={selectedMaterial} 
-                    scale={selectedScale} 
-                    isGhost={true} 
-                    diagonalPoints={[
-                      [hoverPosition[0] + customDiagonalPoints[0][0], hoverPosition[1] + customDiagonalPoints[0][1], hoverPosition[2] + customDiagonalPoints[0][2]],
-                      [hoverPosition[0] + customDiagonalPoints[1][0], hoverPosition[1] + customDiagonalPoints[1][1], hoverPosition[2] + customDiagonalPoints[1][2]]
-                    ]}
-                  />
+                  <group raycast={() => null}>
+                    <Block 
+                      position={hoverPosition} 
+                      shape="diagonal" 
+                      material={selectedMaterial} 
+                      scale={selectedScale} 
+                      isGhost={true} 
+                      diagonalPoints={[
+                        [hoverPosition[0] + customDiagonalPoints[0][0], hoverPosition[1] + customDiagonalPoints[0][1], hoverPosition[2] + customDiagonalPoints[0][2]],
+                        [hoverPosition[0] + customDiagonalPoints[1][0], hoverPosition[1] + customDiagonalPoints[1][1], hoverPosition[2] + customDiagonalPoints[1][2]]
+                      ]}
+                    />
+                  </group>
                 ) : null
               ) : (
                 selectedShape !== 'area_select' && (!isAdjustingSize || !previewFixedPos) ? (
-                  <Block 
-                    position={hoverPosition} 
-                    shape={selectedShape} 
-                    material={selectedMaterial} 
-                    rotation={blockRotation} 
-                    scale={selectedScale} 
-                    isGhost={true}
-                    nature={{ species: selectedNatureSpecies, color: selectedNatureColors?.[selectedShape] }}
-                    agri={{ color: selectedAgriColors?.[selectedShape] }}
-                    terrain={{ color: selectedTerrainColors?.[selectedShape] }}
-                    hoverboard={selectedShape === 'hoverboard_station' ? { color: selectedHoverboardColor } : undefined}
-                    agriNeighbors={
-                      isConnectableAgriShape(selectedShape)
-                        ? getCardinalNeighbors({ id: '__ghost__', pos: hoverPosition, shape: selectedShape }, placedBlocks)
-                        : null
-                    }
-                    terrainNeighbors={
-                      isConnectableTerrainShape(selectedShape)
-                        ? getCardinalNeighbors({ id: '__ghost__', pos: hoverPosition, shape: selectedShape }, placedBlocks)
-                        : null
-                    }
-                    railNeighbors={
-                      selectedShape === 'rail'
-                        ? getCardinalNeighbors({ id: '__ghost__', pos: hoverPosition, shape: 'rail' }, placedBlocks)
-                        : null
-                    }
-                  />
+                  <group raycast={() => null}>
+                    <Block 
+                      position={hoverPosition} 
+                      shape={selectedShape} 
+                      material={selectedMaterial} 
+                      rotation={blockRotation} 
+                      scale={selectedScale} 
+                      isGhost={true}
+                      nature={{ species: selectedNatureSpecies, color: selectedNatureColors?.[selectedShape] }}
+                      agri={{ color: selectedAgriColors?.[selectedShape] }}
+                      terrain={{ color: selectedTerrainColors?.[selectedShape] }}
+                      hoverboard={selectedShape === 'hoverboard_station' ? { color: selectedHoverboardColor } : undefined}
+                      agriNeighbors={
+                        isConnectableAgriShape(selectedShape)
+                          ? getCardinalNeighbors({ id: '__ghost__', pos: hoverPosition, shape: selectedShape }, placedBlocks)
+                          : null
+                      }
+                      terrainNeighbors={
+                        isConnectableTerrainShape(selectedShape)
+                          ? getCardinalNeighbors({ id: '__ghost__', pos: hoverPosition, shape: selectedShape }, placedBlocks)
+                          : null
+                      }
+                      railNeighbors={
+                        selectedShape === 'rail'
+                          ? getCardinalNeighbors({ id: '__ghost__', pos: hoverPosition, shape: 'rail' }, placedBlocks)
+                          : null
+                      }
+                    />
+                  </group>
                 ) : null
               )}
             </>

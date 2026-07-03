@@ -3,6 +3,9 @@ import { useGameStore } from '../../../store/useGameStore';
 import { getMinStakeholderSatisfaction } from '../../../utils/improvementSession';
 import { STAKEHOLDER_GROUPS } from '../../../constants/improvementConstraints';
 
+import { getPlanHint } from '../../../constants/barrierData';
+import { Hammer } from 'lucide-react';
+
 const gaugeBar = (value, max, color) => (
   <div style={{
     height: 8,
@@ -26,8 +29,40 @@ const gaugeBar = (value, max, color) => (
 export const ImprovementHudPanel = () => {
   const buildMode = useGameStore((s) => s.buildMode);
   const buildSession = useGameStore((s) => s.buildSession);
+  const isSeriousMode = useGameStore((s) => s.isSeriousMode);
+  const bugs = useGameStore((s) => s.bugs);
 
   if (!buildMode || buildMode === 'free' || !buildSession) return null;
+
+  const targetBug = bugs.find((b) => b.id === buildMode);
+  const hintText = getPlanHint(buildSession.plan, targetBug?.scale ?? 'point');
+
+  if (isSeriousMode) {
+    return (
+      <div style={{
+        position: 'absolute',
+        top: '88px',
+        right: '20px',
+        zIndex: 1190,
+        width: 'min(260px, calc(100vw - 40px))',
+        padding: '16px',
+        borderRadius: '14px',
+        background: 'rgba(6, 16, 30, 0.92)',
+        border: '1px solid rgba(0, 229, 255, 0.45)',
+        boxShadow: '0 10px 28px rgba(0,0,0,0.35)',
+        color: '#eaf4ff',
+        backdropFilter: 'blur(6px)',
+        pointerEvents: 'none',
+      }}>
+        <div style={{ fontSize: 12, fontWeight: 'bold', color: '#00e5ff', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+          <Hammer size={16} /> 改善のクリア条件
+        </div>
+        <div style={{ fontSize: 12, lineHeight: 1.5, color: '#fff' }}>
+          {hintText}
+        </div>
+      </div>
+    );
+  }
 
   const budgetRemaining = buildSession.budgetLimit - buildSession.budgetSpent;
   const budgetColor = budgetRemaining < 0 ? '#ef5350' : budgetRemaining <= 4 ? '#ffb74d' : '#81c784';
