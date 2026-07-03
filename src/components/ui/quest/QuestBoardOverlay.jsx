@@ -38,6 +38,8 @@ export const QuestBoardOverlay = ({
   exportResearchLog,
   loadDemoQuestSet,
   postStats,
+  isSeriousMode,
+  startConsensusSession,
 }) => {
   const [ownerFilter, setOwnerFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -73,6 +75,8 @@ export const QuestBoardOverlay = ({
               exportResearchLog={exportResearchLog}
               loadDemoQuestSet={loadDemoQuestSet}
               postStats={postStats}
+              isSeriousMode={isSeriousMode}
+              startConsensusSession={startConsensusSession}
             />
           )}
           {competition && voteCompetitionEntry && (

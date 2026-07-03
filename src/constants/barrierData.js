@@ -40,6 +40,7 @@ export const PLAN_LABEL = {
   hard_fix: '段差を解消する',
   detour_path: '迂回ルートを作る',
   transit_link: '海列車をつなぐ',
+  mobility_support: '移動支援を導入する',
   maintenance: '維持しやすい空間にする',
   sign_info: '案内で誘導する',
   care_point: '見守り拠点をつくる',
@@ -94,6 +95,7 @@ export const PLAN_HINT = {
   hard_fix: `${B.slope}または${B.half}を不満地点の近くに置く`,
   detour_path: `${B.path}を連続してつなぎ、迂回できる道を作る`,
   transit_link: `${B.ferry_dock}を本島と離島に置いて航路をつなぐ`,
+  mobility_support: `${B.path}や${B.bench}を置いてバス停・移動拠点の代わりにする`,
   maintenance: `${B.bench}と${B.path}を置いて、休める・歩ける空間にする`,
   sign_info: `${B.sign_post}を置いて、行き先が分かるようにする`,
   care_point: `${B.bench}と${B.light_pole}を置いて、休んで見守ってもらえる場所にする`,
@@ -220,12 +222,12 @@ export const BARRIER_TYPE_META = {
     defaultPlan: 'care_point',
   },
   // --- ここから先は 3x3 土台用（後続フェーズで有効化） ---
-  line_step_gap: {
+    line_step_gap: {
     scale: BARRIER_SCALE.LINE,
     factor: BARRIER_FACTOR.HARD,
     needType: 'L',
     tagLabel: '#線的欠損_段差連続',
-    allowedPlans: ['hard_fix', 'detour_path', 'transit_link'],
+    allowedPlans: ['hard_fix', 'detour_path', 'mobility_support', 'transit_link'],
     defaultPlan: 'detour_path',
   },
   line_sign_confusion: {

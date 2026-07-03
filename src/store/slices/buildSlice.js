@@ -298,6 +298,7 @@ export const createBuildSlice = (set, get) => ({
         get().saveToUndoStack();
         const nextPlacedBlocks = placedBlocks.filter(b => b.id !== closestBlock.id);
         set((state) => patchStateWithFerryRoutes(state, nextPlacedBlocks));
+        get().trackSessionBlockRemoval?.(closestBlock);
       }
     } else if (selectedShape === 'edit') {
       set({ selectedEditBlockId: null });

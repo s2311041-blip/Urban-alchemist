@@ -20,6 +20,11 @@ export const normalizeCompetitionEntry = (entry) => {
     label: typeof entry.label === 'string' ? entry.label : '匿名案',
     blockSnapshot: Array.isArray(entry.blockSnapshot) ? entry.blockSnapshot : [],
     submittedAt: Number.isFinite(entry.submittedAt) ? entry.submittedAt : Date.now(),
+    isSeriousMode: typeof entry.isSeriousMode === 'boolean' ? entry.isSeriousMode : false,
+    remainingSessionBudget: typeof entry.remainingSessionBudget === 'number' ? entry.remainingSessionBudget : null,
+    totalSessionBudget: typeof entry.totalSessionBudget === 'number' ? entry.totalSessionBudget : null,
+    islandSatisfaction: entry.islandSatisfaction || null,
+    questDecisions: entry.questDecisions || null,
   };
 };
 

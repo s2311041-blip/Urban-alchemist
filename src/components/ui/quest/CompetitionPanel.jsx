@@ -108,13 +108,16 @@ export function CompetitionPanel({
                   {entry.label}
                 </div>
                 <div style={{ fontSize: 11, color: '#90a4ae' }}>
-                  {entry.plan ?? '—'}
-                  {' '}
-                  ·
-                  {' '}
-                  {entry.blockSnapshot.length}
-                  {' '}
-                  ブロック
+                  {entry.isSeriousMode ? (
+                    <>
+                      残予算: {entry.remainingSessionBudget} / {entry.totalSessionBudget} | 
+                      満: {entry.islandSatisfaction?.general ?? 0}%(一) {entry.islandSatisfaction?.wheelchair ?? 0}%(車) {entry.islandSatisfaction?.senior ?? 0}%(高) {entry.islandSatisfaction?.childcare ?? 0}%(子)
+                    </>
+                  ) : (
+                    <>
+                      {entry.plan ?? '—'} · {entry.blockSnapshot.length} ブロック
+                    </>
+                  )}
                 </div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

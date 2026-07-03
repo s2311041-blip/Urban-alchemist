@@ -30,6 +30,8 @@ import { PALETTE, RENDERER } from './constants/artDirection'
 import { ART_DIRECTION } from './constants/buildFeatureFlags'
 import './index.css'
 
+import { ConsensusDashboardOverlay } from './components/ui/consensus/ConsensusDashboardOverlay'
+
 export default function App() {
   const store = useGameStore(useShallow(state => ({
     activeBug: state.activeBug,
@@ -69,6 +71,13 @@ export default function App() {
     setIsGoodSpotBookOpen: state.setIsGoodSpotBookOpen,
     interactionHint: state.interactionHint,
     expandingLevel: state.expandingLevel,
+    isSeriousMode: state.isSeriousMode,
+    startConsensusSession: state.startConsensusSession,
+    ignoreQuest: state.ignoreQuest,
+    uiMode: state.uiMode,
+    setUiMode: state.setUiMode,
+    consensusSession: state.consensusSession,
+    undoQuestDecision: state.undoQuestDecision,
   })));
   const ferryTransitionUntil = useGameStore((s) => s.ferryTransitionUntil);
   const showFerryFade = useFerryFade(ferryTransitionUntil);
@@ -151,6 +160,8 @@ export default function App() {
           voteCompetitionEntry={store.voteCompetitionEntry}
           resetCompetition={store.resetCompetition}
           setCompetitionTopic={store.setCompetitionTopic}
+          isSeriousMode={store.isSeriousMode}
+          startConsensusSession={store.startConsensusSession}
         />
 
         <QuestTutorialOverlay quests={store.quests} />
@@ -165,6 +176,8 @@ export default function App() {
           removeBug={store.removeBug}
           startDIY={store.startDIY}
           setBugChosenPlan={store.setBugChosenPlan}
+          isSeriousMode={store.isSeriousMode}
+          ignoreQuest={store.ignoreQuest}
         />
 
         {/* クエスト配置中オーバーレイ */}
@@ -217,6 +230,38 @@ export default function App() {
             animation: 'ferryFade 0.65s ease-out',
           }} />
         )}
+
+        {store.isSeriousMode && store.uiMode !== 'macro' && (
+          <button
+            style={{
+              position: 'absolute',
+              top: '20px',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              padding: '10px 20px',
+              borderRadius: '20px',
+              background: '#ffca28',
+              color: '#000',
+              fontWeight: 'bold',
+              border: 'none',
+              cursor: 'pointer',
+              zIndex: 1000,
+              boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+            }}
+            onClick={() => store.setUiMode('macro')}
+          >
+            議会へ
+          </button>
+        )}
+
+        <ConsensusDashboardOverlay
+          consensusSession={store.consensusSession}
+          quests={store.quests}
+          uiMode={store.uiMode}
+          setUiMode={store.setUiMode}
+          undoQuestDecision={store.undoQuestDecision}
+          submitCompetitionEntry={store.submitCompetitionEntry}
+        />
         
         <style>{`
           @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }

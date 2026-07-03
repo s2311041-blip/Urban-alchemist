@@ -29,6 +29,7 @@ import {
   getPlanOrdinalStyle,
 } from '../../../constants/ui/bugReportOverlay';
 import { Pictogram } from '../Pictogram';
+import { TRADEOFF_MATRIX, getAllowedPlansForQuest } from '../../../constants/tradeoffMatrix';
 
 const SEVERITY_LABEL = Object.fromEntries(
   SEVERITY_OPTIONS.map((opt) => [opt.id, opt.label]),
@@ -46,11 +47,18 @@ export const BugReportOverlay = ({
   startDIY = () => {},
   setBugChosenPlan = () => {},
   openAREditQuest = () => {},
+  isSeriousMode,
+  ignoreQuest,
 }) => {
   const bug = useMemo(() => bugs.find((b) => b.id === activeBug), [bugs, activeBug]);
   const allowedPlans = useMemo(
-    () => (Array.isArray(bug?.allowedPlans) ? bug.allowedPlans : []),
-    [bug],
+    () => {
+      if (isSeriousMode && bug?.needType) {
+        return getAllowedPlansForQuest({ needType: bug.needType });
+      }
+      return Array.isArray(bug?.allowedPlans) ? bug.allowedPlans : [];
+    },
+    [bug, isSeriousMode],
   );
   const initialSelectedPlan = useMemo(() => {
     if (!bug) return null;
@@ -158,6 +166,20 @@ export const BugReportOverlay = ({
               >
                 {BUG_REPORT_COPY.cancel}
               </button>
+              {isSeriousMode && ignoreQuest && (
+                <button
+                  onClick={() => {
+                    if (window.confirm('この声を無視してよろしいですか？（深刻な満足度ペナルティがあります）')) {
+                      ignoreQuest(bug.sourceQuestId);
+                      setActiveBug(null);
+                      setIsReturning(true);
+                    }
+                  }}
+                  style={{ ...BUG_REPORT_STYLE.buttonBase, background: '#455a64', color: '#fff' }}
+                >
+                  無視する（コスト0）
+                </button>
+              )}
               <button
                 onClick={() => setPhase('plan')}
                 style={{ ...BUG_REPORT_STYLE.buttonBase, ...BUG_REPORT_STYLE.primaryResolveButton }}

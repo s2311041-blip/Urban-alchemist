@@ -149,6 +149,12 @@ export const exportResearchLogCsv = (postStats) => {
     'minStakeholderSatisfaction',
     'needType',
     'placeArchetype',
+    'remainingSessionBudget',
+    'sat_general',
+    'sat_wheelchair',
+    'sat_senior',
+    'sat_childcare',
+    'isSeriousMode'
   ].join(',');
 
   const rows = events.map((e) => [
@@ -163,6 +169,12 @@ export const exportResearchLogCsv = (postStats) => {
     e.minStakeholderSatisfaction ?? '',
     e.needType ?? '',
     e.placeArchetype ?? '',
+    e.remainingSessionBudget ?? '',
+    e.sat_general ?? '',
+    e.sat_wheelchair ?? '',
+    e.sat_senior ?? '',
+    e.sat_childcare ?? '',
+    e.isSeriousMode ? '1' : '0',
   ].map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(','));
 
   return [header, ...rows].join('\n');

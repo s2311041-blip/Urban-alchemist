@@ -120,5 +120,9 @@ export const createInitialState = (savedData) => {
   isGoodSpotBookOpen: false,
   isWorldMapOpen: false,
 
+  isSeriousMode: false,
+  consensusSession: null,
+  uiMode: 'explore',
+
   };
 };

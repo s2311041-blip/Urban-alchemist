@@ -16,6 +16,7 @@ import { useGameStore } from '../../store/useGameStore';
 export const TopRightPanel = ({ viewMode, setViewMode }) => {
   const resetGameData = useGameStore((state) => state.resetGameData);
   const isWorldMapOpen = useGameStore((state) => state.isWorldMapOpen);
+  const isSeriousMode = useGameStore((state) => state.isSeriousMode);
   const panelMaxHeight = isWorldMapOpen
     ? `calc(100vh - ${SIDE_PANEL_INSET * 2}px - 16px)`
     : `calc(100vh - ${SIDE_PANEL_INSET * 2}px - ${CONTROLS_GUIDE_AVATAR_HEIGHT}px - 16px)`;
@@ -41,14 +42,15 @@ export const TopRightPanel = ({ viewMode, setViewMode }) => {
         <ViewModeToggleButton viewMode={viewMode} setViewMode={setViewMode} />
         <CompassPanel />
         <WorldMapPanel />
-        <WorldTimePanel />
-        <FarmingStatusPanel />
-        <WalletPanel />
+        {!isSeriousMode && <WorldTimePanel />}
+        {!isSeriousMode && <FarmingStatusPanel />}
+        {!isSeriousMode && <WalletPanel />}
         <GoodSpotPanel />
-        <AgriInteractionPanel />
+        {!isSeriousMode && <AgriInteractionPanel />}
         <FarmingToast />
-        <button
-          onClick={() => {
+        {!isSeriousMode && (
+          <button
+            onClick={() => {
             if (window.confirm('これまでの進捗をリセットして最初の島に戻りますか？')) {
               resetGameData();
             }
@@ -81,6 +83,7 @@ export const TopRightPanel = ({ viewMode, setViewMode }) => {
           <RotateCcw size={14} />
           島データをリセット
         </button>
+        )}
       </div>
 
       <ControlsGuidePanel viewMode={viewMode} />

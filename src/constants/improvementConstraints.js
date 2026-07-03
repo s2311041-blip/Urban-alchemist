@@ -27,6 +27,7 @@ export const PLAN_SHAPE_LIMITS = {
   sign_info: { allowedShapes: ['sign_post', 'bench', 'path', 'block'], maxBlocks: 10 },
   care_point: { allowedShapes: ['bench', 'light_pole', 'path', 'block'], maxBlocks: 12 },
   transit_link: { allowedShapes: ['ferry_dock', 'path', 'block'], maxBlocks: 8 },
+  mobility_support: { allowedShapes: ['bench', 'path', 'sign_post', 'block'], maxBlocks: 14 },
 };
 
 export const STAKEHOLDER_GROUPS = [

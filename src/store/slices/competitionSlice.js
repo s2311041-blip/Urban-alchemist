@@ -7,6 +7,8 @@ import { setTimedToast } from '../helpers/uiFeedback';
 import { isSessionPlacedBlock } from '../../utils/improvementSession';
 import { findBugById } from '../../utils/bugIds';
 
+import { appendPostEvent } from '../helpers/questLifecycle';
+
 const getVoterId = () => {
   const key = 'ua_competition_voter_id';
   let id = localStorage.getItem(key);
@@ -33,7 +35,50 @@ export const createCompetitionSlice = (set, get) => ({
   },
 
   submitCompetitionEntry: ({ label = null } = {}) => {
-    const { buildMode, bugs, placedBlocks, buildSession, competition } = get();
+    const { buildMode, bugs, placedBlocks, buildSession, competition, isSeriousMode, consensusSession } = get();
+    
+    if (isSeriousMode && consensusSession) {
+      const entry = normalizeCompetitionEntry({
+        id: `entry_${Date.now()}`,
+        label: label ?? `匿名案 ${competition.entries.length + 1}`,
+        submittedAt: Date.now(),
+        isSeriousMode: true,
+        remainingSessionBudget: consensusSession.remainingSessionBudget,
+        totalSessionBudget: consensusSession.totalSessionBudget,
+        islandSatisfaction: consensusSession.islandSatisfaction,
+        questDecisions: Object.values(consensusSession.questDecisions),
+        // 本来は blockSnapshot も要るが一旦省略
+      });
+
+      const { postStats } = get();
+
+      set((state) => ({
+        competition: normalizeCompetition({
+          ...state.competition,
+          entries: [...state.competition.entries, entry],
+        }),
+        consensusSession: {
+          ...state.consensusSession,
+          phase: 'submitted',
+          submittedAt: Date.now(),
+        },
+        postStats: appendPostEvent(state.postStats, {
+          t: Date.now(),
+          kind: 'session_submit',
+          sessionId: consensusSession.sessionId,
+          remainingSessionBudget: consensusSession.remainingSessionBudget,
+          isSeriousMode: true,
+          sat_general: consensusSession.islandSatisfaction.general,
+          sat_wheelchair: consensusSession.islandSatisfaction.wheelchair,
+          sat_senior: consensusSession.islandSatisfaction.senior,
+          sat_childcare: consensusSession.islandSatisfaction.childcare,
+        })
+      }));
+
+      setTimedToast({ set, get, message: '島全体プランをコンペに提出しました。', durationMs: 2800 });
+      return entry;
+    }
+
     if (!buildMode || buildMode === 'free') {
       setTimedToast({ set, get, message: '不満の改善 DIY 中のみエントリーできます。', durationMs: 2400 });
       return false;

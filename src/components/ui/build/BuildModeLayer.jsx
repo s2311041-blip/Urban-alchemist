@@ -7,6 +7,7 @@ import { BuildModeGuide } from './BuildModeGuide';
 import { BuildResolutionBanner } from './BuildResolutionBanner';
 import { BuildShortcutsToggle } from './BuildShortcutsToggle';
 import { ImprovementHudPanel } from './ImprovementHudPanel';
+import { useGameStore } from '../../../store/useGameStore';
 
 /**
  * 建築モード中の共通 UI（ショートカット・ガイド・下部パレット）
@@ -42,6 +43,7 @@ export const BuildModeLayer = ({
     diagonalFirstPoint: state.diagonalFirstPoint,
     finishBuildMode: state.finishBuildMode,
     startPlacingPreset: state.startPlacingPreset,
+    isSeriousMode: state.isSeriousMode,
   })));
   const showPalette = !store.isEditingInStudio
     && (!store.isDesigningInStudio || store.selectedShape !== 'diagonal');
@@ -51,7 +53,7 @@ export const BuildModeLayer = ({
   return (
     <>
       <BuildResolutionBanner />
-      <ImprovementHudPanel />
+      {!store.isSeriousMode && <ImprovementHudPanel />}
 
       <BuildShortcutsOverlay
         open={showBuildShortcuts}

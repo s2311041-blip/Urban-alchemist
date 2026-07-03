@@ -21,7 +21,7 @@ const btnStyle = {
   cursor: 'pointer',
 };
 
-export function ResearchToolsPanel({ exportResearchLog, loadDemoQuestSet, postStats }) {
+export function ResearchToolsPanel({ exportResearchLog, loadDemoQuestSet, postStats, isSeriousMode, startConsensusSession }) {
   const [loading, setLoading] = useState(false);
   const eventCount = postStats?.events?.length ?? 0;
 
@@ -31,6 +31,12 @@ export function ResearchToolsPanel({ exportResearchLog, loadDemoQuestSet, postSt
       loadDemoQuestSet?.();
     } finally {
       setLoading(false);
+    }
+  };
+
+  const runConsensusSession = () => {
+    if (window.confirm('合意形成セッションを開始しますか？島上のQuestが全て出現し、共有予算モードになります。')) {
+      startConsensusSession?.();
     }
   };
 
@@ -64,6 +70,16 @@ export function ResearchToolsPanel({ exportResearchLog, loadDemoQuestSet, postSt
           <Download size={14} />
           研究ログ CSV
         </button>
+        {!isSeriousMode && startConsensusSession && (
+          <button
+            type="button"
+            style={{ ...btnStyle, background: '#ff9800', color: '#000' }}
+            onClick={runConsensusSession}
+          >
+            <PlayCircle size={14} />
+            合意形成セッション開始
+          </button>
+        )}
       </div>
     </div>
   );

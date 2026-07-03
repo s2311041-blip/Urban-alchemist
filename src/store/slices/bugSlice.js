@@ -45,12 +45,62 @@ import { getImprovementBudgetLimit } from '../../constants/improvementConstraint
 
 export const createBugSlice = (set, get) => ({
   trackSessionBlockPlacement: (block) => {
-    const { buildMode, buildSession, bugs } = get();
-    if (!buildMode || buildMode === 'free' || !buildSession || !block) return;
+    const { buildMode, buildSession, bugs, consensusSession, isSeriousMode } = get();
+    if (!buildMode || buildMode === 'free' || !block) return;
     const bug = findBugById(bugs, buildMode);
     if (!bug) return;
-    const nextSession = applyBuildSpend(buildSession, block, bug);
-    set({ buildSession: nextSession });
+
+    if (isSeriousMode && consensusSession) {
+      const { getBlockImprovementCost } = require('../../constants/improvementConstraints');
+      const cost = getBlockImprovementCost(block);
+      const decision = consensusSession.questDecisions[bug.sourceQuestId];
+      if (decision) {
+        set({
+          consensusSession: {
+            ...consensusSession,
+            remainingSessionBudget: consensusSession.remainingSessionBudget - cost,
+            questDecisions: {
+              ...consensusSession.questDecisions,
+              [bug.sourceQuestId]: {
+                ...decision,
+                blockCostSpent: decision.blockCostSpent + cost,
+              }
+            }
+          }
+        });
+      }
+    } else if (buildSession) {
+      const nextSession = applyBuildSpend(buildSession, block, bug);
+      set({ buildSession: nextSession });
+    }
+  },
+
+  trackSessionBlockRemoval: (block) => {
+    const { buildMode, bugs, consensusSession, isSeriousMode } = get();
+    if (!buildMode || buildMode === 'free' || !block) return;
+    const bug = findBugById(bugs, buildMode);
+    if (!bug) return;
+
+    if (isSeriousMode && consensusSession) {
+      const { getBlockImprovementCost } = require('../../constants/improvementConstraints');
+      const cost = getBlockImprovementCost(block);
+      const decision = consensusSession.questDecisions[bug.sourceQuestId];
+      if (decision) {
+        set({
+          consensusSession: {
+            ...consensusSession,
+            remainingSessionBudget: consensusSession.remainingSessionBudget + cost,
+            questDecisions: {
+              ...consensusSession.questDecisions,
+              [bug.sourceQuestId]: {
+                ...decision,
+                blockCostSpent: Math.max(0, decision.blockCostSpent - cost),
+              }
+            }
+          }
+        });
+      }
+    }
   },
 
   exportResearchLog: () => {
@@ -125,12 +175,21 @@ export const createBugSlice = (set, get) => ({
           stakeholderSatisfaction: applyPlanCompletionBonus(sessionForFinish, targetBug),
         };
         const sessionCheck = validateFinishSession(sessionForFinish);
-        if (!sessionCheck.ok) {
+        if (!get().isSeriousMode && !sessionCheck.ok) {
           set({ buildFinishError: sessionCheck.message, farmingToast: sessionCheck.message });
           setTimeout(() => {
             if (get().farmingToast === sessionCheck.message) set({ farmingToast: null });
           }, 2800);
           return;
+        } else if (get().isSeriousMode && get().consensusSession) {
+          if (get().consensusSession.remainingSessionBudget < 0) {
+            const msg = '全体予算が不足しています。ブロックを減らすか、他のQuestを調整してください。';
+            set({ buildFinishError: msg, farmingToast: msg });
+            setTimeout(() => {
+              if (get().farmingToast === msg) set({ farmingToast: null });
+            }, 2800);
+            return;
+          }
         }
       }
 
@@ -190,7 +249,11 @@ export const createBugSlice = (set, get) => ({
         : null;
 
       if (solvedCount > 0) {
-        const expansion = computeWorldExpansionAfterSolve({
+        if (get().isSeriousMode) {
+          get().resolveQuestDecision?.(targetBug.sourceQuestId, resolution?.planId ?? targetBug.chosenPlan);
+        }
+
+        const expansion = get().isSeriousMode ? null : computeWorldExpansionAfterSolve({
           updatedBugs: bugsWithTradeoff,
           islandChunks,
           placedBlocks,
