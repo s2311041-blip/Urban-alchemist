@@ -44,6 +44,8 @@ export const PLAN_LABEL = {
   maintenance: '維持しやすい空間にする（環境美化）',
   sign_info: '案内で誘導する（ソフト整備・情報）',
   care_point: '見守り拠点をつくる（人的・社会的支援）',
+  plant_tree: '緑を増やす（景観改善）',
+  build_bench: '休める場所を増やす（滞在支援）',
 };
 
 export const PLAN_DESCRIPTION = {
@@ -55,7 +57,16 @@ export const PLAN_DESCRIPTION = {
   maintenance: 'ゴミや放置自転車などを防ぐため、綺麗に保たれる空間をデザインします。',
   sign_info: '迷いやすい場所に看板などを置き、正しい道順を案内します。',
   care_point: '人が留まれる場所を作り、困っている人を誰かが見守れるようにします。',
+  plant_tree: '殺風景な場所に緑を増やし、居心地や安心感を高めます。',
+  build_bench: '座って休める場所を増やし、滞在しやすい空間にします。',
 };
+
+export const LEGACY_PLAN_ALIAS = {
+  plant_tree: 'maintenance',
+  build_bench: 'care_point',
+};
+
+export const normalizePlanId = (plan) => LEGACY_PLAN_ALIAS[plan] ?? plan;
 
 /** 建築パレット（ControlBottomBar）と同じブロック表記 */
 export const BUILD_BLOCK_LABEL = {
@@ -184,16 +195,18 @@ export const PLAN_FAIL_MESSAGE_BY_SCALE = {
 };
 
 export const getPlanFailMessage = (plan, scale = 'point') => {
+  const normalizedPlan = normalizePlanId(plan);
   const normalizedScale = ['point', 'line', 'area'].includes(scale) ? scale : 'point';
-  return PLAN_FAIL_MESSAGE_BY_SCALE[normalizedScale]?.[plan]
-    ?? PLAN_FAIL_MESSAGE[plan]
+  return PLAN_FAIL_MESSAGE_BY_SCALE[normalizedScale]?.[normalizedPlan]
+    ?? PLAN_FAIL_MESSAGE[normalizedPlan]
     ?? 'まだ条件を満たしていません。';
 };
 
 export const getPlanHint = (plan, scale = 'point') => {
+  const normalizedPlan = normalizePlanId(plan);
   const normalizedScale = ['point', 'line', 'area'].includes(scale) ? scale : 'point';
-  return PLAN_HINT_BY_SCALE[normalizedScale]?.[plan]
-    ?? PLAN_HINT[plan]
+  return PLAN_HINT_BY_SCALE[normalizedScale]?.[normalizedPlan]
+    ?? PLAN_HINT[normalizedPlan]
     ?? 'この方法で改善を試してください。';
 };
 

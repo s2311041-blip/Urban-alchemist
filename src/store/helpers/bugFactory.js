@@ -1,6 +1,7 @@
 import {
   DEFAULT_BARRIER_META,
   TYPE_TO_BARRIER_META,
+  normalizePlanId,
 } from '../../constants/barrierData';
 import { normalizeQuestStatus } from './questState';
 
@@ -17,11 +18,12 @@ export const normalizeBug = (bug) => {
   if (!bug || typeof bug !== 'object') return null;
   const meta = TYPE_TO_BARRIER_META[bug.type] ?? DEFAULT_BARRIER_META;
   const mergedPlans = [
-    ...(Array.isArray(bug.allowedPlans) ? bug.allowedPlans : []),
-    ...meta.allowedPlans,
+    ...(Array.isArray(bug.allowedPlans) ? bug.allowedPlans : []).map(normalizePlanId),
+    ...meta.allowedPlans.map(normalizePlanId),
   ].filter((plan, idx, arr) => typeof plan === 'string' && arr.indexOf(plan) === idx);
-  const normalizedChosenPlan = bug.chosenPlan && mergedPlans.includes(bug.chosenPlan)
-    ? bug.chosenPlan
+  const chosenPlan = normalizePlanId(bug.chosenPlan);
+  const normalizedChosenPlan = chosenPlan && mergedPlans.includes(chosenPlan)
+    ? chosenPlan
     : null;
   return {
     ...bug,

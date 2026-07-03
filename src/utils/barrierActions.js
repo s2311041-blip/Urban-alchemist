@@ -1,6 +1,7 @@
 import {
   BUG_RESOLVE_RADIUS,
   getPlanFailMessage,
+  normalizePlanId,
 } from '../constants/barrierData';
 import {
   countShapesNearByScale,
@@ -21,7 +22,7 @@ export const evaluateBugResolution = (bug, placedBlocks = [], context = {}) => {
     return { ok: false, message: '解決プランを選択してからDIYを開始してください。' };
   }
 
-  const plan = bug.chosenPlan;
+  const plan = normalizePlanId(bug.chosenPlan);
   const scale = bug.scale ?? 'point';
   let ok = false;
 
@@ -46,6 +47,10 @@ export const evaluateBugResolution = (bug, placedBlocks = [], context = {}) => {
       context.islandChunks ?? [],
       BUG_RESOLVE_RADIUS,
     );
+  } else if (plan === 'mobility_support') {
+    const hasBench = hasShapeNearByScale(bug.pos, placedBlocks, ['bench'], scale, BUG_RESOLVE_RADIUS, req.careBenchCount);
+    const pathCount = countShapesNearByScale(bug.pos, placedBlocks, ['path'], scale, BUG_RESOLVE_RADIUS);
+    ok = hasBench && pathCount >= req.signPathCount;
   } else if (plan === 'maintenance') {
     const hasBench = hasShapeNearByScale(bug.pos, placedBlocks, ['bench'], scale, BUG_RESOLVE_RADIUS, req.careBenchCount);
     const pathCount = countShapesNearByScale(bug.pos, placedBlocks, ['path'], scale, BUG_RESOLVE_RADIUS);

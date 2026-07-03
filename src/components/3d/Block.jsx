@@ -337,14 +337,13 @@ export const Block = React.memo(({
   const setSignTextPrompt = useGameStore(state => state.setSignTextPrompt);
 
   const handleClick = useCallback((e) => {
+    if (isGhost) return;
     e.stopPropagation();
 
     if (shape === 'sign_post' && !isGhost) {
       setSignTextPrompt(id);
       return;
     }
-
-    if (isGhost) return;
 
     // 編集モードでのクリック吸収は建築中のみ有効にする
     const state = useGameStore.getState();
@@ -1040,11 +1039,11 @@ export const Block = React.memo(({
         position={position} 
         rotation={baseRotation} 
         scale={scale}
-        onPointerOver={(e) => { e.stopPropagation(); setHovered(true); }}
-        onPointerOut={(e) => { e.stopPropagation(); setHovered(false); stableHandlers.onPointerOut?.(e); }}
-        onPointerMove={stableHandlers.onPointerMove}
-        onClick={stableHandlers.onClick}
-        onDoubleClick={stableHandlers.onDoubleClick}
+        onPointerOver={isGhost ? undefined : (e) => { e.stopPropagation(); setHovered(true); }}
+        onPointerOut={isGhost ? undefined : (e) => { e.stopPropagation(); setHovered(false); stableHandlers.onPointerOut?.(e); }}
+        onPointerMove={isGhost ? undefined : stableHandlers.onPointerMove}
+        onClick={isGhost ? undefined : stableHandlers.onClick}
+        onDoubleClick={isGhost ? undefined : stableHandlers.onDoubleClick}
       >
         {shape === 'rail' ? renderRail() :
          shape === 'door' ? renderDoor() :
@@ -1064,10 +1063,10 @@ export const Block = React.memo(({
                receiveShadow={!isGhost} 
                position={meshPosition}
                rotation={meshRotation}
-               onPointerMove={onPointerMove}
-               onPointerOut={onPointerOut}
-               onClick={onClick}
-               onDoubleClick={onDoubleClick}
+              onPointerMove={isGhost ? undefined : onPointerMove}
+              onPointerOut={isGhost ? undefined : onPointerOut}
+              onClick={isGhost ? undefined : onClick}
+              onDoubleClick={isGhost ? undefined : onDoubleClick}
              >
                {getGeometry()}
                <meshStandardMaterial 
