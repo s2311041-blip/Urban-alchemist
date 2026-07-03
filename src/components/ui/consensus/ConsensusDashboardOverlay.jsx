@@ -1,5 +1,5 @@
 import React from 'react';
-import { Users, Wheelchair, Baby, UserCircle, Hammer, CheckCircle2 } from 'lucide-react';
+import { Users, User, Heart, UserCircle, Hammer, CheckCircle2 } from 'lucide-react';
 import { TRADEOFF_MATRIX } from '../../../constants/tradeoffMatrix';
 import { PLAN_LABEL } from '../../../constants/barrierData';
 
@@ -89,9 +89,9 @@ export const ConsensusDashboardOverlay = ({
 
   const satKeys = [
     { key: 'general', label: '一般・若者', icon: UserCircle, color: '#4fc3f7' },
-    { key: 'wheelchair', label: '車椅子', icon: Wheelchair, color: '#ffb74d' },
+    { key: 'wheelchair', label: '車椅子', icon: User, color: '#ffb74d' },
     { key: 'senior', label: '高齢者', icon: Users, color: '#81c784' },
-    { key: 'childcare', label: '子育て', icon: Baby, color: '#f06292' },
+    { key: 'childcare', label: '子育て', icon: Heart, color: '#f06292' },
   ];
 
   const minSat = Math.min(...satKeys.map(k => islandSatisfaction[k.key]));

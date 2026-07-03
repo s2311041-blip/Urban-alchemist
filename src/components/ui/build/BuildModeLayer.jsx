@@ -7,7 +7,6 @@ import { BuildModeGuide } from './BuildModeGuide';
 import { BuildResolutionBanner } from './BuildResolutionBanner';
 import { BuildShortcutsToggle } from './BuildShortcutsToggle';
 import { ImprovementHudPanel } from './ImprovementHudPanel';
-import { useGameStore } from '../../../store/useGameStore';
 
 /**
  * 建築モード中の共通 UI（ショートカット・ガイド・下部パレット）
