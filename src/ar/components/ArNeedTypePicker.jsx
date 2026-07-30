@@ -71,7 +71,11 @@ export function ArNeedTypePicker({ value, onChange }) {
                     boxSizing: 'border-box',
                   }}
                 >
-                  <Pictogram src={opt.iconSrc} size={36} alt={opt.label} />
+                  {opt.iconSrc ? (
+                    <Pictogram src={opt.iconSrc} size={36} alt={opt.label} />
+                  ) : (
+                    <span style={{ fontSize: 28 }} aria-hidden>💬</span>
+                  )}
                   <span style={{ fontSize: 14, fontWeight: active ? 'bold' : '600' }}>{opt.label}</span>
                   <span style={{
                     fontSize: 11,

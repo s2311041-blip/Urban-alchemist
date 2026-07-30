@@ -43,6 +43,7 @@ export function buildAnnotationFromDraft(draft, { authorId, profileTags = [], ex
     timeTagId,
     severity: draft.severity ?? 'mid',
     profileTags: [...profileTags],
+    classification: draft.classification ?? null,
     pointsAwarded: computePoints(draft),
     captureMode: draft.placementMode === 'webxr' ? 'webxr' : 'onsite',
     placementMode: draft.placementMode ?? 'geo',
@@ -75,6 +76,7 @@ export function annotationToGameExport(annotation) {
     geo: annotation.authorGeo,
     worldPin: annotation.worldPin,
     capturePose: annotation.capturePose,
+    classification: annotation.classification ?? null,
     type: annotation.type,
   };
 }

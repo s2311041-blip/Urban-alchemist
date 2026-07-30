@@ -324,18 +324,22 @@ export const BARRIER_TYPE_UI = {
   area_isolation: { label: '周辺に頼れない', color: '#ede7f6' },
 };
 
+/** AR 投稿の困り型コード（8 + その他） */
+export const NEED_TYPE_CODES = ['P', 'V', 'I', 'M', 'R', 'S', 'L', 'C', 'O'];
+
 /**
- * AR投稿向け: 初学者に分かりやすい「困り方」ジャンル（needType 8種）
+ * AR投稿向け: 初学者に分かりやすい「困り方」ジャンル（needType 8種 + その他）
  */
 export const NEED_CATEGORY_OPTIONS = [
-  { needType: 'P', iconSrc: GENRE_PICTOGRAMS.P, label: '歩きにくい', hint: '段差・狭さ・通りづらさ' },
-  { needType: 'V', iconSrc: GENRE_PICTOGRAMS.V, label: '見えにくい', hint: '暗さ・死角・視認性' },
-  { needType: 'I', iconSrc: GENRE_PICTOGRAMS.I, label: '迷いやすい', hint: '案内不足・分岐が分かりにくい' },
-  { needType: 'M', iconSrc: GENRE_PICTOGRAMS.M, label: '汚れ・荒れ', hint: '清掃・維持が追いつかない' },
-  { needType: 'R', iconSrc: GENRE_PICTOGRAMS.R, label: '休みにくい', hint: '座る・待つ場所が足りない' },
-  { needType: 'S', iconSrc: GENRE_PICTOGRAMS.S, label: 'こわい・不安', hint: '心理的に安心できない' },
-  { needType: 'L', iconSrc: GENRE_PICTOGRAMS.L, label: '行き来しにくい', hint: '移動手段・アクセスの不足' },
-  { needType: 'C', iconSrc: GENRE_PICTOGRAMS.C, label: '頼れる場がない', hint: '支援・見守りに繋がりにくい' },
+  { needType: 'P', iconSrc: GENRE_PICTOGRAMS.P, label: '歩きにくい', hint: '段差・狭さなど、ここを歩くのがつらい' },
+  { needType: 'L', iconSrc: GENRE_PICTOGRAMS.L, label: '行き来しにくい', hint: 'AからBへ移動・接続がつながらない' },
+  { needType: 'I', iconSrc: GENRE_PICTOGRAMS.I, label: '分かりにくい', hint: '行き方・案内が足りない' },
+  { needType: 'V', iconSrc: GENRE_PICTOGRAMS.V, label: '見えにくい', hint: '暗さ・死角など、目で見えない' },
+  { needType: 'M', iconSrc: GENRE_PICTOGRAMS.M, label: '汚れ・荒れ', hint: '清掃・維持が追いついていない' },
+  { needType: 'R', iconSrc: GENRE_PICTOGRAMS.R, label: '休めない', hint: '座る・待つ場所が足りない' },
+  { needType: 'S', iconSrc: GENRE_PICTOGRAMS.S, label: '不安・怖い', hint: '人・雰囲気などで安心できない' },
+  { needType: 'C', iconSrc: GENRE_PICTOGRAMS.C, label: '頼れない', hint: '支援・見守りの接点がない' },
+  { needType: 'O', iconSrc: null, label: 'その他', hint: '上記8つに当てはまらない' },
 ];
 
 /**
@@ -351,6 +355,7 @@ export const NEED_TYPE_TO_DEFAULT_TYPE = {
   L: 'line_step_gap',
   S: 'lonely',
   C: 'area_isolation',
+  O: 'area_maintenance_gap',
 };
 
 export const TARGET_GROUP_OPTIONS = [

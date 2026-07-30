@@ -37,6 +37,7 @@ export function annotationToDraft(annotation) {
     comment: annotation.comment ?? '',
     timeTag,
     severity: annotation.severity ?? 'mid',
+    classification: annotation.classification ?? null,
     photo: annotation.photo ?? null,
     photoPins: Array.isArray(annotation.photoPins) ? [...annotation.photoPins] : [],
     authorGeo: annotation.authorGeo ?? null,

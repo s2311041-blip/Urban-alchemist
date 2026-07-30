@@ -65,6 +65,9 @@ const BY_NEED = {
     lightMul: 0.75,
     bleakMood: true,
   },
+  O: {
+    lightMul: 0.9,
+  },
 };
 
 const EXPRESSION_KEYS = [

@@ -19,9 +19,17 @@ function isBadAnnotation(annotation = {}) {
     || annotation.needType;
 }
 
+/** v1 会話投稿 — ユーザー確認済みのみゲーム取り込み（レガシー投稿は classification なしで通す） */
+export function isConfirmedForGameImport(annotation = {}) {
+  if (!isBadAnnotation(annotation)) return false;
+  const status = annotation.classification?.status;
+  if (!status) return true;
+  return status === 'user_confirmed' || status === 'user_edited';
+}
+
 /** AR アノテーション → ゲーム quest 投入用ペイロード */
 export function annotationToQuestPost(annotation = {}) {
-  if (!isBadAnnotation(annotation)) return null;
+  if (!isConfirmedForGameImport(annotation)) return null;
 
   const exported = annotationToGameExport(annotation);
   const needType = exported.needType ?? 'P';
@@ -49,7 +57,7 @@ export async function fetchBadAnnotationsForImport() {
     throw new Error('Supabase が未設定です（VITE_SUPABASE_URL / ANON_KEY）');
   }
   const list = await fetchAnnotationsSupabase();
-  return list.filter(isBadAnnotation);
+  return list.filter(isConfirmedForGameImport);
 }
 
 /** AR 図鑑 export JSON（schema v2）または配列をパース */

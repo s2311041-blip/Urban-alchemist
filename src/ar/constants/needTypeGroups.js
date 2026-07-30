@@ -30,12 +30,26 @@ export const PPS_NEED_GROUPS = [
     color: '#ef6c00',
     options: ['S', 'C'],
   },
+  {
+    id: 'other',
+    label: 'その他',
+    emoji: '💬',
+    color: '#78909c',
+    options: ['O'],
+  },
 ];
 
-/** ピッカー用 hint（V/S 境界を明確化） */
+/** ピッカー用 hint（境界を明確化） */
 export const NEED_TYPE_PICKER_HINTS = {
-  V: '暗い・死角で見えない',
-  S: '人通り・雰囲気で安心できない',
+  P: '段差・狭さなど、ここを歩くのがつらい',
+  L: 'AからBへ移動・接続がつながらない',
+  I: '行き方・案内が足りない',
+  V: '暗さ・死角など、目で見えない',
+  M: '清掃・維持が追いついていない',
+  R: '座る・待つ場所が足りない',
+  S: '人・雰囲気などで安心できない',
+  C: '支援・見守りの接点がない',
+  O: '上記8つに当てはまらない',
 };
 
 const needByType = Object.fromEntries(

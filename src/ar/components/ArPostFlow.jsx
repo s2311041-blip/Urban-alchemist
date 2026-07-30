@@ -3,13 +3,13 @@ import { Camera, Check, MapPin, Crosshair, Video } from 'lucide-react';
 import { useDevicePose } from '../hooks/useDevicePose';
 import { usePointerLabel, pointerActionPhrase } from '../hooks/usePointerLabel';
 import { isValidGeoCoordinate } from '../constants/kotoArea';
-import { annotationToDraft, getFormStepIds } from '../utils/postFormSteps';
+import { annotationToDraft } from '../utils/postFormSteps';
 import { computePinWorldPosition } from '../utils/pinAnchor';
 import { computePinAtFeet, computePinFromMap, buildCapturePoseAtPhoto } from '../utils/pinPlacement';
 import { AR_THEME } from '../constants/arTheme';
 import { ArLiveView } from './ArLiveView';
 import { ArCameraShell } from './ArCameraShell';
-import { ArPostForm } from './ArPostForm';
+import { ArPostChat } from './ArPostChat';
 import { ArPinMarker } from './ArPinMarker';
 import { ArMapPinPicker } from './ArMapPinPicker';
 import { ArGpsAccuracyPanel } from './ArGpsAccuracyPanel';
@@ -49,7 +49,6 @@ export function ArPostFlow({
   const [draft, setDraft] = useState(
     isEdit ? annotationToDraft(editTarget) : INITIAL_DRAFT,
   );
-  const [formStep, setFormStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
   const [stickDone, setStickDone] = useState(false);
   const [gpsOverride, setGpsOverride] = useState(false);
@@ -61,7 +60,6 @@ export function ArPostFlow({
 
   const patchDraft = (patch) => {
     setDraft((d) => ({ ...d, ...patch }));
-    if (patch.postKind) setFormStep(1);
   };
 
   const applyAnchor = (anchor) => {
@@ -142,11 +140,11 @@ export function ArPostFlow({
       screenTap: shot.screenTap,
     });
     setPhase('form');
-    setFormStep(1);
   };
 
-  const handleSubmit = async () => {
-    if (!isEdit && (!draft.worldPin || !isValidGeoCoordinate(draft.worldPin.lat, draft.worldPin.lng))) {
+  const handleSubmit = async (draftOverride) => {
+    const payload = draftOverride ?? draft;
+    if (!isEdit && (!payload.worldPin || !isValidGeoCoordinate(payload.worldPin.lat, payload.worldPin.lng))) {
       alert('位置情報が不正です。場所を決め直してください。');
       setPhase('place');
       return;
@@ -155,11 +153,11 @@ export function ArPostFlow({
     if (!isEdit) setPhase('stick');
     try {
       if (isEdit) {
-        await onUpdate(editTarget.id, draft);
+        await onUpdate(editTarget.id, payload);
         onDone();
         return;
       }
-      await onSubmit(draft);
+      await onSubmit(payload);
       setStickDone(true);
       setTimeout(() => onDone(), 1400);
     } catch (err) {
@@ -170,7 +168,6 @@ export function ArPostFlow({
     }
   };
 
-  const formStepCount = getFormStepIds(draft.postKind).length;
   const gpsLevel = getGpsAccuracyLevel(geo?.accuracy);
   const feetReady = geo && canPlacePinWithGps(gpsLevel, { allowOverride: gpsOverride });
 
@@ -413,26 +410,15 @@ export function ArPostFlow({
 
   if (phase === 'form') {
     return (
-      <ArPostForm
+      <ArPostChat
         draft={draft}
         onChange={patchDraft}
-        stepIndex={formStep}
         isEdit={isEdit}
         onBack={() => {
-          if (formStep === 1) {
-            if (isEdit) onCancel();
-            else setPhase('capture');
-            return;
-          }
-          setFormStep((s) => s - 1);
+          if (isEdit) onCancel();
+          else setPhase('capture');
         }}
-        onNext={() => {
-          if (formStep < formStepCount) {
-            setFormStep((s) => s + 1);
-          } else {
-            handleSubmit();
-          }
-        }}
+        onSubmit={(finalDraft) => handleSubmit(finalDraft)}
       />
     );
   }

@@ -8,14 +8,14 @@ import {
 import { canProceedStep } from '../utils/postFormSteps.js';
 
 describe('PPS_NEED_GROUPS', () => {
-  it('covers all 8 need types exactly once', () => {
+  it('covers all 9 need types exactly once', () => {
     const ids = getAllNeedTypeIds();
-    expect(ids).toHaveLength(8);
-    expect(new Set(ids).size).toBe(8);
+    expect(ids).toHaveLength(9);
+    expect(new Set(ids).size).toBe(9);
   });
 
-  it('has four groups', () => {
-    expect(PPS_NEED_GROUPS).toHaveLength(4);
+  it('has five groups including other', () => {
+    expect(PPS_NEED_GROUPS).toHaveLength(5);
   });
 });
 
