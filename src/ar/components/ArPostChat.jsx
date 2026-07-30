@@ -4,7 +4,6 @@ import { Pictogram } from '../../components/ui/Pictogram';
 import { NEED_CATEGORY_OPTIONS, TIME_TAG_OPTIONS, SEVERITY_OPTIONS } from '../../constants/barrierData';
 import {
   AR_TARGET_GROUP_OPTIONS,
-  AFFECTED_OTHER_LABEL,
   AFFECTED_OTHER_MAX_LEN,
   toggleAffectedGroup,
   isOtherGroupSelected,
@@ -16,6 +15,8 @@ import { PPS_NEED_GROUPS, getNeedTypeOption } from '../constants/needTypeGroups'
 
 const BAD_STEPS = ['kind', 'story', 'place', 'who', 'optional'];
 const GOOD_STEPS = ['kind', 'place', 'story'];
+
+const getStepIds = (postKind) => (postKind === 'good' ? GOOD_STEPS : BAD_STEPS);
 
 function BotBubble({ children }) {
   return (
@@ -252,8 +253,10 @@ export function ArPostChat({
   onSubmit,
   isEdit = false,
 }) {
-  const isGood = draft.postKind === 'good';
-  const stepIds = isGood ? GOOD_STEPS : BAD_STEPS;
+  const postKind = draft.postKind ?? 'bad';
+  const isGood = postKind === 'good';
+  const stepIds = getStepIds(postKind);
+
   const [stepIndex, setStepIndex] = useState(0);
   const [phase, setPhase] = useState('chat');
   const [inputText, setInputText] = useState('');
@@ -263,6 +266,7 @@ export function ArPostChat({
   const bootedRef = useRef(false);
 
   const stepId = stepIds[stepIndex] ?? 'confirm';
+  const canGoBack = phase === 'confirm' || stepIndex > 0;
 
   const appendBot = useCallback((text) => {
     setMessages((prev) => [...prev, { role: 'bot', text }]);
@@ -272,29 +276,17 @@ export function ArPostChat({
     setMessages((prev) => [...prev, { role: 'user', text }]);
   }, []);
 
-  const goConfirm = useCallback(() => {
-    if (draft.postKind === 'bad') {
-      const result = classifyDraft(draft);
-      onChange({
-        needType: result.needType,
-        placeArchetype: draft.placeArchetype ?? result.placeArchetype,
-        classification: result.classification,
-      });
-    }
-    appendBot('内容を整理しました。下のカードで確認・修正してから投稿してください。');
-    setPhase('confirm');
-  }, [appendBot, draft, onChange]);
-
-  const promptForStep = useCallback((id) => {
+  const promptForStep = useCallback((id, kind) => {
+    const good = kind === 'good';
     switch (id) {
       case 'kind':
         appendBot('記録の種類を選んでください。困りごとですか？それとも良い場所ですか？');
         break;
       case 'story':
         appendBot(
-          isGood
-            ? 'なぜ良い場所だと感じましたか？'
-            : 'どんなことが困っていますか？\n（10字以上で、段差・暗さ・案内など具体的に）',
+          good
+            ? 'なぜ良い場所だと感じましたか？\n（短くても大丈夫です）'
+            : 'どんなことが困っていますか？\n（短くてもOK — 段差・暗さ・案内など書ける範囲で）',
         );
         break;
       case 'place':
@@ -309,7 +301,28 @@ export function ArPostChat({
       default:
         break;
     }
-  }, [appendBot, isGood]);
+  }, [appendBot]);
+
+  const advanceToStep = useCallback((nextIndex, kind) => {
+    const steps = getStepIds(kind);
+    setStepIndex(nextIndex);
+    if (nextIndex < steps.length) {
+      promptForStep(steps[nextIndex], kind);
+    }
+  }, [promptForStep]);
+
+  const goConfirm = useCallback((payload = draft) => {
+    if (payload.postKind === 'bad') {
+      const result = classifyDraft(payload);
+      onChange({
+        needType: result.needType,
+        placeArchetype: payload.placeArchetype ?? result.placeArchetype,
+        classification: result.classification,
+      });
+    }
+    appendBot('内容を整理しました。下のカードで確認・修正してから投稿してください。');
+    setPhase('confirm');
+  }, [appendBot, draft, onChange]);
 
   useEffect(() => {
     if (bootedRef.current) return;
@@ -319,24 +332,30 @@ export function ArPostChat({
       appendBot('編集内容を確認してください。');
       return;
     }
-    promptForStep(stepIds[0]);
-  }, [appendBot, isEdit, promptForStep, stepIds]);
+    promptForStep('kind', postKind);
+  }, [appendBot, isEdit, postKind, promptForStep]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
   }, [messages, phase, showOptional]);
 
-  const canSendStory = useMemo(() => {
-    const len = inputText.trim().length;
-    return isGood ? len >= 1 : len >= 10;
-  }, [inputText, isGood]);
+  useEffect(() => {
+    if (phase === 'chat' && stepId === 'story') {
+      setInputText(draft.comment ?? '');
+    }
+  }, [phase, stepId, draft.comment]);
 
-  const handleKind = (kind) => {
+  const canSendStory = useMemo(() => inputText.trim().length >= 1, [inputText]);
+
+  const handleKindSelect = (kind) => {
     onChange({ postKind: kind });
+  };
+
+  const handleKindConfirm = () => {
+    if (!draft.postKind) return;
+    const kind = draft.postKind;
     appendUser(kind === 'good' ? '✨ 良い場所' : '😣 困りごと');
-    const next = stepIndex + 1;
-    setStepIndex(next);
-    promptForStep(stepIds[next]);
+    advanceToStep(1, kind);
   };
 
   const handlePlace = (placeId) => {
@@ -345,11 +364,10 @@ export function ArPostChat({
     appendUser(label);
     const next = stepIndex + 1;
     if (next >= stepIds.length) {
-      goConfirm();
+      goConfirm({ ...draft, placeArchetype: placeId });
       return;
     }
-    setStepIndex(next);
-    promptForStep(stepIds[next]);
+    advanceToStep(next, postKind);
   };
 
   const handleStorySubmit = () => {
@@ -359,12 +377,11 @@ export function ArPostChat({
     appendUser(text);
     setInputText('');
     const next = stepIndex + 1;
-    setStepIndex(next);
     if (next >= stepIds.length) {
-      goConfirm();
+      goConfirm({ ...draft, comment: text });
       return;
     }
-    promptForStep(stepIds[next]);
+    advanceToStep(next, postKind);
   };
 
   const handleWhoToggle = (label) => {
@@ -385,17 +402,52 @@ export function ArPostChat({
       appendUser('（スキップ）');
     }
     const next = stepIndex + 1;
-    setStepIndex(next);
     if (next >= stepIds.length) {
       goConfirm();
       return;
     }
-    promptForStep(stepIds[next]);
+    advanceToStep(next, postKind);
   };
 
   const handleOptionalDone = () => {
     appendUser('（スキップ）');
     goConfirm();
+  };
+
+  const handleGoBackStep = () => {
+    if (phase === 'confirm') {
+      setPhase('chat');
+      setMessages((prev) => {
+        const next = [...prev];
+        if (next.length && next[next.length - 1].role === 'bot') next.pop();
+        return next;
+      });
+      setStepIndex(stepIds.length - 1);
+      const lastStep = stepIds[stepIds.length - 1];
+      if (lastStep === 'story') {
+        setInputText(draft.comment ?? '');
+      }
+      return;
+    }
+
+    if (stepIndex <= 0) return;
+
+    setMessages((prev) => {
+      const next = [...prev];
+      if (next.length && next[next.length - 1].role === 'bot') next.pop();
+      if (next.length && next[next.length - 1].role === 'user') next.pop();
+      return next;
+    });
+
+    const prevIndex = stepIndex - 1;
+    setStepIndex(prevIndex);
+    const prevStep = stepIds[prevIndex];
+    if (prevStep === 'story') {
+      setInputText(draft.comment ?? '');
+    }
+    if (prevStep === 'optional') {
+      setShowOptional(false);
+    }
   };
 
   const handleConfirm = () => {
@@ -432,7 +484,7 @@ export function ArPostChat({
         gap: 12,
       }}
       >
-        <button type="button" onClick={onBack} style={navBtnStyle}>
+        <button type="button" onClick={onBack} style={navBtnStyle} aria-label="撮影に戻る">
           <ChevronLeft size={22} />
         </button>
         <div style={{ flex: 1 }}>
@@ -444,6 +496,21 @@ export function ArPostChat({
             {phase === 'confirm' ? '内容の確認' : '投稿を記録'}
           </div>
         </div>
+        {canGoBack && (
+          <button
+            type="button"
+            onClick={handleGoBackStep}
+            style={{
+              ...navBtnStyle,
+              width: 'auto',
+              padding: '0 12px',
+              fontSize: 13,
+              fontWeight: 600,
+            }}
+          >
+            前の質問
+          </button>
+        )}
       </header>
 
       <div
@@ -473,12 +540,36 @@ export function ArPostChat({
         )}
 
         {phase === 'chat' && stepId === 'kind' && (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 4 }}>
-            <button type="button" onClick={() => handleKind('bad')} style={chipStyle(draft.postKind === 'bad', AR_THEME.barrier)}>
-              😣 困りごと
-            </button>
-            <button type="button" onClick={() => handleKind('good')} style={chipStyle(draft.postKind === 'good', AR_THEME.positive)}>
-              ✨ 良い場所
+          <div style={{ marginTop: 4 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              <button
+                type="button"
+                onClick={() => handleKindSelect('bad')}
+                style={chipStyle(draft.postKind === 'bad', AR_THEME.barrier)}
+              >
+                😣 困りごと
+              </button>
+              <button
+                type="button"
+                onClick={() => handleKindSelect('good')}
+                style={chipStyle(draft.postKind === 'good', AR_THEME.positive)}
+              >
+                ✨ 良い場所
+              </button>
+            </div>
+            <button
+              type="button"
+              disabled={!draft.postKind}
+              onClick={handleKindConfirm}
+              style={{
+                ...actionBtnStyle,
+                marginTop: 10,
+                background: draft.postKind ? AR_THEME.accentWarm : 'rgba(255,255,255,0.12)',
+                color: draft.postKind ? '#0d1b2a' : AR_THEME.muted,
+                cursor: draft.postKind ? 'pointer' : 'not-allowed',
+              }}
+            >
+              この内容で次へ
             </button>
           </div>
         )}
@@ -599,7 +690,7 @@ export function ArPostChat({
             placeholder={
               isGood
                 ? '例：ベンチがあって休みやすい'
-                : '例：段差が高くて車いすでは一人では上がれない'
+                : '例：段差が高い / 駅かな / 暗くて見えない'
             }
             rows={3}
             style={{
@@ -607,6 +698,7 @@ export function ArPostChat({
               minHeight: 80,
               resize: 'none',
               marginBottom: 8,
+              marginTop: 0,
             }}
           />
           <button
