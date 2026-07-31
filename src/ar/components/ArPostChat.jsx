@@ -1,20 +1,25 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronLeft, Send, SkipForward } from 'lucide-react';
 import { Pictogram } from '../../components/ui/Pictogram';
-import { NEED_CATEGORY_OPTIONS, TIME_TAG_OPTIONS, SEVERITY_OPTIONS } from '../../constants/barrierData';
-import {
-  AR_TARGET_GROUP_OPTIONS,
-  AFFECTED_OTHER_MAX_LEN,
-  toggleAffectedGroup,
-  isOtherGroupSelected,
-} from '../constants/arTargetGroups';
+import { NEED_CATEGORY_OPTIONS } from '../../constants/barrierData';
 import { KOTO_PLACE_OPTIONS } from '../constants/kotoArea';
 import { AR_THEME, chipStyle } from '../constants/arTheme';
 import { classifyDraft, getPlaceLabel } from '../utils/classifyDraft';
+import {
+  classifyMetaFromDraft,
+  CONTEXT_INPUT_HINTS,
+  getPlaceDisplayLabel,
+  getSeverityLabel,
+  getTimeTagLabel,
+  inferPlaceArchetypeFromText,
+  PLACE_INPUT_HINTS,
+  WHO_INPUT_HINTS,
+} from '../utils/classifyMetaFields';
 import { PPS_NEED_GROUPS, getNeedTypeOption } from '../constants/needTypeGroups';
 
 const BAD_STEPS = ['kind', 'story', 'place', 'who', 'optional'];
 const GOOD_STEPS = ['kind', 'place', 'story'];
+const TEXT_INPUT_STEPS = new Set(['story', 'place', 'who', 'optional']);
 
 const getStepIds = (postKind) => (postKind === 'good' ? GOOD_STEPS : BAD_STEPS);
 
@@ -55,6 +60,31 @@ function UserBubble({ children }) {
       >
         {children}
       </div>
+    </div>
+  );
+}
+
+function HintChips({ hints, onPick }) {
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+      {hints.map((hint) => (
+        <button
+          key={hint}
+          type="button"
+          onClick={() => onPick(hint)}
+          style={{
+            padding: '6px 10px',
+            borderRadius: 999,
+            border: '1px solid rgba(255,255,255,0.18)',
+            background: 'rgba(255,255,255,0.06)',
+            color: AR_THEME.muted,
+            fontSize: 12,
+            cursor: 'pointer',
+          }}
+        >
+          {hint}
+        </button>
+      ))}
     </div>
   );
 }
@@ -184,7 +214,17 @@ function ConfirmCard({
         </>
       )}
 
-      <div style={{ fontSize: 12, color: AR_THEME.muted, marginBottom: 6 }}>場所</div>
+      <div style={{ fontSize: 12, color: AR_THEME.muted, marginBottom: 6 }}>場所（入力）</div>
+      <p style={{ margin: '0 0 8px', fontSize: 14, color: AR_THEME.text }}>
+        {getPlaceDisplayLabel(draft.placeArchetype, draft.placeText)}
+        {draft.placeArchetype && draft.placeArchetype !== 'none' && (
+          <span style={{ color: AR_THEME.muted, fontSize: 12 }}>
+            {' '}
+            →
+            {getPlaceLabel(draft.placeArchetype)}
+          </span>
+        )}
+      </p>
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
@@ -192,11 +232,11 @@ function ConfirmCard({
         marginBottom: 12,
       }}
       >
-        {KOTO_PLACE_OPTIONS.map((opt) => (
+        {KOTO_PLACE_OPTIONS.filter((o) => o.id !== 'none').map((opt) => (
           <button
             key={opt.id}
             type="button"
-            onClick={() => onChange({ placeArchetype: opt.id })}
+            onClick={() => onChange({ placeArchetype: opt.id, placeText: opt.label })}
             style={chipStyle(draft.placeArchetype === opt.id, AR_THEME.accentWarm)}
           >
             {opt.label}
@@ -204,11 +244,19 @@ function ConfirmCard({
         ))}
       </div>
 
-      {(draft.affectedGroups?.length > 0 || draft.affectedOther) && (
-        <p style={{ margin: '0 0 10px', fontSize: 13, color: AR_THEME.muted }}>
+      {(draft.whoText || draft.affectedGroups?.length > 0) && (
+        <p style={{ margin: '0 0 8px', fontSize: 13, color: AR_THEME.muted }}>
           誰にとって:
           {' '}
-          {[...(draft.affectedGroups ?? []), draft.affectedOther].filter(Boolean).join(' · ')}
+          {draft.whoText || [...(draft.affectedGroups ?? []), draft.affectedOther].filter(Boolean).join(' · ')}
+        </p>
+      )}
+
+      {(draft.contextText || draft.timeTag || draft.severity) && (
+        <p style={{ margin: '0 0 12px', fontSize: 13, color: AR_THEME.muted }}>
+          時間・深刻度:
+          {' '}
+          {draft.contextText || `${getTimeTagLabel(draft.timeTag)} · ${getSeverityLabel(draft.severity)}`}
         </p>
       )}
 
@@ -290,13 +338,13 @@ export function ArPostChat({
         );
         break;
       case 'place':
-        appendBot('どんな場所ですか？当てはまるものを選んでください。');
+        appendBot('どんな場所ですか？\n（自由記述 — 例の言葉をタップしてもOK）');
         break;
       case 'who':
-        appendBot('誰にとって困りますか？\n（任意 — スキップもできます）');
+        appendBot('誰にとって困りますか？\n（自由記述 — 任意・スキップ可）');
         break;
       case 'optional':
-        appendBot('時間帯や深刻度を追加しますか？\n（任意 — スキップできます）');
+        appendBot('いつ・どのくらい困りますか？\n（例：夜、深刻 — 任意・スキップ可）');
         break;
       default:
         break;
@@ -312,13 +360,19 @@ export function ArPostChat({
   }, [promptForStep]);
 
   const goConfirm = useCallback((payload = draft) => {
-    if (payload.postKind === 'bad') {
-      const result = classifyDraft(payload);
+    const meta = classifyMetaFromDraft(payload);
+    const merged = { ...payload, ...meta };
+
+    if (merged.postKind === 'bad') {
+      const result = classifyDraft(merged);
       onChange({
+        ...meta,
         needType: result.needType,
-        placeArchetype: payload.placeArchetype ?? result.placeArchetype,
+        placeArchetype: merged.placeArchetype ?? result.placeArchetype,
         classification: result.classification,
       });
+    } else {
+      onChange(meta);
     }
     appendBot('内容を整理しました。下のカードで確認・修正してから投稿してください。');
     setPhase('confirm');
@@ -340,12 +394,45 @@ export function ArPostChat({
   }, [messages, phase, showOptional]);
 
   useEffect(() => {
-    if (phase === 'chat' && stepId === 'story') {
-      setInputText(draft.comment ?? '');
-    }
-  }, [phase, stepId, draft.comment]);
+    if (phase !== 'chat' || !TEXT_INPUT_STEPS.has(stepId)) return;
+    if (stepId === 'story') setInputText(draft.comment ?? '');
+    if (stepId === 'place') setInputText(draft.placeText ?? '');
+    if (stepId === 'who') setInputText(draft.whoText ?? '');
+    if (stepId === 'optional') setInputText(draft.contextText ?? '');
+  }, [phase, stepId, draft.comment, draft.placeText, draft.whoText, draft.contextText]);
 
-  const canSendStory = useMemo(() => inputText.trim().length >= 1, [inputText]);
+  const canSendText = useMemo(() => {
+    if (stepId === 'who' || stepId === 'optional') return true;
+    return inputText.trim().length >= 1;
+  }, [inputText, stepId]);
+
+  const appendHint = (hint) => {
+    setInputText((prev) => {
+      const base = prev.trim();
+      if (!base) return hint;
+      if (base.includes(hint)) return base;
+      return `${base}、${hint}`;
+    });
+  };
+
+  const textStepHints = useMemo(() => {
+    if (stepId === 'place') return PLACE_INPUT_HINTS;
+    if (stepId === 'who') return WHO_INPUT_HINTS;
+    if (stepId === 'optional') return CONTEXT_INPUT_HINTS;
+    return [];
+  }, [stepId]);
+
+  const textStepPlaceholder = useMemo(() => {
+    if (stepId === 'story') {
+      return isGood
+        ? '例：ベンチがあって休みやすい'
+        : '例：段差が高い / 駅かな / 暗くて見えない';
+    }
+    if (stepId === 'place') return '例：駅、歩道、公園…';
+    if (stepId === 'who') return '例：車いす、高齢者、みんな…';
+    if (stepId === 'optional') return '例：夜、軽い、深刻…';
+    return '';
+  }, [isGood, stepId]);
 
   const handleKindSelect = (kind) => {
     onChange({ postKind: kind });
@@ -358,60 +445,66 @@ export function ArPostChat({
     advanceToStep(1, kind);
   };
 
-  const handlePlace = (placeId) => {
-    const label = KOTO_PLACE_OPTIONS.find((o) => o.id === placeId)?.label ?? placeId;
-    onChange({ placeArchetype: placeId });
-    appendUser(label);
-    const next = stepIndex + 1;
-    if (next >= stepIds.length) {
-      goConfirm({ ...draft, placeArchetype: placeId });
+  const handleTextStepSubmit = (overrideText) => {
+    const text = typeof overrideText === 'string' ? overrideText.trim() : inputText.trim();
+    if (stepId === 'story') {
+      if (!text) return;
+      onChange({ comment: text });
+      appendUser(text);
+      setInputText('');
+      const next = stepIndex + 1;
+      if (next >= stepIds.length) {
+        goConfirm({ ...draft, comment: text });
+        return;
+      }
+      advanceToStep(next, postKind);
       return;
     }
-    advanceToStep(next, postKind);
-  };
 
-  const handleStorySubmit = () => {
-    const text = inputText.trim();
-    if (!canSendStory) return;
-    onChange({ comment: text });
-    appendUser(text);
-    setInputText('');
-    const next = stepIndex + 1;
-    if (next >= stepIds.length) {
-      goConfirm({ ...draft, comment: text });
+    if (stepId === 'place') {
+      if (!text) return;
+      const placeMeta = inferPlaceArchetypeFromText(text);
+      const patch = { placeText: text, placeArchetype: placeMeta.placeArchetype };
+      onChange(patch);
+      appendUser(text);
+      setInputText('');
+      const next = stepIndex + 1;
+      if (next >= stepIds.length) {
+        goConfirm({ ...draft, ...patch });
+        return;
+      }
+      advanceToStep(next, postKind);
       return;
     }
-    advanceToStep(next, postKind);
-  };
 
-  const handleWhoToggle = (label) => {
-    const next = toggleAffectedGroup(
-      draft.affectedGroups ?? [],
-      label,
-      draft.affectedOther ?? '',
-    );
-    onChange(next);
-  };
-
-  const handleWhoDone = () => {
-    const labels = draft.affectedGroups ?? [];
-    const extra = draft.affectedOther?.trim();
-    if (labels.length || extra) {
-      appendUser([...labels, extra].filter(Boolean).join(' · ') || '（未選択）');
-    } else {
-      appendUser('（スキップ）');
-    }
-    const next = stepIndex + 1;
-    if (next >= stepIds.length) {
-      goConfirm();
+    if (stepId === 'who') {
+      const meta = classifyMetaFromDraft({ ...draft, whoText: text });
+      onChange({
+        whoText: text,
+        affectedGroups: meta.affectedGroups,
+        affectedOther: meta.affectedOther,
+      });
+      appendUser(text || '（スキップ）');
+      setInputText('');
+      const next = stepIndex + 1;
+      if (next >= stepIds.length) {
+        goConfirm({ ...draft, whoText: text, ...meta });
+        return;
+      }
+      advanceToStep(next, postKind);
       return;
     }
-    advanceToStep(next, postKind);
-  };
 
-  const handleOptionalDone = () => {
-    appendUser('（スキップ）');
-    goConfirm();
+    if (stepId === 'optional') {
+      const meta = classifyMetaFromDraft({ ...draft, contextText: text });
+      onChange({
+        contextText: text,
+        timeTag: meta.timeTag,
+        severity: meta.severity,
+      });
+      appendUser(text || '（スキップ）');
+      goConfirm({ ...draft, contextText: text, timeTag: meta.timeTag, severity: meta.severity });
+    }
   };
 
   const handleGoBackStep = () => {
@@ -424,8 +517,11 @@ export function ArPostChat({
       });
       setStepIndex(stepIds.length - 1);
       const lastStep = stepIds[stepIds.length - 1];
-      if (lastStep === 'story') {
-        setInputText(draft.comment ?? '');
+      if (TEXT_INPUT_STEPS.has(lastStep)) {
+        if (lastStep === 'story') setInputText(draft.comment ?? '');
+        if (lastStep === 'place') setInputText(draft.placeText ?? '');
+        if (lastStep === 'who') setInputText(draft.whoText ?? '');
+        if (lastStep === 'optional') setInputText(draft.contextText ?? '');
       }
       return;
     }
@@ -442,9 +538,10 @@ export function ArPostChat({
     const prevIndex = stepIndex - 1;
     setStepIndex(prevIndex);
     const prevStep = stepIds[prevIndex];
-    if (prevStep === 'story') {
-      setInputText(draft.comment ?? '');
-    }
+    if (prevStep === 'story') setInputText(draft.comment ?? '');
+    if (prevStep === 'place') setInputText(draft.placeText ?? '');
+    if (prevStep === 'who') setInputText(draft.whoText ?? '');
+    if (prevStep === 'optional') setInputText(draft.contextText ?? '');
     if (prevStep === 'optional') {
       setShowOptional(false);
     }
@@ -461,8 +558,6 @@ export function ArPostChat({
       classification,
     });
   };
-
-  const showOtherField = isOtherGroupSelected(draft.affectedGroups);
 
   return (
     <div style={{
@@ -574,109 +669,9 @@ export function ArPostChat({
           </div>
         )}
 
-        {phase === 'chat' && stepId === 'place' && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8, marginTop: 4 }}>
-            {KOTO_PLACE_OPTIONS.map((opt) => (
-              <button
-                key={opt.id}
-                type="button"
-                onClick={() => handlePlace(opt.id)}
-                style={chipStyle(draft.placeArchetype === opt.id, AR_THEME.accentWarm)}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {phase === 'chat' && stepId === 'who' && (
-          <div style={{ marginTop: 4 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8 }}>
-              {AR_TARGET_GROUP_OPTIONS.map((opt) => (
-                <button
-                  key={opt.id}
-                  type="button"
-                  onClick={() => handleWhoToggle(opt.label)}
-                  style={chipStyle(draft.affectedGroups?.includes(opt.label), AR_THEME.accent)}
-                >
-                  {opt.iconSrc ? (
-                    <Pictogram src={opt.iconSrc} size={28} alt={opt.label} />
-                  ) : (
-                    <span>✏️</span>
-                  )}
-                  <span>{opt.label}</span>
-                </button>
-              ))}
-            </div>
-            {showOtherField && (
-              <input
-                type="text"
-                value={draft.affectedOther ?? ''}
-                maxLength={AFFECTED_OTHER_MAX_LEN}
-                onChange={(e) => onChange({ affectedOther: e.target.value })}
-                placeholder="例：チャリ、観光客"
-                style={inputStyle}
-              />
-            )}
-            <button
-              type="button"
-              onClick={handleWhoDone}
-              style={{ ...actionBtnStyle, marginTop: 10 }}
-            >
-              {draft.affectedGroups?.length ? '次へ' : 'スキップ'}
-              <SkipForward size={18} />
-            </button>
-          </div>
-        )}
-
-        {phase === 'chat' && stepId === 'optional' && (
-          <div style={{ marginTop: 4 }}>
-            <button
-              type="button"
-              onClick={() => setShowOptional((v) => !v)}
-              style={{ ...actionBtnStyle, background: 'rgba(255,255,255,0.06)', color: AR_THEME.text }}
-            >
-              {showOptional ? '詳細を閉じる' : '時間帯・深刻度を指定'}
-            </button>
-            {showOptional && (
-              <>
-                <div style={{ fontSize: 12, color: AR_THEME.muted, margin: '12px 0 6px' }}>時間帯</div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 6 }}>
-                  {TIME_TAG_OPTIONS.map((opt) => (
-                    <button
-                      key={opt.id}
-                      type="button"
-                      onClick={() => onChange({ timeTag: opt.id })}
-                      style={chipStyle((draft.timeTag ?? 'always') === opt.id)}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
-                <div style={{ fontSize: 12, color: AR_THEME.muted, margin: '12px 0 6px' }}>深刻度</div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
-                  {SEVERITY_OPTIONS.map((opt) => (
-                    <button
-                      key={opt.id}
-                      type="button"
-                      onClick={() => onChange({ severity: opt.id })}
-                      style={chipStyle((draft.severity ?? 'mid') === opt.id)}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
-            <button type="button" onClick={handleOptionalDone} style={{ ...actionBtnStyle, marginTop: 10 }}>
-              確認へ進む
-              <SkipForward size={18} />
-            </button>
-          </div>
-        )}
       </div>
 
-      {phase === 'chat' && stepId === 'story' && (
+      {phase === 'chat' && TEXT_INPUT_STEPS.has(stepId) && (
         <div style={{
           flexShrink: 0,
           padding: `10px 16px ${AR_THEME.safeBottom}`,
@@ -684,38 +679,55 @@ export function ArPostChat({
           background: 'rgba(10,22,40,0.98)',
         }}
         >
+          {textStepHints.length > 0 && (
+            <HintChips hints={textStepHints} onPick={appendHint} />
+          )}
           <textarea
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
-            placeholder={
-              isGood
-                ? '例：ベンチがあって休みやすい'
-                : '例：段差が高い / 駅かな / 暗くて見えない'
-            }
-            rows={3}
+            placeholder={textStepPlaceholder}
+            rows={stepId === 'story' ? 3 : 2}
             style={{
               ...inputStyle,
-              minHeight: 80,
+              minHeight: stepId === 'story' ? 80 : 56,
               resize: 'none',
               marginBottom: 8,
               marginTop: 0,
             }}
           />
-          <button
-            type="button"
-            disabled={!canSendStory}
-            onClick={handleStorySubmit}
-            style={{
-              ...actionBtnStyle,
-              width: '100%',
-              background: canSendStory ? AR_THEME.accentWarm : 'rgba(255,255,255,0.12)',
-              color: canSendStory ? '#0d1b2a' : AR_THEME.muted,
-              cursor: canSendStory ? 'pointer' : 'not-allowed',
-            }}
-          >
-            送信
-            <Send size={18} />
-          </button>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {(stepId === 'who' || stepId === 'optional') && (
+              <button
+                type="button"
+                onClick={() => handleTextStepSubmit('')}
+                style={{
+                  ...actionBtnStyle,
+                  flex: 1,
+                  background: 'rgba(255,255,255,0.12)',
+                  color: AR_THEME.text,
+                }}
+              >
+                スキップ
+                <SkipForward size={18} />
+              </button>
+            )}
+            <button
+              type="button"
+              disabled={!canSendText}
+              onClick={handleTextStepSubmit}
+              style={{
+                ...actionBtnStyle,
+                flex: stepId === 'who' || stepId === 'optional' ? 2 : 1,
+                width: stepId === 'who' || stepId === 'optional' ? undefined : '100%',
+                background: canSendText ? AR_THEME.accentWarm : 'rgba(255,255,255,0.12)',
+                color: canSendText ? '#0d1b2a' : AR_THEME.muted,
+                cursor: canSendText ? 'pointer' : 'not-allowed',
+              }}
+            >
+              {stepId === 'optional' ? '確認へ' : '送信'}
+              <Send size={18} />
+            </button>
+          </div>
         </div>
       )}
     </div>

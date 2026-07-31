@@ -2,10 +2,9 @@ import React from 'react';
 import { AR_THEME } from '../constants/arTheme';
 
 /**
- * 撮影時の照準（十字 + 角枠）
- * 端末を動かして不満の点を中心に合わせる
+ * 撮影時の照準（十字のみ — 枠なしで自然な構図を保つ）
  */
-export function ArCaptureReticle({ hint = '不満の点をここに合わせてください', showHint = true }) {
+export function ArCaptureReticle({ hint = '困りごとの方向を十字に合わせてください', showHint = true }) {
   return (
     <div
       style={{
@@ -17,34 +16,7 @@ export function ArCaptureReticle({ hint = '不満の点をここに合わせて�
         placeItems: 'center',
       }}
     >
-      <div style={{ position: 'relative', width: '72vw', maxWidth: 320, aspectRatio: '3/4' }}>
-        {/* 角枠 */}
-        {[
-          { top: 0, left: 0, borderTop: true, borderLeft: true },
-          { top: 0, right: 0, borderTop: true, borderRight: true },
-          { bottom: 0, left: 0, borderBottom: true, borderLeft: true },
-          { bottom: 0, right: 0, borderBottom: true, borderRight: true },
-        ].map((corner, i) => (
-          <div
-            key={i}
-            style={{
-              position: 'absolute',
-              width: 28,
-              height: 28,
-              ...corner,
-              borderColor: AR_THEME.accent,
-              borderStyle: 'solid',
-              borderWidth: 0,
-              ...(corner.borderTop && { borderTopWidth: 3 }),
-              ...(corner.borderBottom && { borderBottomWidth: 3 }),
-              ...(corner.borderLeft && { borderLeftWidth: 3 }),
-              ...(corner.borderRight && { borderRightWidth: 3 }),
-              opacity: 0.95,
-            }}
-          />
-        ))}
-
-        {/* 十字 */}
+      <div style={{ position: 'relative', width: 48, height: 48 }}>
         <div style={{
           position: 'absolute',
           left: '50%',
@@ -84,21 +56,23 @@ export function ArCaptureReticle({ hint = '不満の点をここに合わせて�
         />
       </div>
 
-      <div style={{
-        position: 'absolute',
-        bottom: '28%',
-        left: 16,
-        right: 16,
-        textAlign: 'center',
-        fontSize: 14,
-        fontWeight: 'bold',
-        color: '#fff',
-        textShadow: '0 2px 10px #000',
-        lineHeight: 1.45,
-      }}
-      >
-        {showHint ? hint : null}
-      </div>
+      {showHint && hint && (
+        <div style={{
+          position: 'absolute',
+          bottom: '28%',
+          left: 16,
+          right: 16,
+          textAlign: 'center',
+          fontSize: 14,
+          fontWeight: 'bold',
+          color: '#fff',
+          textShadow: '0 2px 10px #000',
+          lineHeight: 1.45,
+        }}
+        >
+          {hint}
+        </div>
+      )}
     </div>
   );
 }

@@ -515,9 +515,16 @@ function buildResult({
   reason = 'keyword',
 }) {
   const placeFromUser = draft.placeArchetype ?? null;
+  const placeFromDraftText = draft.placeText
+    ? inferPlaceFromText(draft.placeText)
+    : { placeArchetype: null, placeSource: 'none' };
   const inferred = inferPlaceFromText(rawText);
-  const placeArchetype = placeFromUser ?? inferred.placeArchetype;
-  const placeSource = placeFromUser ? 'user' : inferred.placeSource;
+  const placeArchetype = placeFromUser
+    ?? placeFromDraftText.placeArchetype
+    ?? inferred.placeArchetype;
+  const placeSource = placeFromUser
+    ? 'user'
+    : (placeFromDraftText.placeArchetype ? 'keyword' : inferred.placeSource);
 
   /** @type {Record<string, number>} */
   const needTypeScores = {};

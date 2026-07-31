@@ -23,6 +23,26 @@ describe('buildAnnotationFromDraft', () => {
     expect(record.type).toBe('danger');
   });
 
+  it('stores free-text meta fields', () => {
+    const record = buildAnnotationFromDraft({
+      postKind: 'bad',
+      needType: 'P',
+      placeArchetype: 'station',
+      placeText: '駅前',
+      whoText: '車いす',
+      contextText: '夜',
+      affectedGroups: ['車いす'],
+      comment: '段差が高くて車椅子では上がれない',
+      timeTag: 'night',
+      severity: 'mid',
+      worldPin: { lat: 35.65, lng: 139.82 },
+    }, { authorId: 'u1' });
+
+    expect(record.placeText).toBe('駅前');
+    expect(record.whoText).toBe('車いす');
+    expect(record.contextText).toBe('夜');
+  });
+
   it('stores affectedOther', () => {
     const record = buildAnnotationFromDraft({
       postKind: 'bad',

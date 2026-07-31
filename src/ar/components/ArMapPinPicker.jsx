@@ -34,7 +34,7 @@ export function ArMapPinPicker({
     <div style={{
       position: 'fixed',
       inset: 0,
-      zIndex: 220,
+      zIndex: 250,
       background: AR_THEME.bg,
       display: 'flex',
       flexDirection: 'column',

@@ -16,14 +16,16 @@ export function computePinAtFeet({ authorGeo, headingDeg = 0, pitchDeg = 0 }) {
 
 /** 地図で指定した座標＝ピン（位置は地図が正、距離は参考） */
 export function computePinFromMap({ worldPin, authorGeo }) {
-  if (!worldPin || !authorGeo) return null;
+  if (!worldPin) return null;
+  const refGeo = authorGeo ?? worldPin;
   return {
     worldPin: { lat: worldPin.lat, lng: worldPin.lng },
-    distanceM: haversineDistanceM(authorGeo, worldPin),
+    distanceM: authorGeo ? haversineDistanceM(authorGeo, worldPin) : 0,
     capturePose: null,
     screenTap: { nx: 0.5, ny: 0.5 },
     placementMode: 'map',
-    accuracyM: authorGeo.accuracy,
+    accuracyM: authorGeo?.accuracy ?? null,
+    authorGeo: refGeo,
   };
 }
 
