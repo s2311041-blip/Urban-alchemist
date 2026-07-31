@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { ChevronLeft, Download, Heart, Pencil, Search, Trash2 } from 'lucide-react';
 import { NEED_CATEGORY_OPTIONS } from '../../constants/barrierData';
-import { AR_THEME } from '../constants/arTheme';
+import { AR_HOME } from '../constants/arTheme';
 import { ArPinCard } from './ArPinCard';
 import {
   collectFilterChips,
@@ -41,36 +41,27 @@ export function ArFieldGuide({
   };
 
   return (
-    <div style={{
-      position: 'fixed',
-      inset: 0,
-      zIndex: 9000,
-      background: AR_THEME.bg,
-      color: AR_THEME.text,
-      display: 'flex',
-      flexDirection: 'column',
-    }}
-    >
-      <header style={{
-        padding: '14px 16px',
-        borderBottom: '1px solid rgba(255,255,255,0.08)',
-        display: 'flex',
-        alignItems: 'center',
-        gap: 10,
-      }}
-      >
-        <button type="button" onClick={onClose} style={backBtnStyle}>
+    <div style={styles.page}>
+      <header style={styles.header}>
+        <button type="button" onClick={onClose} style={styles.backBtn}>
           <ChevronLeft size={20} />
           ホーム
         </button>
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 11, color: AR_THEME.accent }}>街の記録図鑑</div>
-          <div style={{ fontWeight: 'bold', fontSize: 17 }}>{filtered.length} 件 · {availablePoints} pt 使える</div>
+          <div style={styles.headerEyebrow}>記録図鑑</div>
+          <div style={styles.headerTitle}>
+            {filtered.length}
+            {' '}
+            件 · 共感に使える
+            {availablePoints}
+            {' '}
+            pt
+          </div>
         </div>
       </header>
 
-      <div style={{ padding: '12px 16px 0' }}>
-        <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+      <div style={styles.toolbar}>
+        <div style={styles.scopeRow}>
           {[
             { id: 'all', label: 'みんな' },
             { id: 'mine', label: '自分' },
@@ -80,15 +71,8 @@ export function ArFieldGuide({
               type="button"
               onClick={() => setScope(id)}
               style={{
-                flex: 1,
-                padding: '10px 12px',
-                borderRadius: 12,
-                border: scope === id ? `2px solid ${AR_THEME.accent}` : '1px solid rgba(255,255,255,0.15)',
-                background: scope === id ? 'rgba(79,195,247,0.15)' : 'rgba(255,255,255,0.04)',
-                color: AR_THEME.text,
-                fontWeight: 'bold',
-                fontSize: 14,
-                cursor: 'pointer',
+                ...styles.scopeBtn,
+                ...(scope === id ? styles.scopeBtnActive : {}),
               }}
             >
               {label}
@@ -96,73 +80,41 @@ export function ArFieldGuide({
           ))}
         </div>
 
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 10,
-          padding: '12px 14px',
-          borderRadius: 14,
-          background: 'rgba(255,255,255,0.06)',
-          border: '1px solid rgba(255,255,255,0.1)',
-        }}
-        >
-          <Search size={18} color={AR_THEME.muted} />
+        <div style={styles.searchBox}>
+          <Search size={18} color={AR_HOME.muted} />
           <input
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="コメント・場所・タグで検索"
-            style={{
-              flex: 1,
-              background: 'transparent',
-              border: 'none',
-              color: AR_THEME.text,
-              fontSize: 15,
-              outline: 'none',
-            }}
+            style={styles.searchInput}
           />
         </div>
 
-        <div style={{
-          display: 'flex',
-          gap: 8,
-          overflowX: 'auto',
-          padding: '12px 0',
-          WebkitOverflowScrolling: 'touch',
-        }}
-        >
-          {chips.map((chip) => (
-            <button
-              key={chip.id}
-              type="button"
-              onClick={() => toggleTag(chip.id)}
-              style={{
-                flexShrink: 0,
-                padding: '8px 14px',
-                borderRadius: 20,
-                border: activeTags.includes(chip.id) ? `2px solid ${AR_THEME.accent}` : '1px solid rgba(255,255,255,0.15)',
-                background: activeTags.includes(chip.id) ? 'rgba(79,195,247,0.18)' : 'rgba(255,255,255,0.04)',
-                color: AR_THEME.text,
-                fontSize: 13,
-                cursor: 'pointer',
-              }}
-            >
-              {chip.label}
-            </button>
-          ))}
-        </div>
+        {chips.length > 0 && (
+          <div style={styles.chipScroll}>
+            {chips.map((chip) => (
+              <button
+                key={chip.id}
+                type="button"
+                onClick={() => toggleTag(chip.id)}
+                style={{
+                  ...styles.chip,
+                  ...(activeTags.includes(chip.id) ? styles.chipActive : {}),
+                }}
+              >
+                {chip.label}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '0 16px 100px' }}>
+      <div style={styles.listArea}>
         {filtered.length === 0 ? (
-          <p style={{ textAlign: 'center', color: AR_THEME.muted, marginTop: 48 }}>該当する記録がありません</p>
+          <p style={styles.empty}>該当する記録がありません</p>
         ) : (
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
-            gap: 12,
-          }}
-          >
+          <div style={styles.grid}>
             {filtered.map((item) => (
               <FieldGuideCard
                 key={item.id}
@@ -178,31 +130,8 @@ export function ArFieldGuide({
         )}
       </div>
 
-      <div style={{
-        position: 'fixed',
-        left: 0,
-        right: 0,
-        bottom: 0,
-        padding: `10px 16px ${AR_THEME.safeBottom}`,
-        background: 'rgba(10,22,40,0.95)',
-        borderTop: '1px solid rgba(255,255,255,0.08)',
-      }}
-      >
-        <button type="button" onClick={onExport} style={{
-          width: '100%',
-          padding: 14,
-          borderRadius: 14,
-          border: '1px solid rgba(255,255,255,0.15)',
-          background: 'rgba(255,255,255,0.06)',
-          color: AR_THEME.text,
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 8,
-          fontWeight: 'bold',
-        }}
-        >
+      <div style={styles.footer}>
+        <button type="button" onClick={onExport} style={styles.exportBtn}>
           <Download size={18} />
           JSON書き出し
         </button>
@@ -223,15 +152,13 @@ export function ArFieldGuide({
 function FieldGuideCard({ item, onOpen, onEdit, onDelete, onLike, canLike = false }) {
   const needLabel = NEED_CATEGORY_OPTIONS.find((o) => o.needType === item.needType)?.label;
   const tags = getAnnotationTags(item).slice(0, 3);
+  const isPositive = item.kind === 'positive';
 
   return (
     <article
       style={{
-        borderRadius: 16,
-        overflow: 'hidden',
-        background: 'rgba(255,255,255,0.05)',
-        border: `1px solid ${item.kind === 'positive' ? 'rgba(102,187,106,0.35)' : 'rgba(239,83,80,0.35)'}`,
-        cursor: 'pointer',
+        ...styles.card,
+        borderColor: isPositive ? '#86efac' : '#fecaca',
       }}
       onClick={onOpen}
       onKeyDown={(e) => e.key === 'Enter' && onOpen()}
@@ -239,63 +166,43 @@ function FieldGuideCard({ item, onOpen, onEdit, onDelete, onLike, canLike = fals
       tabIndex={0}
     >
       <div style={{
-        height: 100,
+        ...styles.cardThumb,
         background: item.photo
           ? `url(${item.photo}) center/cover`
-          : 'linear-gradient(135deg, #1a3a5c, #0d1b2a)',
+          : isPositive ? AR_HOME.positiveSoft : '#fee2e2',
       }}
       />
-      <div style={{ padding: 10 }}>
-        <div style={{ fontSize: 10, color: AR_THEME.muted, marginBottom: 4 }}>
-          {item.kind === 'positive' ? '良い場所' : needLabel ?? 'バリア'}
+      <div style={styles.cardBody}>
+        <div style={styles.cardKind}>
+          {isPositive ? '良い場所' : needLabel ?? '困りごと'}
         </div>
-        <p style={{
-          margin: 0,
-          fontSize: 13,
-          lineHeight: 1.4,
-          display: '-webkit-box',
-          WebkitLineClamp: 3,
-          WebkitBoxOrient: 'vertical',
-          overflow: 'hidden',
-        }}
-        >
-          {item.comment || '—'}
-        </p>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 8 }}>
+        <p style={styles.cardText}>{item.comment || '—'}</p>
+        <div style={styles.tagRow}>
           {tags.map((t) => (
-            <span key={t.id} style={{
-              fontSize: 9,
-              padding: '2px 6px',
-              borderRadius: 6,
-              background: 'rgba(255,255,255,0.08)',
-              color: AR_THEME.muted,
-            }}
-            >
-              {t.label}
-            </span>
+            <span key={t.id} style={styles.tag}>{t.label}</span>
           ))}
         </div>
         {item.isMine ? (
-          <div style={{ display: 'flex', gap: 8, marginTop: 8 }} onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
-            <button type="button" onClick={onEdit} style={iconBtnStyle} aria-label="編集"><Pencil size={14} /></button>
-            <button type="button" onClick={onDelete} style={iconBtnStyle} aria-label="削除"><Trash2 size={14} /></button>
+          <div style={styles.actions} onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+            <button type="button" onClick={onEdit} style={styles.iconBtn} aria-label="編集"><Pencil size={14} /></button>
+            <button type="button" onClick={onDelete} style={styles.iconBtn} aria-label="削除"><Trash2 size={14} /></button>
           </div>
         ) : (
-          <div style={{ display: 'flex', gap: 8, marginTop: 8, alignItems: 'center' }} onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+          <div style={styles.actions} onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
             <button
               type="button"
               disabled={!canLike && !item.likedByMe}
               onClick={onLike}
               style={{
-                ...iconBtnStyle,
-                color: item.likedByMe ? '#ef5350' : AR_THEME.muted,
+                ...styles.iconBtn,
+                color: item.likedByMe ? '#dc2626' : AR_HOME.muted,
                 opacity: canLike || item.likedByMe ? 1 : 0.45,
               }}
               aria-label="共感"
             >
-              <Heart size={14} fill={item.likedByMe ? '#ef5350' : 'none'} />
+              <Heart size={14} fill={item.likedByMe ? '#dc2626' : 'none'} />
             </button>
-            <span style={{ fontSize: 10, color: AR_THEME.muted }}>
+            <span style={styles.likeHint}>
               {item.likedByMe ? '共感済み' : canLike ? '1 pt で共感' : 'pt 不足'}
             </span>
           </div>
@@ -305,24 +212,214 @@ function FieldGuideCard({ item, onOpen, onEdit, onDelete, onLike, canLike = fals
   );
 }
 
-const backBtnStyle = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: 4,
-  background: 'rgba(255,255,255,0.08)',
-  border: 'none',
-  borderRadius: 12,
-  padding: '8px 12px',
-  color: AR_THEME.text,
-  cursor: 'pointer',
-  fontSize: 14,
-};
-
-const iconBtnStyle = {
-  background: 'rgba(255,255,255,0.08)',
-  border: 'none',
-  borderRadius: 8,
-  padding: 6,
-  color: AR_THEME.muted,
-  cursor: 'pointer',
+const styles = {
+  page: {
+    position: 'fixed',
+    inset: 0,
+    zIndex: 9000,
+    background: AR_HOME.bg,
+    color: AR_HOME.text,
+    display: 'flex',
+    flexDirection: 'column',
+  },
+  header: {
+    padding: '14px 16px',
+    borderBottom: `1px solid ${AR_HOME.border}`,
+    display: 'flex',
+    alignItems: 'center',
+    gap: 10,
+    background: AR_HOME.surface,
+  },
+  backBtn: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 4,
+    background: AR_HOME.surfaceMuted,
+    border: `1px solid ${AR_HOME.border}`,
+    borderRadius: 12,
+    padding: '8px 12px',
+    color: AR_HOME.text,
+    cursor: 'pointer',
+    fontSize: 14,
+    fontWeight: 600,
+  },
+  headerEyebrow: {
+    fontSize: 11,
+    color: AR_HOME.primary,
+    fontWeight: 600,
+  },
+  headerTitle: {
+    fontWeight: 800,
+    fontSize: 17,
+    color: AR_HOME.text,
+  },
+  toolbar: {
+    padding: '12px 16px 0',
+    background: AR_HOME.surface,
+    borderBottom: `1px solid ${AR_HOME.border}`,
+  },
+  scopeRow: {
+    display: 'flex',
+    gap: 8,
+    marginBottom: 10,
+  },
+  scopeBtn: {
+    flex: 1,
+    padding: '10px 12px',
+    borderRadius: 12,
+    border: `1px solid ${AR_HOME.border}`,
+    background: AR_HOME.surfaceMuted,
+    color: AR_HOME.textSecondary,
+    fontWeight: 600,
+    fontSize: 14,
+    cursor: 'pointer',
+  },
+  scopeBtnActive: {
+    border: `2px solid ${AR_HOME.primary}`,
+    background: AR_HOME.primarySoft,
+    color: AR_HOME.primary,
+  },
+  searchBox: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 10,
+    padding: '12px 14px',
+    borderRadius: 14,
+    background: AR_HOME.surfaceMuted,
+    border: `1px solid ${AR_HOME.border}`,
+    marginBottom: 10,
+  },
+  searchInput: {
+    flex: 1,
+    background: 'transparent',
+    border: 'none',
+    color: AR_HOME.text,
+    fontSize: 15,
+    outline: 'none',
+  },
+  chipScroll: {
+    display: 'flex',
+    gap: 8,
+    overflowX: 'auto',
+    padding: '4px 0 12px',
+    WebkitOverflowScrolling: 'touch',
+  },
+  chip: {
+    flexShrink: 0,
+    padding: '8px 14px',
+    borderRadius: 20,
+    border: `1px solid ${AR_HOME.border}`,
+    background: AR_HOME.surface,
+    color: AR_HOME.textSecondary,
+    fontSize: 13,
+    cursor: 'pointer',
+  },
+  chipActive: {
+    border: `2px solid ${AR_HOME.primary}`,
+    background: AR_HOME.primarySoft,
+    color: AR_HOME.primary,
+    fontWeight: 600,
+  },
+  listArea: {
+    flex: 1,
+    overflowY: 'auto',
+    padding: '16px 16px 100px',
+    WebkitOverflowScrolling: 'touch',
+  },
+  empty: {
+    textAlign: 'center',
+    color: AR_HOME.muted,
+    marginTop: 48,
+  },
+  grid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
+    gap: 12,
+  },
+  footer: {
+    position: 'fixed',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    padding: `10px 16px ${AR_HOME.safeBottom}`,
+    background: 'rgba(255,255,255,0.96)',
+    borderTop: `1px solid ${AR_HOME.border}`,
+    backdropFilter: 'blur(8px)',
+  },
+  exportBtn: {
+    width: '100%',
+    padding: 14,
+    borderRadius: 14,
+    border: `1px solid ${AR_HOME.border}`,
+    background: AR_HOME.surface,
+    color: AR_HOME.textSecondary,
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    fontWeight: 700,
+    fontSize: 14,
+  },
+  card: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    background: AR_HOME.surface,
+    border: '1px solid',
+    boxShadow: AR_HOME.shadow,
+    cursor: 'pointer',
+  },
+  cardThumb: {
+    height: 100,
+  },
+  cardBody: {
+    padding: 10,
+  },
+  cardKind: {
+    fontSize: 10,
+    color: AR_HOME.muted,
+    marginBottom: 4,
+    fontWeight: 600,
+  },
+  cardText: {
+    margin: 0,
+    fontSize: 13,
+    lineHeight: 1.4,
+    color: AR_HOME.text,
+    display: '-webkit-box',
+    WebkitLineClamp: 3,
+    WebkitBoxOrient: 'vertical',
+    overflow: 'hidden',
+  },
+  tagRow: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: 4,
+    marginTop: 8,
+  },
+  tag: {
+    fontSize: 9,
+    padding: '2px 6px',
+    borderRadius: 6,
+    background: AR_HOME.surfaceMuted,
+    color: AR_HOME.muted,
+  },
+  actions: {
+    display: 'flex',
+    gap: 8,
+    marginTop: 8,
+    alignItems: 'center',
+  },
+  iconBtn: {
+    background: AR_HOME.surfaceMuted,
+    border: `1px solid ${AR_HOME.border}`,
+    borderRadius: 8,
+    padding: 6,
+    color: AR_HOME.textSecondary,
+    cursor: 'pointer',
+  },
+  likeHint: {
+    fontSize: 10,
+    color: AR_HOME.muted,
+  },
 };
