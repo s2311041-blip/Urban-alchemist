@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronLeft, Send, SkipForward } from 'lucide-react';
+import { ChevronLeft, MapPin, Send, SkipForward } from 'lucide-react';
 import { Pictogram } from '../../components/ui/Pictogram';
 import { NEED_CATEGORY_OPTIONS } from '../../constants/barrierData';
 import { KOTO_PLACE_OPTIONS } from '../constants/kotoArea';
@@ -125,6 +125,7 @@ function ConfirmCard({
   classification,
   onChange,
   onConfirm,
+  onEditLocation,
   isEdit,
 }) {
   const needOpt = getNeedTypeOption(draft.needType) ?? NEED_CATEGORY_OPTIONS.find((o) => o.needType === draft.needType);
@@ -292,6 +293,50 @@ function ConfirmCard({
         </p>
       )}
 
+      {isEdit && (
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ fontSize: 12, color: AR_THEME.muted, marginBottom: 6 }}>記録した位置（ピン）</div>
+          {draft.worldPin ? (
+            <p style={{ margin: '0 0 8px', fontSize: 13, color: AR_THEME.text }}>
+              {draft.placementMode === 'map' ? '地図で指定' : '現在地'}
+              {' · '}
+              {draft.worldPin.lat.toFixed(5)}
+              ,
+              {' '}
+              {draft.worldPin.lng.toFixed(5)}
+            </p>
+          ) : (
+            <p style={{ margin: '0 0 8px', fontSize: 13, color: AR_THEME.accentWarm }}>
+              位置情報がありません。地図で指定してください。
+            </p>
+          )}
+          {onEditLocation && (
+            <button
+              type="button"
+              onClick={onEditLocation}
+              style={{
+                width: '100%',
+                padding: 12,
+                borderRadius: 12,
+                border: `1px solid ${AR_THEME.accent}`,
+                background: 'rgba(79,195,247,0.12)',
+                color: AR_THEME.text,
+                fontWeight: 600,
+                fontSize: 14,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+              }}
+            >
+              <MapPin size={18} color={AR_THEME.accent} />
+              地図で位置を修正
+            </button>
+          )}
+        </div>
+      )}
+
       <button
         type="button"
         onClick={onConfirm}
@@ -319,6 +364,7 @@ export function ArPostChat({
   onChange,
   onBack,
   onSubmit,
+  onEditLocation,
   isEdit = false,
 }) {
   const postKind = draft.postKind ?? 'bad';
@@ -657,6 +703,7 @@ export function ArPostChat({
             classification={draft.classification}
             onChange={onChange}
             onConfirm={handleConfirm}
+            onEditLocation={onEditLocation}
             isEdit={isEdit}
           />
         )}

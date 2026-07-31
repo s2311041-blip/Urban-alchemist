@@ -71,6 +71,7 @@ export function ArPostFlow({
   const [phase, setPhase] = useState(isEdit ? 'form' : 'place');
   const [placeMode, setPlaceMode] = useState('feet');
   const [showMapPicker, setShowMapPicker] = useState(false);
+  const [showEditMapPicker, setShowEditMapPicker] = useState(false);
   const [placementTap, setPlacementTap] = useState(editTarget?.screenTap ?? null);
   const [draft, setDraft] = useState(
     isEdit ? annotationToDraft(editTarget) : draftFromPostEntry(postEntry),
@@ -130,6 +131,21 @@ export function ArPostFlow({
     setShowMapPicker(false);
     setPlaceMode('feet');
     goCaptureIntro();
+  };
+
+  const confirmEditMapPlacement = (worldPin) => {
+    const anchor = computePinFromMap({
+      worldPin,
+      authorGeo: draft.authorGeo ?? geo,
+    });
+    if (!anchor) return;
+    patchDraft({
+      authorGeo: anchor.authorGeo ?? draft.authorGeo,
+      worldPin: anchor.worldPin,
+      distanceM: anchor.distanceM,
+      placementMode: anchor.placementMode,
+    });
+    setShowEditMapPicker(false);
   };
 
   const takePhoto = () => {
@@ -495,16 +511,28 @@ export function ArPostFlow({
 
   if (phase === 'form') {
     return (
-      <ArPostChat
-        draft={draft}
-        onChange={patchDraft}
-        isEdit={isEdit}
-        onBack={() => {
-          if (isEdit) onCancel();
-          else setPhase('annotate');
-        }}
-        onSubmit={(finalDraft) => handleSubmit(finalDraft)}
-      />
+      <>
+        {showEditMapPicker && (
+          <ArMapPinPicker
+            userGeo={draft.authorGeo ?? geo}
+            initialPin={draft.worldPin}
+            onConfirm={confirmEditMapPlacement}
+            onCancel={() => setShowEditMapPicker(false)}
+          />
+        )}
+
+        <ArPostChat
+          draft={draft}
+          onChange={patchDraft}
+          isEdit={isEdit}
+          onBack={() => {
+            if (isEdit) onCancel();
+            else setPhase('annotate');
+          }}
+          onSubmit={(finalDraft) => handleSubmit(finalDraft)}
+          onEditLocation={isEdit ? () => setShowEditMapPicker(true) : undefined}
+        />
+      </>
     );
   }
 

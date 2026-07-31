@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { ChevronLeft, Download, Heart, Pencil, Search, Trash2 } from 'lucide-react';
 import { NEED_CATEGORY_OPTIONS } from '../../constants/barrierData';
 import { AR_HOME } from '../constants/arTheme';
+import { isFacilitatorMode } from '../constants/facilitatorMode';
 import { ArPinCard } from './ArPinCard';
 import {
   collectFilterChips,
@@ -110,7 +111,11 @@ export function ArFieldGuide({
         )}
       </div>
 
-      <div style={styles.listArea}>
+      <div style={{
+        ...styles.listArea,
+        paddingBottom: isFacilitatorMode() ? '100px' : '24px',
+      }}
+      >
         {filtered.length === 0 ? (
           <p style={styles.empty}>該当する記録がありません</p>
         ) : (
@@ -130,12 +135,14 @@ export function ArFieldGuide({
         )}
       </div>
 
-      <div style={styles.footer}>
-        <button type="button" onClick={onExport} style={styles.exportBtn}>
-          <Download size={18} />
-          JSON書き出し
-        </button>
-      </div>
+      {isFacilitatorMode() && (
+        <div style={styles.footer}>
+          <button type="button" onClick={onExport} style={styles.exportBtn}>
+            <Download size={18} />
+            JSON書き出し（ゲーム取り込み用）
+          </button>
+        </div>
+      )}
 
       {cardPin && (
         <ArPinCard
