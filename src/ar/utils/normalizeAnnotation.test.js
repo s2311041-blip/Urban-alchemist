@@ -43,6 +43,21 @@ describe('buildAnnotationFromDraft', () => {
     expect(record.contextText).toBe('夜');
   });
 
+  it('stores prompt metadata', () => {
+    const record = buildAnnotationFromDraft({
+      postKind: 'bad',
+      needType: 'P',
+      comment: 'test comment',
+      promptKind: 'standing',
+      promptId: 'standing-08-access-plaza',
+      promptTitle: '駅前広場の行き来',
+      worldPin: { lat: 35.65, lng: 139.82 },
+    }, { authorId: 'u1' });
+    expect(record.promptKind).toBe('standing');
+    expect(record.promptId).toBe('standing-08-access-plaza');
+    expect(record.promptTitle).toBe('駅前広場の行き来');
+  });
+
   it('stores affectedOther', () => {
     const record = buildAnnotationFromDraft({
       postKind: 'bad',

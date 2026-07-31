@@ -26,7 +26,31 @@ const INITIAL_DRAFT = {
   timeTag: 'always',
   severity: 'mid',
   photoPins: [],
+  promptKind: 'free',
+  promptId: null,
+  promptTitle: null,
 };
+
+function draftFromPostEntry(postEntry) {
+  if (!postEntry) return { ...INITIAL_DRAFT };
+  const { kind, prompt } = postEntry;
+  const base = {
+    ...INITIAL_DRAFT,
+    promptKind: kind ?? 'free',
+    promptId: prompt?.id ?? null,
+    promptTitle: prompt?.title ?? null,
+  };
+  if (prompt?.placeArchetype) {
+    base.placeArchetype = prompt.placeArchetype;
+  }
+  if (prompt?.id === 'standing-12-good-spots') {
+    base.postKind = 'good';
+  }
+  if (prompt?.timeTagHint) {
+    base.timeTag = prompt.timeTagHint;
+  }
+  return base;
+}
 
 const PLACE_MODES = [
   { id: 'feet', label: '現在地', icon: Crosshair },
@@ -36,6 +60,7 @@ const PLACE_MODES = [
 export function ArPostFlow({
   annotations,
   authorId,
+  postEntry = null,
   editTarget = null,
   onSubmit,
   onUpdate,
@@ -48,7 +73,7 @@ export function ArPostFlow({
   const [showMapPicker, setShowMapPicker] = useState(false);
   const [placementTap, setPlacementTap] = useState(editTarget?.screenTap ?? null);
   const [draft, setDraft] = useState(
-    isEdit ? annotationToDraft(editTarget) : INITIAL_DRAFT,
+    isEdit ? annotationToDraft(editTarget) : draftFromPostEntry(postEntry),
   );
   const [submitting, setSubmitting] = useState(false);
   const [stickDone, setStickDone] = useState(false);
@@ -222,6 +247,8 @@ export function ArPostFlow({
           pointerEvents: 'auto',
         }}
         >
+          <PromptContextBar draft={draft} />
+
           <p style={{
             margin: '0 0 10px',
             fontSize: 14,
@@ -512,6 +539,26 @@ export function ArPostFlow({
   }
 
   return null;
+}
+
+function PromptContextBar({ draft }) {
+  if (!draft?.promptTitle || draft.promptKind === 'free') return null;
+  const isSpecial = draft.promptKind === 'special';
+  return (
+    <div style={{
+      marginBottom: 10,
+      padding: '10px 12px',
+      borderRadius: 12,
+      background: isSpecial ? 'rgba(124,58,237,0.25)' : 'rgba(37,99,235,0.25)',
+      border: `1px solid ${isSpecial ? 'rgba(167,139,250,0.5)' : 'rgba(96,165,250,0.5)'}`,
+    }}
+    >
+      <div style={{ fontSize: 11, fontWeight: 700, color: isSpecial ? '#c4b5fd' : '#93c5fd', marginBottom: 4 }}>
+        {isSpecial ? '特設のお題' : '今月のお題'}
+      </div>
+      <div style={{ fontSize: 13, color: '#f1f5f9', lineHeight: 1.4 }}>{draft.promptTitle}</div>
+    </div>
+  );
 }
 
 const bottomBtnStyle = (active) => ({

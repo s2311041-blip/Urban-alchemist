@@ -10,6 +10,35 @@ export const AR_THEME = {
   safeBottom: 'calc(12px + env(safe-area-inset-bottom))',
 };
 
+/** ホーム画面 — 読みやすさ・万人向けのライト UI */
+export const AR_HOME = {
+  bg: 'linear-gradient(165deg, #f8fafc 0%, #eef2f7 48%, #e8eef5 100%)',
+  surface: '#ffffff',
+  surfaceMuted: '#f1f5f9',
+  border: '#e2e8f0',
+  text: '#0f172a',
+  textSecondary: '#475569',
+  muted: '#64748b',
+  primary: '#2563eb',
+  primaryHover: '#1d4ed8',
+  primarySoft: '#eff6ff',
+  standing: '#2563eb',
+  standingSoft: '#dbeafe',
+  special: '#7c3aed',
+  specialSoft: '#ede9fe',
+  free: '#0d9488',
+  freeSoft: '#ccfbf1',
+  positive: '#059669',
+  positiveSoft: '#d1fae5',
+  warm: '#ea580c',
+  warmSoft: '#ffedd5',
+  shadow: '0 4px 24px rgba(15, 23, 42, 0.08)',
+  shadowLg: '0 8px 32px rgba(15, 23, 42, 0.12)',
+  radius: 16,
+  radiusLg: 20,
+  safeBottom: 'calc(16px + env(safe-area-inset-bottom))',
+};
+
 export const chipStyle = (active, color = AR_THEME.accent) => ({
   padding: '12px 14px',
   borderRadius: 14,

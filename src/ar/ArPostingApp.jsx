@@ -12,6 +12,7 @@ export function ArPostingApp() {
   const [screen, setScreen] = useState('home');
   const [helpOpen, setHelpOpen] = useState(false);
   const [editTarget, setEditTarget] = useState(null);
+  const [postEntry, setPostEntry] = useState(null);
   const [bootReady, setBootReady] = useState(false);
 
   const {
@@ -94,6 +95,12 @@ export function ArPostingApp() {
   const goHome = () => {
     setScreen('home');
     setEditTarget(null);
+    setPostEntry(null);
+  };
+
+  const startPost = (entry) => {
+    setPostEntry(entry);
+    setScreen('post');
   };
 
   const startEdit = (annotation) => {
@@ -107,8 +114,9 @@ export function ArPostingApp() {
         minHeight: '100dvh',
         display: 'grid',
         placeItems: 'center',
-        background: '#060d18',
-        color: '#90a4ae',
+        background: '#f8fafc',
+        color: '#64748b',
+        fontSize: 15,
       }}
       >
         接続中…
@@ -124,9 +132,10 @@ export function ArPostingApp() {
           pinCount={myCount}
           allPinCount={mineMarked.length}
           syncStatus={syncStatus}
-          lastSyncAt={lastSyncAt}
+          annotations={mineMarked}
           onSync={() => syncAnnotations()}
           recentItems={recentItems}
+          onStartPost={startPost}
           onNavigate={setScreen}
           onHelp={() => setHelpOpen(true)}
         />
@@ -140,6 +149,7 @@ export function ArPostingApp() {
       <ArPostFlow
         annotations={mineMarked}
         authorId={authorId}
+        postEntry={screen === 'post' ? postEntry : null}
         editTarget={screen === 'edit' ? editTarget : null}
         onSubmit={submitDraft}
         onUpdate={updateDraft}

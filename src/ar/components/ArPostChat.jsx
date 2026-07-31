@@ -386,8 +386,15 @@ export function ArPostChat({
       appendBot('編集内容を確認してください。');
       return;
     }
+    if (draft.promptTitle && draft.promptKind !== 'free') {
+      const kindLabel = draft.promptKind === 'special' ? '特設のお題' : '今月のお題';
+      appendBot(
+        `${kindLabel}「${draft.promptTitle}」に沿った記録も歓迎です。\n`
+        + '別の気づきでも、そのまま送って大丈夫です。',
+      );
+    }
     promptForStep('kind', postKind);
-  }, [appendBot, isEdit, postKind, promptForStep]);
+  }, [appendBot, draft.promptKind, draft.promptTitle, isEdit, postKind, promptForStep]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
