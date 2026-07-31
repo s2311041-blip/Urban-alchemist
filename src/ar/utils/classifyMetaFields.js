@@ -3,7 +3,7 @@ import { AFFECTED_OTHER_LABEL } from '../constants/arTargetGroups';
 import { inferPlaceFromText, normalizeClassifyText } from './classifyDraft';
 
 /** 入力欄下に表示する例（タップで追記） */
-export const PLACE_INPUT_HINTS = ['駅', '歩道', '公園', '商店街', 'バス停', '路地', '水辺'];
+export const PLACE_INPUT_HINTS = ['駅', '駅前', '広場', '歩道', '公園', '商店街', 'バス停', '路地', '水辺'];
 export const WHO_INPUT_HINTS = ['みんな', '高齢者', '車いす', 'ベビーカー', '子ども'];
 export const CONTEXT_INPUT_HINTS = ['常時', '夜', '夕方', '軽い', '中くらい', '深刻'];
 

@@ -31,7 +31,11 @@ export function useCameraStream({ enabled = true } = {}) {
     const start = async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { ideal: 'environment' } },
+          video: {
+            facingMode: { ideal: 'environment' },
+            width: { ideal: 1920, min: 1280 },
+            height: { ideal: 1080, min: 720 },
+          },
           audio: false,
         });
         if (cancelled) {
@@ -75,11 +79,15 @@ export function useCameraStream({ enabled = true } = {}) {
   const capturePhoto = () => {
     const video = videoRef.current;
     if (!video || video.readyState < 2) return null;
+    const w = video.videoWidth;
+    const h = video.videoHeight;
+    if (!w || !h) return null;
     const canvas = document.createElement('canvas');
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    canvas.getContext('2d').drawImage(video, 0, 0);
-    return canvas.toDataURL('image/jpeg', 0.85);
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, w, h);
+    return canvas.toDataURL('image/jpeg', 0.92);
   };
 
   return { videoRef, ready, error, capturePhoto };

@@ -11,7 +11,6 @@ import {
 } from 'lucide-react';
 import { AR_HOME } from '../constants/arTheme';
 import { PPS_GROUP_META } from '../constants/promptSpecs';
-import { getApiModeLabel } from '../api/annotationsClient';
 import {
   countPostsForPrompt,
   getActiveSpecialPrompts,
@@ -25,10 +24,7 @@ const MONTH_LABELS = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8
 export function ArHomeScreen({
   totalPoints,
   pinCount,
-  allPinCount = pinCount,
-  syncStatus = 'idle',
   annotations = [],
-  onSync,
   recentItems = [],
   onStartPost,
   onNavigate,
@@ -42,13 +38,6 @@ export function ArHomeScreen({
     () => countPostsForPrompt(annotations, standingPrompt.id),
     [annotations, standingPrompt.id],
   );
-
-  const syncLabel = getApiModeLabel();
-  const syncHint = syncStatus === 'error'
-    ? '同期失敗'
-    : syncStatus === 'syncing'
-      ? '同期中…'
-      : syncLabel;
 
   const monthLabel = MONTH_LABELS[now.getMonth()];
   const ppsMeta = standingPrompt.ppsGroup ? PPS_GROUP_META[standingPrompt.ppsGroup] : null;
@@ -75,19 +64,6 @@ export function ArHomeScreen({
         <div style={styles.statsRow}>
           <StatPill label="自分の記録" value={`${pinCount}件`} />
           <StatPill label="ポイント" value={`${totalPoints}pt`} accent />
-          <button type="button" onClick={onSync} style={styles.syncPill}>
-            <span style={styles.statLabel}>同期</span>
-            <span style={{
-              ...styles.statValue,
-              color: syncStatus === 'error' ? '#dc2626' : AR_HOME.text,
-            }}
-            >
-              {syncHint}
-            </span>
-            {allPinCount > pinCount && (
-              <span style={styles.statSub}>全体 {allPinCount}件</span>
-            )}
-          </button>
         </div>
 
         <section style={styles.section} aria-labelledby="standing-heading">
@@ -290,13 +266,16 @@ function SecondaryAction({ icon: Icon, label, desc, onClick }) {
 const styles = {
   page: {
     minHeight: '100dvh',
+    height: '100dvh',
+    overflowY: 'auto',
+    WebkitOverflowScrolling: 'touch',
     background: AR_HOME.bg,
     color: AR_HOME.text,
   },
   inner: {
     maxWidth: 480,
     margin: '0 auto',
-    padding: '20px 18px 32px',
+    padding: '20px 18px 40px',
     paddingBottom: AR_HOME.safeBottom,
     boxSizing: 'border-box',
   },
@@ -343,7 +322,7 @@ const styles = {
   },
   statsRow: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(3, 1fr)',
+    gridTemplateColumns: 'repeat(2, 1fr)',
     gap: 8,
     marginBottom: 24,
   },

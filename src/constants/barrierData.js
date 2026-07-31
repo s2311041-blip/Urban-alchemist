@@ -338,7 +338,7 @@ export const NEED_CATEGORY_OPTIONS = [
   { needType: 'M', iconSrc: GENRE_PICTOGRAMS.M, label: '汚れ・荒れ', hint: '清掃・維持が追いついていない' },
   { needType: 'R', iconSrc: GENRE_PICTOGRAMS.R, label: '休めない', hint: '座る・待つ場所が足りない' },
   { needType: 'S', iconSrc: GENRE_PICTOGRAMS.S, label: '不安・怖い', hint: '人・雰囲気などで安心できない' },
-  { needType: 'C', iconSrc: GENRE_PICTOGRAMS.C, label: '頼れない', hint: '支援・見守りの接点がない' },
+  { needType: 'C', iconSrc: GENRE_PICTOGRAMS.C, label: '頼れない', hint: '困ったとき助けを求めにくい・見守りの場所がない' },
   { needType: 'O', iconSrc: null, label: 'その他', hint: '上記8つに当てはまらない' },
 ];
 

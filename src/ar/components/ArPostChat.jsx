@@ -162,10 +162,30 @@ function ConfirmCard({
         {draft.comment}
       </p>
 
+      {(draft.placeText || draft.whoText || draft.contextText) && (
+        <div style={{
+          margin: '0 0 12px',
+          padding: 10,
+          borderRadius: 10,
+          background: 'rgba(255,255,255,0.04)',
+          fontSize: 13,
+          lineHeight: 1.5,
+          color: AR_THEME.muted,
+        }}
+        >
+          {draft.placeText && <div>場所: {draft.placeText}</div>}
+          {draft.whoText && <div>誰にとって: {draft.whoText}</div>}
+          {draft.contextText && <div>時間・程度: {draft.contextText}</div>}
+        </div>
+      )}
+
       {draft.postKind === 'bad' && (
         <>
           <div style={{ fontSize: 12, color: AR_THEME.muted, marginBottom: 6 }}>
             困りの型
+            <span style={{ display: 'block', fontWeight: 'normal', marginTop: 4, lineHeight: 1.45 }}>
+              投稿内容から自動で選んでいます。違う場合はタップして選び直してください。
+            </span>
             {classification?.ambiguous && classification?.rivalType && (
               <span style={{ color: AR_THEME.accentWarm }}>
                 {' '}
@@ -389,8 +409,8 @@ export function ArPostChat({
     if (draft.promptTitle && draft.promptKind !== 'free') {
       const kindLabel = draft.promptKind === 'special' ? '特設のお題' : '今月のお題';
       appendBot(
-        `${kindLabel}「${draft.promptTitle}」に沿った記録も歓迎です。\n`
-        + '別の気づきでも、そのまま送って大丈夫です。',
+        `${kindLabel}「${draft.promptTitle}」について記録してください。\n`
+        + '困りごとでも、良い場所でも、写真と一言で構いません。',
       );
     }
     promptForStep('kind', postKind);
@@ -433,9 +453,9 @@ export function ArPostChat({
     if (stepId === 'story') {
       return isGood
         ? '例：ベンチがあって休みやすい'
-        : '例：段差が高い / 駅かな / 暗くて見えない';
+        : '例：段差が高い / 歩道が狭い / 暗くて見えない';
     }
-    if (stepId === 'place') return '例：駅、歩道、公園…';
+    if (stepId === 'place') return '例：駅前、歩道、公園…';
     if (stepId === 'who') return '例：車いす、高齢者、みんな…';
     if (stepId === 'optional') return '例：夜、軽い、深刻…';
     return '';

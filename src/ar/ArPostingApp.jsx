@@ -130,10 +130,7 @@ export function ArPostingApp() {
         <ArHomeScreen
           totalPoints={totalPoints}
           pinCount={myCount}
-          allPinCount={mineMarked.length}
-          syncStatus={syncStatus}
           annotations={mineMarked}
-          onSync={() => syncAnnotations()}
           recentItems={recentItems}
           onStartPost={startPost}
           onNavigate={setScreen}

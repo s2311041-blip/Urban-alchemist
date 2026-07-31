@@ -220,14 +220,15 @@ export function ArPostFlow({
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            justifyContent: 'center',
-            padding: 24,
+            justifyContent: 'flex-start',
+            padding: 'calc(10vh + env(safe-area-inset-top, 0px)) 24px 45vh',
             color: AR_THEME.text,
+            boxSizing: 'border-box',
           }}
           >
-            <Crosshair size={64} color={AR_THEME.accent} style={{ opacity: 0.85, marginBottom: 16 }} />
+            <Crosshair size={56} color={AR_THEME.accent} style={{ opacity: 0.85, marginBottom: 14 }} />
             <div style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 8 }}>現在地で場所を決める</div>
-            <p style={{ margin: 0, fontSize: 14, color: AR_THEME.muted, textAlign: 'center', lineHeight: 1.55 }}>
+            <p style={{ margin: 0, fontSize: 14, color: AR_THEME.muted, textAlign: 'center', lineHeight: 1.55, maxWidth: 300 }}>
               カメラは撮影のときだけ使います。
               <br />
               今は GPS で位置を記録します。
