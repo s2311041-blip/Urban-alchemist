@@ -4,6 +4,7 @@ import {
   normalizeCompetitionEntry,
 } from '../../constants/competitionData';
 import { setTimedToast } from '../helpers/uiFeedback';
+import { satisfactionLogPayload } from '../../constants/satisfactionAttributes';
 import { isSessionPlacedBlock } from '../../utils/improvementSession';
 import { findBugById } from '../../utils/bugIds';
 
@@ -68,10 +69,7 @@ export const createCompetitionSlice = (set, get) => ({
           sessionId: consensusSession.sessionId,
           remainingSessionBudget: consensusSession.remainingSessionBudget,
           isSeriousMode: true,
-          sat_general: consensusSession.islandSatisfaction.general,
-          sat_wheelchair: consensusSession.islandSatisfaction.wheelchair,
-          sat_senior: consensusSession.islandSatisfaction.senior,
-          sat_childcare: consensusSession.islandSatisfaction.childcare,
+          ...satisfactionLogPayload(consensusSession.islandSatisfaction),
         })
       }));
 

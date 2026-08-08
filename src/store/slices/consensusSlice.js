@@ -1,28 +1,50 @@
-import { computeSessionBudget, getScaleMultiplier } from '../../utils/consensusBudget';
+import { computeSessionBudget } from '../../utils/consensusBudget';
 import { QUEST_STATUS } from '../helpers/questState';
 import { TRADEOFF_MATRIX } from '../../constants/tradeoffMatrix';
 import { TYPE_TO_BARRIER_META, DEFAULT_BARRIER_META } from '../../constants/barrierData';
+import {
+  createInitialSatisfaction,
+  SATISFACTION_ATTRS,
+  satisfactionLogPayload,
+} from '../../constants/satisfactionAttributes';
+import {
+  applyPlanDeltaToSatisfaction,
+  getPlanBudgetCost,
+  revertPlanDeltaFromSatisfaction,
+} from '../../utils/planSatisfaction';
+import {
+  JOKER_PLAN_ID,
+  applyJokerDeltasToSatisfaction,
+  revertJokerDeltasFromSatisfaction,
+  validateJokerPlan,
+} from '../../utils/jokerPlan';
 
 import { appendPostEvent } from '../helpers/questLifecycle';
+import { setTimedToast } from '../helpers/uiFeedback';
 
-const INITIAL_SATISFACTION = { general: 50, wheelchair: 50, senior: 50, childcare: 50 };
+function checkConsensusGameOver(set, get, nextSat) {
+  const minSat = Math.min(...SATISFACTION_ATTRS.map((a) => nextSat[a.key] ?? 0));
+  if (minSat <= 0) {
+    setTimedToast({
+      set,
+      get,
+      message: '特定層の不満が限界を超えました（暴動）。セッションは失敗です。',
+      durationMs: 6000,
+    });
+  }
+}
 
 export const createConsensusSlice = (set, get) => ({
   startConsensusSession: () => {
     const { quests } = get();
-    // 1. spawn all un-spawned quests silently
     const pendingQuests = quests.filter(q => q.questStatus === QUEST_STATUS.PENDING_SPAWN);
     for (const q of pendingQuests) {
       get().spawnQuestOnIsland(q.id, { silent: true });
     }
-    
-    // 2. update active bugs from get() again after spawn loop
+
     const activeBugs = get().bugs.filter(b => b.sourceQuestId && !b.solved);
-    
-    // 3. calculate budget
     const { totalSessionBudget, budgetInitialFormula } = computeSessionBudget(activeBugs);
-    
-    // 4. initialize questDecisions map
+
     const questDecisions = {};
     for (const bug of activeBugs) {
       const meta = TYPE_TO_BARRIER_META[bug.type] ?? DEFAULT_BARRIER_META;
@@ -34,29 +56,29 @@ export const createConsensusSlice = (set, get) => ({
         planMatrixCostApplied: 0,
         blockCostSpent: 0,
         scale: meta.scale || 'point',
-        needType: meta.needType || 'P',
+        needType: bug.needType ?? meta.needType ?? 'P',
         satisfactionDeltaApplied: false,
       };
     }
 
-    // 5. set initial state
     set({
       isSeriousMode: true,
-      uiMode: 'macro', // transition to macro view
+      uiMode: 'macro',
       buildMode: null,
-      buildSession: null, // clear existing
+      buildSession: null,
       consensusSession: {
         sessionId: `session_${Date.now()}`,
         isActive: true,
-        phase: 'planning', // planning | building | submitted | closed
+        phase: 'planning',
         totalSessionBudget,
         remainingSessionBudget: totalSessionBudget,
         budgetInitialFormula,
-        islandSatisfaction: { ...INITIAL_SATISFACTION },
+        islandSatisfaction: createInitialSatisfaction(),
         questDecisions,
+        jokerUsed: false,
         startedAt: Date.now(),
         submittedAt: null,
-      }
+      },
     });
   },
 
@@ -72,17 +94,10 @@ export const createConsensusSlice = (set, get) => ({
     const decision = session.questDecisions[questId];
     if (!decision || decision.status !== 'pending') return;
 
-    const row = TRADEOFF_MATRIX[decision.needType] ?? TRADEOFF_MATRIX.P;
-    const planData = row['ignore'];
-    if (!planData) return;
-
-    const scaleMult = getScaleMultiplier(decision.scale);
-
-    const nextSat = { ...session.islandSatisfaction };
-    nextSat.general = Math.min(100, Math.max(0, nextSat.general + (planData.general * scaleMult)));
-    nextSat.wheelchair = Math.min(100, Math.max(0, nextSat.wheelchair + (planData.wheelchair * scaleMult)));
-    nextSat.senior = Math.min(100, Math.max(0, nextSat.senior + (planData.senior * scaleMult)));
-    nextSat.childcare = Math.min(100, Math.max(0, nextSat.childcare + (planData.childcare * scaleMult)));
+    const nextSat = applyPlanDeltaToSatisfaction(session.islandSatisfaction, {
+      needType: decision.needType,
+      planId: 'ignore',
+    });
 
     const nextDecision = {
       ...decision,
@@ -92,8 +107,6 @@ export const createConsensusSlice = (set, get) => ({
       satisfactionDeltaApplied: true,
     };
 
-    const { postStats } = get();
-
     set({
       consensusSession: {
         ...session,
@@ -101,19 +114,17 @@ export const createConsensusSlice = (set, get) => ({
         questDecisions: {
           ...session.questDecisions,
           [questId]: nextDecision,
-        }
+        },
       },
-      postStats: appendPostEvent(postStats, {
+      postStats: appendPostEvent(get().postStats, {
         t: Date.now(),
         kind: 'quest_ignore',
         questId,
         isSeriousMode: true,
-        sat_general: nextSat.general,
-        sat_wheelchair: nextSat.wheelchair,
-        sat_senior: nextSat.senior,
-        sat_childcare: nextSat.childcare,
-      })
+        ...satisfactionLogPayload(nextSat),
+      }),
     });
+    checkConsensusGameOver(set, get, nextSat);
   },
 
   resolveQuestDecision: (questId, chosenPlan) => {
@@ -125,23 +136,17 @@ export const createConsensusSlice = (set, get) => ({
     if (!decision) return;
 
     const row = TRADEOFF_MATRIX[decision.needType] ?? TRADEOFF_MATRIX.P;
-    const planData = row[chosenPlan];
-    if (!planData) return;
+    if (!row[chosenPlan]) return false;
 
-    const scaleMult = getScaleMultiplier(decision.scale);
-    const cost = Math.abs(planData.budget) * scaleMult;
-
-    // Check budget
-    if (session.remainingSessionBudget < cost) {
-      // cannot afford
+    const cost = getPlanBudgetCost(decision.needType, chosenPlan);
+    if (cost > 0 && session.remainingSessionBudget < cost) {
       return false;
     }
 
-    const nextSat = { ...session.islandSatisfaction };
-    nextSat.general = Math.min(100, Math.max(0, nextSat.general + (planData.general * scaleMult)));
-    nextSat.wheelchair = Math.min(100, Math.max(0, nextSat.wheelchair + (planData.wheelchair * scaleMult)));
-    nextSat.senior = Math.min(100, Math.max(0, nextSat.senior + (planData.senior * scaleMult)));
-    nextSat.childcare = Math.min(100, Math.max(0, nextSat.childcare + (planData.childcare * scaleMult)));
+    const nextSat = applyPlanDeltaToSatisfaction(session.islandSatisfaction, {
+      needType: decision.needType,
+      planId: chosenPlan,
+    });
 
     const nextDecision = {
       ...decision,
@@ -151,8 +156,6 @@ export const createConsensusSlice = (set, get) => ({
       satisfactionDeltaApplied: true,
     };
 
-    const { postStats } = get();
-
     set({
       consensusSession: {
         ...session,
@@ -161,9 +164,9 @@ export const createConsensusSlice = (set, get) => ({
         questDecisions: {
           ...session.questDecisions,
           [questId]: nextDecision,
-        }
+        },
       },
-      postStats: appendPostEvent(postStats, {
+      postStats: appendPostEvent(get().postStats, {
         t: Date.now(),
         kind: 'plan_commit',
         questId,
@@ -171,13 +174,76 @@ export const createConsensusSlice = (set, get) => ({
         budgetSpent: cost,
         remainingSessionBudget: session.remainingSessionBudget - cost,
         isSeriousMode: true,
-        sat_general: nextSat.general,
-        sat_wheelchair: nextSat.wheelchair,
-        sat_senior: nextSat.senior,
-        sat_childcare: nextSat.childcare,
-      })
+        ...satisfactionLogPayload(nextSat),
+      }),
     });
 
+    checkConsensusGameOver(set, get, nextSat);
+    return true;
+  },
+
+  commitJokerPlan: (questId, jokerInput) => {
+    const state = get();
+    if (!state.isSeriousMode || !state.consensusSession) return false;
+
+    const session = state.consensusSession;
+    if (session.jokerUsed) {
+      setTimedToast({ set, get, message: 'このセッションではジョーカー施策は1回までです。', durationMs: 3200 });
+      return false;
+    }
+
+    const decision = session.questDecisions[questId];
+    if (!decision || decision.status !== 'pending' || decision.needType !== 'O') {
+      return false;
+    }
+
+    const validation = validateJokerPlan(jokerInput);
+    if (!validation.ok) {
+      setTimedToast({ set, get, message: validation.message, durationMs: 3200 });
+      return false;
+    }
+
+    const { payload } = validation;
+    if (session.remainingSessionBudget < payload.budgetCost) {
+      setTimedToast({ set, get, message: '残り予算が不足しています。', durationMs: 3200 });
+      return false;
+    }
+
+    const nextSat = applyJokerDeltasToSatisfaction(session.islandSatisfaction, payload.deltas);
+    const nextDecision = {
+      ...decision,
+      status: 'resolved',
+      chosenPlan: JOKER_PLAN_ID,
+      planMatrixCostApplied: payload.budgetCost,
+      satisfactionDeltaApplied: true,
+      jokerPlan: payload,
+    };
+
+    set({
+      consensusSession: {
+        ...session,
+        remainingSessionBudget: session.remainingSessionBudget - payload.budgetCost,
+        islandSatisfaction: nextSat,
+        jokerUsed: true,
+        questDecisions: {
+          ...session.questDecisions,
+          [questId]: nextDecision,
+        },
+      },
+      postStats: appendPostEvent(get().postStats, {
+        t: Date.now(),
+        kind: 'joker_commit',
+        questId,
+        chosenPlan: JOKER_PLAN_ID,
+        budgetSpent: payload.budgetCost,
+        remainingSessionBudget: session.remainingSessionBudget - payload.budgetCost,
+        isSeriousMode: true,
+        jokerTitle: payload.title,
+        ...satisfactionLogPayload(nextSat),
+      }),
+    });
+
+    checkConsensusGameOver(set, get, nextSat);
     return true;
   },
 
@@ -189,21 +255,14 @@ export const createConsensusSlice = (set, get) => ({
     const decision = session.questDecisions[questId];
     if (!decision || decision.status === 'pending') return;
 
-    const row = TRADEOFF_MATRIX[decision.needType] ?? TRADEOFF_MATRIX.P;
-    const planData = row[decision.chosenPlan];
-    
-    let refundCost = 0;
-    let nextSat = { ...session.islandSatisfaction };
-
-    if (planData) {
-      const scaleMult = getScaleMultiplier(decision.scale);
-      refundCost = decision.planMatrixCostApplied;
-      
-      nextSat.general = Math.min(100, Math.max(0, nextSat.general - (planData.general * scaleMult)));
-      nextSat.wheelchair = Math.min(100, Math.max(0, nextSat.wheelchair - (planData.wheelchair * scaleMult)));
-      nextSat.senior = Math.min(100, Math.max(0, nextSat.senior - (planData.senior * scaleMult)));
-      nextSat.childcare = Math.min(100, Math.max(0, nextSat.childcare - (planData.childcare * scaleMult)));
-    }
+    const refundCost = decision.planMatrixCostApplied;
+    const wasJoker = decision.chosenPlan === JOKER_PLAN_ID && decision.jokerPlan;
+    const nextSat = wasJoker
+      ? revertJokerDeltasFromSatisfaction(session.islandSatisfaction, decision.jokerPlan.deltas)
+      : revertPlanDeltaFromSatisfaction(session.islandSatisfaction, {
+        needType: decision.needType,
+        planId: decision.chosenPlan,
+      });
 
     const nextDecision = {
       ...decision,
@@ -216,13 +275,14 @@ export const createConsensusSlice = (set, get) => ({
     set({
       consensusSession: {
         ...session,
-        remainingSessionBudget: session.remainingSessionBudget + refundCost, // blockCostSpent is kept or refunded per block
+        remainingSessionBudget: session.remainingSessionBudget + refundCost,
         islandSatisfaction: nextSat,
+        jokerUsed: wasJoker ? false : session.jokerUsed,
         questDecisions: {
           ...session.questDecisions,
           [questId]: nextDecision,
-        }
-      }
+        },
+      },
     });
-  }
+  },
 });

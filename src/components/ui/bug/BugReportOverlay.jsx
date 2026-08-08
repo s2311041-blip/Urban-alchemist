@@ -1,5 +1,6 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { X, Trash2, Hammer, Pencil } from 'lucide-react';
+import { useGameStore } from '../../../store/useGameStore';
 import { PhotoPinSurface } from '../PhotoPinSurface';
 import {
   getPlanHint,
@@ -30,7 +31,20 @@ import {
   getPlanOrdinalStyle,
 } from '../../../constants/ui/bugReportOverlay';
 import { Pictogram } from '../Pictogram';
-import { TRADEOFF_MATRIX, getAllowedPlansForQuest } from '../../../constants/tradeoffMatrix';
+import { getAllowedPlansForQuest } from '../../../constants/tradeoffMatrix';
+import {
+  getPlanContextDescription,
+  getPlanContextLabel,
+} from '../../../constants/planContextLabels';
+import {
+  getPlanPreviewDeltas,
+  previewIslandSatisfaction,
+} from '../../../utils/planSatisfaction';
+import {
+  PlanSatisfactionDeltas,
+  SatisfactionGaugePanel,
+} from '../consensus/SatisfactionGaugePanel';
+import { JokerPlanForm } from '../consensus/JokerPlanForm';
 
 const SEVERITY_LABEL = Object.fromEntries(
   SEVERITY_OPTIONS.map((opt) => [opt.id, opt.label]),
@@ -50,16 +64,18 @@ export const BugReportOverlay = ({
   openAREditQuest = () => {},
   isSeriousMode,
   ignoreQuest,
+  commitJokerQuest,
 }) => {
   const bug = useMemo(() => bugs.find((b) => b.id === activeBug), [bugs, activeBug]);
   const allowedPlans = useMemo(
     () => {
-      if (isSeriousMode && bug?.needType) {
+      if (bug?.needType === 'O') return [];
+      if (bug?.needType) {
         return getAllowedPlansForQuest({ needType: bug.needType });
       }
       return Array.isArray(bug?.allowedPlans) ? bug.allowedPlans : [];
     },
-    [bug, isSeriousMode],
+    [bug],
   );
   const initialSelectedPlan = useMemo(() => {
     if (!bug) return null;
@@ -68,8 +84,25 @@ export const BugReportOverlay = ({
   }, [bug, allowedPlans]);
   const [selectedPlan, setSelectedPlan] = useState(initialSelectedPlan);
   const [phase, setPhase] = useState('decision');
+  const consensusSession = useGameStore((s) => s.consensusSession);
+
+  useEffect(() => {
+    setSelectedPlan(initialSelectedPlan);
+  }, [initialSelectedPlan, activeBug]);
+
+  const planPreview = useMemo(() => {
+    if (!isSeriousMode || !bug?.needType || !selectedPlan || !consensusSession) return null;
+    const needType = bug.needType;
+    const current = consensusSession.islandSatisfaction;
+    const preview = previewIslandSatisfaction(current, { needType, planId: selectedPlan });
+    const effect = getPlanPreviewDeltas(needType, selectedPlan);
+    return { current, preview, effect };
+  }, [isSeriousMode, bug, selectedPlan, consensusSession]);
 
   if (!activeBug || !bug) return null;
+
+  const isOQuest = bug.needType === 'O';
+  const jokerAlreadyUsed = !!consensusSession?.jokerUsed;
   const factorMeta = FACTOR_STYLE[bug.factor] ?? FACTOR_STYLE.hard;
   const scaleMeta = getScaleUi(bug.scale);
   const needCategory = NEED_CATEGORY_OPTIONS.find((opt) => opt.needType === bug.needType);
@@ -182,27 +215,80 @@ export const BugReportOverlay = ({
                 </button>
               )}
               <button
-                onClick={() => setPhase('plan')}
+                onClick={() => setPhase(isOQuest && isSeriousMode ? 'joker' : 'plan')}
                 style={{ ...BUG_REPORT_STYLE.buttonBase, ...BUG_REPORT_STYLE.primaryResolveButton }}
               >
                 <Hammer size={22} />
-                {BUG_REPORT_COPY.resolve}
+                {isOQuest && isSeriousMode ? '独自案を考える' : BUG_REPORT_COPY.resolve}
               </button>
             </div>
+          ) : phase === 'joker' ? (
+            <JokerPlanForm
+              jokerAlreadyUsed={jokerAlreadyUsed}
+              remainingBudget={consensusSession?.remainingSessionBudget ?? 0}
+              onCancel={() => setPhase('decision')}
+              onSubmit={(payload) => {
+                if (commitJokerQuest?.(activeBug, payload)) {
+                  setActiveBug(null);
+                  setIsReturning(true);
+                }
+              }}
+            />
           ) : (
             <>
+              {isOQuest && !isSeriousMode && (
+                <div style={{ color: '#ffcc80', fontSize: 13, marginBottom: 12, lineHeight: 1.5 }}>
+                  「その他」の困りごとは、議会モードでジョーカー施策（独自案）として対応してください。
+                </div>
+              )}
               {allowedPlans.length > 0 && (
                 <div style={BUG_REPORT_STYLE.planSection}>
                   <div style={BUG_REPORT_STYLE.planTitle}>
                     {BUG_REPORT_COPY.choosePlan}
                   </div>
+                  {isSeriousMode && planPreview && (
+                    <div style={{
+                      marginBottom: 14,
+                      padding: '12px 14px',
+                      borderRadius: 12,
+                      background: 'rgba(0,0,0,0.45)',
+                      border: '1px solid rgba(255,202,40,0.35)',
+                    }}
+                    >
+                      <div style={{ fontSize: 12, color: '#ffca28', marginBottom: 8, fontWeight: 700 }}>
+                        島全体の満足度プレビュー（確定前）
+                        {planPreview.effect?.budgetCost != null && (
+                          <span style={{ color: '#90a4ae', fontWeight: 500, marginLeft: 8 }}>
+                            予算 -
+                            {planPreview.effect.budgetCost}
+                          </span>
+                        )}
+                      </div>
+                      <SatisfactionGaugePanel
+                        values={planPreview.preview}
+                        baseline={planPreview.current}
+                        compact
+                        showMinLine
+                      />
+                    </div>
+                  )}
                   <div style={getPlanGridStyle(allowedPlans.length)}>
                     {allowedPlans.map((plan, idx) => {
                       const active = selectedPlan === plan;
                       const accent = PLAN_CARD_ACCENT[plan] ?? '#90caf9';
+                      const cardDeltas = isSeriousMode && bug.needType
+                        ? getPlanPreviewDeltas(bug.needType, plan)
+                        : null;
+                      const contextLabel = bug.needType
+                        ? getPlanContextLabel(bug.needType, plan)
+                        : null;
+                      const contextDescription = bug.needType
+                        ? getPlanContextDescription(bug.needType, plan)
+                        : null;
                       return (
                         <button
                           key={plan}
+                          type="button"
                           onClick={() => {
                             setSelectedPlan(plan);
                             setBugChosenPlan(activeBug, plan);
@@ -210,14 +296,23 @@ export const BugReportOverlay = ({
                           style={getPlanCardStyle({ active, accent })}
                         >
                           <div style={BUG_REPORT_STYLE.planCardHeader}>
-                            <div style={BUG_REPORT_STYLE.planLabel}>{PLAN_LABEL[plan] ?? plan}</div>
+                            <div style={BUG_REPORT_STYLE.planLabel}>
+                              {contextLabel ?? PLAN_LABEL[plan] ?? plan}
+                            </div>
                             <div style={getPlanOrdinalStyle({ active, accent })}>
                               {active ? BUG_REPORT_COPY.selected : `型 ${idx + 1}`}
                             </div>
                           </div>
                           <div style={{ fontSize: '12px', color: '#b0bec5', marginBottom: '8px', lineHeight: 1.4 }}>
-                            {PLAN_DESCRIPTION[plan] ?? ''}
+                            {contextDescription ?? PLAN_DESCRIPTION[plan] ?? ''}
                           </div>
+                          {isSeriousMode && cardDeltas && (
+                            <div style={{ fontSize: 11, color: '#ffcc80', marginBottom: 6 }}>
+                              予算 -
+                              {cardDeltas.budgetCost}
+                            </div>
+                          )}
+                          <PlanSatisfactionDeltas deltas={cardDeltas?.deltas} />
                           <div style={BUG_REPORT_STYLE.planHint}>{getPlanHint(plan, bug.scale) ?? BUG_REPORT_COPY.planFallbackHint}</div>
                         </button>
                       );

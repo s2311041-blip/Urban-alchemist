@@ -111,7 +111,7 @@ export function CompetitionPanel({
                   {entry.isSeriousMode ? (
                     <>
                       残予算: {entry.remainingSessionBudget} / {entry.totalSessionBudget} | 
-                      満: {entry.islandSatisfaction?.general ?? 0}%(一) {entry.islandSatisfaction?.wheelchair ?? 0}%(車) {entry.islandSatisfaction?.senior ?? 0}%(高) {entry.islandSatisfaction?.childcare ?? 0}%(子)
+                      満: {entry.islandSatisfaction?.link ?? 0}%(移) {entry.islandSatisfaction?.place ?? 0}%(滞) {entry.islandSatisfaction?.inclusive ?? 0}%(安) {entry.islandSatisfaction?.livability ?? 0}%(静)
                     </>
                   ) : (
                     <>

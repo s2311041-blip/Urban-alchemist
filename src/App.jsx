@@ -73,6 +73,7 @@ export default function App() {
     expandingLevel: state.expandingLevel,
     isSeriousMode: state.isSeriousMode,
     startConsensusSession: state.startConsensusSession,
+    commitJokerQuest: state.commitJokerQuest,
     ignoreQuest: state.ignoreQuest,
     uiMode: state.uiMode,
     setUiMode: state.setUiMode,
@@ -178,6 +179,7 @@ export default function App() {
           setBugChosenPlan={store.setBugChosenPlan}
           isSeriousMode={store.isSeriousMode}
           ignoreQuest={store.ignoreQuest}
+          commitJokerQuest={store.commitJokerQuest}
         />
 
         {/* クエスト配置中オーバーレイ */}

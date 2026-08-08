@@ -3,6 +3,7 @@ import {
   TYPE_TO_BARRIER_META,
   normalizePlanId,
 } from '../../constants/barrierData';
+import { getAllowedPlansForQuest } from '../../constants/tradeoffMatrix';
 import { normalizeQuestStatus } from './questState';
 
 export const normalizePhotoPins = (pins) => {
@@ -17,10 +18,16 @@ export const normalizePhotoPins = (pins) => {
 export const normalizeBug = (bug) => {
   if (!bug || typeof bug !== 'object') return null;
   const meta = TYPE_TO_BARRIER_META[bug.type] ?? DEFAULT_BARRIER_META;
-  const mergedPlans = [
-    ...(Array.isArray(bug.allowedPlans) ? bug.allowedPlans : []).map(normalizePlanId),
-    ...meta.allowedPlans.map(normalizePlanId),
-  ].filter((plan, idx, arr) => typeof plan === 'string' && arr.indexOf(plan) === idx);
+  const needType = bug.needType ?? meta.needType ?? 'P';
+  const matrixPlans = needType !== 'O'
+    ? getAllowedPlansForQuest({ needType }).map(normalizePlanId)
+    : [];
+  const mergedPlans = matrixPlans.length > 0
+    ? matrixPlans
+    : [
+      ...(Array.isArray(bug.allowedPlans) ? bug.allowedPlans : []).map(normalizePlanId),
+      ...meta.allowedPlans.map(normalizePlanId),
+    ].filter((plan, idx, arr) => typeof plan === 'string' && arr.indexOf(plan) === idx);
   const chosenPlan = normalizePlanId(bug.chosenPlan);
   const normalizedChosenPlan = chosenPlan && mergedPlans.includes(chosenPlan)
     ? chosenPlan

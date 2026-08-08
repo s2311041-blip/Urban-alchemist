@@ -150,10 +150,14 @@ export const exportResearchLogCsv = (postStats) => {
     'needType',
     'placeArchetype',
     'remainingSessionBudget',
-    'sat_general',
-    'sat_wheelchair',
-    'sat_senior',
-    'sat_childcare',
+    'sat_link',
+    'sat_place',
+    'sat_inclusive',
+    'sat_livability',
+    'sat_mobility',
+    'sat_sensory',
+    'sat_safety',
+    'sat_everyday',
     'isSeriousMode'
   ].join(',');
 
@@ -170,10 +174,14 @@ export const exportResearchLogCsv = (postStats) => {
     e.needType ?? '',
     e.placeArchetype ?? '',
     e.remainingSessionBudget ?? '',
-    e.sat_general ?? '',
-    e.sat_wheelchair ?? '',
-    e.sat_senior ?? '',
-    e.sat_childcare ?? '',
+    e.sat_link ?? e.sat_mobility ?? '',
+    e.sat_place ?? e.sat_everyday ?? '',
+    e.sat_inclusive ?? e.sat_safety ?? '',
+    e.sat_livability ?? e.sat_sensory ?? '',
+    e.sat_mobility ?? e.sat_link ?? '',
+    e.sat_sensory ?? e.sat_livability ?? '',
+    e.sat_safety ?? e.sat_inclusive ?? '',
+    e.sat_everyday ?? e.sat_place ?? '',
     e.isSeriousMode ? '1' : '0',
   ].map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(','));
 

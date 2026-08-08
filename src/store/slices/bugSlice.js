@@ -29,6 +29,8 @@ import {
   isQuestResolved,
 } from '../helpers/questState';
 import { buildResolveToast } from '../../utils/questFeedback';
+import { buildPlanResolutionFeedback, buildJokerResolutionFeedback } from '../../utils/planResolutionFeedback';
+import { JOKER_PLAN_ID } from '../../utils/jokerPlan';
 import { setTimedToast } from '../helpers/uiFeedback';
 import { DEMO_QUEST_POSTS } from '../../constants/demoQuestSet';
 import {
@@ -242,10 +244,18 @@ export const createBugSlice = (set, get) => ({
         })()
         : {};
       const resolveToast = targetBug.sourceQuestId
-        ? buildResolveToast(
-          get().quests.find((quest) => quest.id === targetBug.sourceQuestId),
-          resolution?.planId ?? targetBug.chosenPlan,
-        )
+        ? (get().isSeriousMode && targetBug.needType
+          ? buildPlanResolutionFeedback({
+            needType: targetBug.needType,
+            planId: resolution?.planId ?? targetBug.chosenPlan,
+            affectedGroups: targetBug.affectedGroups,
+            questComment: get().quests.find((q) => q.id === targetBug.sourceQuestId)?.comment
+              ?? targetBug.comment,
+          })
+          : buildResolveToast(
+            get().quests.find((quest) => quest.id === targetBug.sourceQuestId),
+            resolution?.planId ?? targetBug.chosenPlan,
+          ))
         : null;
 
       if (solvedCount > 0) {
@@ -272,8 +282,14 @@ export const createBugSlice = (set, get) => ({
             ...(resolveToast ? { farmingToast: resolveToast } : sideEffectToast ? { farmingToast: sideEffectToast } : {}),
           });
 
-          if (resolveToast) setTimedToast({ set, get, message: resolveToast, durationMs: 5000 });
-          else if (sideEffectToast) setTimedToast({ set, get, message: sideEffectToast, durationMs: 2600 });
+          if (resolveToast) {
+            setTimedToast({
+              set,
+              get,
+              message: resolveToast,
+              durationMs: get().isSeriousMode ? 9000 : 5000,
+            });
+          } else if (sideEffectToast) setTimedToast({ set, get, message: sideEffectToast, durationMs: 2600 });
 
           const { meta } = expansion;
           setTimeout(() => {
@@ -305,7 +321,14 @@ export const createBugSlice = (set, get) => ({
           ...resolveStatsPatch,
           ...(resolveToast ? { farmingToast: resolveToast } : sideEffectToast ? { farmingToast: sideEffectToast } : {}),
         });
-        if (resolveToast) setTimedToast({ set, get, message: resolveToast, durationMs: 5000 });
+        if (resolveToast) {
+          setTimedToast({
+            set,
+            get,
+            message: resolveToast,
+            durationMs: get().isSeriousMode ? 9000 : 5000,
+          });
+        }
       }
     } catch (error) {
       console.error('finishBuildMode failed', error);
@@ -543,6 +566,61 @@ export const createBugSlice = (set, get) => ({
         };
       }),
     }));
+  },
+
+  commitJokerQuest: (bugId, jokerInput) => {
+    const targetBug = findBugById(get().bugs, bugId);
+    if (!targetBug?.sourceQuestId) {
+      setTimedToast({ set, get, message: 'クエストに紐づいていない不満です。', durationMs: 2600 });
+      return false;
+    }
+    if (targetBug.needType !== 'O') {
+      setTimedToast({ set, get, message: 'ジョーカー施策は「その他」の困りごと専用です。', durationMs: 2800 });
+      return false;
+    }
+    if (!get().isSeriousMode || !get().consensusSession) {
+      setTimedToast({ set, get, message: '議会モード中のみジョーカー施策を使えます。', durationMs: 2800 });
+      return false;
+    }
+
+    const committed = get().commitJokerPlan?.(targetBug.sourceQuestId, jokerInput);
+    if (!committed) return false;
+
+    const jokerPayload = get().consensusSession?.questDecisions?.[targetBug.sourceQuestId]?.jokerPlan;
+    const updatedBugs = get().bugs.map((b) => (
+      sameBugId(b.id, bugId)
+        ? normalizeBug({
+          ...b,
+          solved: true,
+          chosenPlan: JOKER_PLAN_ID,
+        })
+        : b
+    ));
+
+    const quest = get().quests.find((q) => q.id === targetBug.sourceQuestId);
+    const feedback = buildJokerResolutionFeedback({
+      jokerPlan: jokerPayload,
+      affectedGroups: targetBug.affectedGroups,
+      questComment: quest?.comment ?? targetBug.comment,
+    });
+
+    set({
+      bugs: updatedBugs,
+      activeBug: null,
+      isReturning: true,
+      quests: markQuestResolved(get().quests, targetBug.sourceQuestId, targetBug.id),
+      postStats: appendPostEvent(get().postStats, buildResolveEvent({
+        t: Date.now(),
+        questId: targetBug.sourceQuestId,
+        bugId: targetBug.id,
+        chosenPlan: JOKER_PLAN_ID,
+      })),
+    });
+
+    if (feedback) {
+      setTimedToast({ set, get, message: feedback, durationMs: 9000 });
+    }
+    return true;
   },
 
   removeBug: (bugId) => {
