@@ -57,3 +57,5 @@ export const DEGREE_PICTOGRAMS = {
   mid: degreeMid,
   high: degreeHigh,
 };
+
+export { SATISFACTION_ATTRS, SATISFACTION_ATTR_BY_KEY } from '../constants/satisfactionAttributes';

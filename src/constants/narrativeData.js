@@ -2,37 +2,44 @@ export const TUTORIAL_SCENARIO = [
   {
     speaker: '副市長',
     role: 'システム',
-    color: '#90caf9', // Neutral/System blue
-    text: '市長、着任早々ですが問題です。駅前の『空き地』をどう整備するかで、市民が揉めています！',
+    color: '#90caf9',
+    introAttributes: true,
+    text: '市長、着任おめでとうございます。この街には、移動・滞在・安全・静けさ——4つの願いが交差しています。',
+  },
+  {
+    speaker: '副市長',
+    role: 'システム',
+    color: '#90caf9',
+    text: '着任早々ですが問題です。駅前の『空き地』をどう整備するかで、市民が揉めています！',
   },
   {
     speaker: '移動',
     role: '通勤・配達員',
-    color: '#42a5f5', // link color
+    attributeKey: 'link',
     text: '空き地なんてアスファルトで固めて『近道（ショートカット）』にしようぜ！駅までの時間が惜しいんだ！',
   },
   {
-    speaker: '静穏',
+    speaker: '静けさ',
     role: '古くからの住民',
-    color: '#ffb74d', // livability color
+    attributeKey: 'livability',
     text: 'とんでもない！抜け道なんかにしたら、自転車がビュンビュン通って騒々しくなるじゃろうが！',
   },
   {
     speaker: '滞在',
     role: 'カフェ店主・若者',
-    color: '#ab47bc', // place color
+    attributeKey: 'place',
     text: 'じゃあ、ベンチを置いて『みんなの広場』にしましょうよ！夜まで語り明かせるように明るい街灯もつけて！',
   },
   {
-    speaker: '静穏',
+    speaker: '静けさ',
     role: '古くからの住民',
-    color: '#ffb74d',
+    attributeKey: 'livability',
     text: 'やめてくれ！夜中まで若者が騒いで、街灯が眩しくて一睡もできなくなる！',
   },
   {
     speaker: '安全',
     role: '車椅子の住人',
-    color: '#81c784', // inclusive color
+    attributeKey: 'inclusive',
     text: 'あの…私はただ、ガタガタの道を直して、安全に通れるようにしてほしいだけなんですが…',
   },
   {
@@ -46,7 +53,7 @@ export const TUTORIAL_SCENARIO = [
     role: 'システム',
     color: '#90caf9',
     text: '市長、あなたの仕事は彼ら全員の不満を聞き、予算内で『誰の願いを叶え、誰に我慢してもらうか』を決断することです。さあ、街の声に耳を傾けてください！',
-  }
+  },
 ];
 
 export const PLAN_FEEDBACK_NARRATIVE = {
@@ -56,7 +63,7 @@ export const PLAN_FEEDBACK_NARRATIVE = {
   },
   detour_path: {
     positive: { speaker: '移動', text: 'スイスイ通れるぜ！最高に効率が良い道だ！' },
-    negative: { speaker: '安全・静穏', text: '自転車が猛スピードで抜け道を通っていく…。\n家の横を人がひっきりなしに通るようになって落ち着かないんじゃが…' }
+    negative: { speaker: '安全・静けさ', text: '自転車が猛スピードで抜け道を通っていく…。\n家の横を人がひっきりなしに通るようになって落ち着かないんじゃが…' }
   },
   sign_info: {
     positive: { speaker: '副市長', text: '予算をほぼ使わずに、行政としての案内（アリバイ作り）を完了しました。' },
@@ -64,7 +71,7 @@ export const PLAN_FEEDBACK_NARRATIVE = {
   },
   lighting: {
     positive: { speaker: '安全', text: '夜道が明るくなって、安心して帰れるようになりました！' },
-    negative: { speaker: '静穏', text: '防犯灯が眩しすぎる！夜中も昼みたいで一睡もできないぞ！' }
+    negative: { speaker: '静けさ', text: '防犯灯が眩しすぎる！夜中も昼みたいで一睡もできないぞ！' }
   },
   maintenance: {
     positive: { speaker: '滞在', text: '綺麗になった道端で、ちょっと座って休めるわ。嬉しい！' },
@@ -72,11 +79,11 @@ export const PLAN_FEEDBACK_NARRATIVE = {
   },
   care_point: {
     positive: { speaker: '滞在・安全', text: 'みんなが集まれる最高の居場所ができた！助け合いの輪が広がっている！' },
-    negative: { speaker: '静穏', text: '見知らぬ車が出入りし、若者が夜までたむろしている…。静かな生活を返してくれ！' }
+    negative: { speaker: '静けさ', text: '見知らぬ車が出入りし、若者が夜までたむろしている…。静かな生活を返してくれ！' }
   },
   mobility_support: {
     positive: { speaker: '安全', text: '自力で外出できなかった私たちが、涙を流して喜んでいます！' },
-    negative: { speaker: '静穏・副市長', text: 'ひっきりなしに家の前をバスが通る。排気ガスとエンジン音がうるさいんじゃ！\n素晴らしい施策ですが、維持費が市の財政を猛烈に圧迫し続けています…。' }
+    negative: { speaker: '静けさ・副市長', text: 'ひっきりなしに家の前をバスが通る。排気ガスとエンジン音がうるさいんじゃ！\n素晴らしい施策ですが、維持費が市の財政を猛烈に圧迫し続けています…。' }
   },
   ignore: {
     positive: { speaker: '副市長', text: '市長は予算を節約するため、見て見ぬふりをした…。' },

@@ -1,3 +1,8 @@
+import linkIllustration from '../assets/pictgrams/attributes/Link_attribute.jpeg';
+import placeIllustration from '../assets/pictgrams/attributes/Place_attribute.jpeg';
+import inclusiveIllustration from '../assets/pictgrams/attributes/Inclusive_attribute.jpeg';
+import livabilityIllustration from '../assets/pictgrams/attributes/Livability_attribute.jpeg';
+
 /** 満足度4軸 — Link / Place / Inclusive / Livability */
 
 export const SATISFACTION_KEYS = ['link', 'place', 'inclusive', 'livability'];
@@ -12,30 +17,38 @@ export const SATISFACTION_ATTRS = [
     label: '移動・効率性',
     shortLabel: '移動',
     hint: 'スムーズかつ迅速に通れるか',
-    color: '#42a5f5',
+    color: '#00bcd4',
+    imageSrc: linkIllustration,
   },
   {
     key: 'place',
     label: '滞在・賑わい',
     shortLabel: '滞在',
     hint: '留まって楽しむ・交流できるか',
-    color: '#ab47bc',
+    color: '#ff9800',
+    imageSrc: placeIllustration,
   },
   {
     key: 'inclusive',
     label: '安全・バリアフリー',
     shortLabel: '安全',
     hint: '誰もが安心して通行できるか',
-    color: '#81c784',
+    color: '#66bb6a',
+    imageSrc: inclusiveIllustration,
   },
   {
     key: 'livability',
-    label: '静穏・住環境',
+    label: '静けさ・住環境',
     shortLabel: '静けさ',
-    hint: '騒音・ゴミ・混雑なく平穏に暮らせるか',
-    color: '#ffb74d',
+    hint: '騒音・ゴミ・混雑なく、静かに暮らせるか',
+    color: '#9c27b0',
+    imageSrc: livabilityIllustration,
   },
 ];
+
+export const SATISFACTION_ATTR_BY_KEY = Object.fromEntries(
+  SATISFACTION_ATTRS.map((attr) => [attr.key, attr]),
+);
 
 export function createInitialSatisfaction() {
   return Object.fromEntries(SATISFACTION_KEYS.map((k) => [k, INITIAL_ISLAND_SATISFACTION]));
