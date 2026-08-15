@@ -1,10 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronLeft, MapPin, Send, SkipForward } from 'lucide-react';
-import { Pictogram } from '../../components/ui/Pictogram';
-import { NEED_CATEGORY_OPTIONS } from '../../constants/barrierData';
+import { ChevronLeft, Loader2, MapPin, Send, SkipForward } from 'lucide-react';
 import { KOTO_PLACE_OPTIONS } from '../constants/kotoArea';
 import { AR_THEME, chipStyle } from '../constants/arTheme';
-import { classifyDraft, getPlaceLabel } from '../utils/classifyDraft';
+import { classifyAnnotation } from '../api/classifyAnnotation';
+import { getPlaceLabel } from '../utils/classifyDraft';
 import {
   classifyMetaFromDraft,
   CONTEXT_INPUT_HINTS,
@@ -15,7 +14,8 @@ import {
   PLACE_INPUT_HINTS,
   WHO_INPUT_HINTS,
 } from '../utils/classifyMetaFields';
-import { PPS_NEED_GROUPS, getNeedTypeOption } from '../constants/needTypeGroups';
+import { getNeedTypeOption } from '../constants/needTypeGroups';
+import { ArNeedTypePicker, NeedTypeChoiceButton } from './ArNeedTypePicker';
 
 const BAD_STEPS = ['kind', 'story', 'place', 'who', 'optional'];
 const GOOD_STEPS = ['kind', 'place', 'story'];
@@ -89,34 +89,158 @@ function HintChips({ hints, onPick }) {
   );
 }
 
-function NeedTypeChip({ needType, active, onClick }) {
-  const opt = getNeedTypeOption(needType) ?? NEED_CATEGORY_OPTIONS.find((o) => o.needType === needType);
-  if (!opt) return null;
-  const group = PPS_NEED_GROUPS.find((g) => g.options.includes(needType));
-  const color = group?.color ?? '#78909c';
+const confirmBtnRowStyle = {
+  display: 'grid',
+  gridTemplateColumns: '1fr 1fr',
+  gap: 8,
+  marginBottom: 12,
+};
+
+function ProposedNeedTypeCard({ needOpt }) {
+  if (!needOpt) return null;
+  return (
+    <div style={{
+      padding: 12,
+      borderRadius: 12,
+      border: `1px solid ${AR_THEME.accent}55`,
+      background: 'rgba(79,195,247,0.08)',
+      marginBottom: 10,
+    }}
+    >
+      <div style={{ fontSize: 16, fontWeight: 'bold', color: AR_THEME.text, marginBottom: 4 }}>
+        {needOpt.label}
+      </div>
+      <div style={{ fontSize: 13, color: AR_THEME.muted, lineHeight: 1.45 }}>
+        {needOpt.hint}
+      </div>
+    </div>
+  );
+}
+
+function NeedTypeConfirmSection({
+  draft,
+  classification,
+  onChange,
+  onConfirmed,
+}) {
+  const [mode, setMode] = useState('ask');
+  const needOpt = getNeedTypeOption(draft.needType);
+  const rivalOpt = classification?.rivalType ? getNeedTypeOption(classification.rivalType) : null;
+
+  const applyNeedType = (needType, edited = false) => {
+    onChange({
+      needType,
+      classification: {
+        ...draft.classification,
+        status: edited ? 'user_edited' : (draft.classification?.status ?? 'auto_proposed'),
+        editedNeedType: edited ? needType : draft.classification?.editedNeedType,
+        suggestedNeedType: draft.classification?.suggestedNeedType ?? classification?.suggestedNeedType ?? needType,
+      },
+    });
+    if (edited) onConfirmed();
+  };
+
+  if (mode === 'pick') {
+    return (
+      <div style={{ marginBottom: 12 }}>
+        <div style={{ fontSize: 13, color: AR_THEME.text, marginBottom: 8, lineHeight: 1.45 }}>
+          当てはまる型を1つ選んでください
+        </div>
+        <ArNeedTypePicker
+          value={draft.needType}
+          onChange={(needType) => applyNeedType(needType, true)}
+        />
+        <button
+          type="button"
+          onClick={() => setMode('ask')}
+          style={{
+            ...chipStyle(false, AR_THEME.muted),
+            width: '100%',
+            marginTop: 8,
+            padding: 10,
+          }}
+        >
+          提案に戻る
+        </button>
+      </div>
+    );
+  }
+
+  if (mode === 'rival') {
+    return (
+      <div style={{ marginBottom: 12 }}>
+        <div style={{ fontSize: 13, color: AR_THEME.text, marginBottom: 8, lineHeight: 1.45 }}>
+          どちらに近いですか？ 具体例も読んで選んでください。
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 8 }}>
+          <NeedTypeChoiceButton
+            needType={draft.needType}
+            active
+            accentColor={AR_THEME.accent}
+            onClick={() => applyNeedType(draft.needType, true)}
+          />
+          <NeedTypeChoiceButton
+            needType={classification.rivalType}
+            accentColor={AR_THEME.accentWarm}
+            onClick={() => applyNeedType(classification.rivalType, true)}
+          />
+        </div>
+        <button
+          type="button"
+          onClick={() => setMode('pick')}
+          style={{
+            ...chipStyle(false, AR_THEME.muted),
+            width: '100%',
+            padding: 10,
+          }}
+        >
+          どちらでもない（一覧から選ぶ）
+        </button>
+      </div>
+    );
+  }
 
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      style={{
-        ...chipStyle(active, color),
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: 4,
-        minHeight: 72,
-        padding: '8px 6px',
-      }}
-    >
-      {opt.iconSrc ? (
-        <Pictogram src={opt.iconSrc} size={32} alt={opt.label} />
-      ) : (
-        <span style={{ fontSize: 24 }} aria-hidden>💬</span>
-      )}
-      <span style={{ fontSize: 13, fontWeight: active ? 'bold' : '600' }}>{opt.label}</span>
-      <span style={{ fontSize: 10, color: AR_THEME.muted, lineHeight: 1.25 }}>{opt.hint}</span>
-    </button>
+    <div style={{ marginBottom: 12 }}>
+      <div style={{ fontSize: 12, color: AR_THEME.muted, marginBottom: 6 }}>
+        困りの型
+      </div>
+      <ProposedNeedTypeCard needOpt={needOpt} />
+      <p style={{ margin: '0 0 10px', fontSize: 14, color: AR_THEME.text, lineHeight: 1.45 }}>
+        この分類で合っていますか？
+      </p>
+      <div style={confirmBtnRowStyle}>
+        <button
+          type="button"
+          onClick={onConfirmed}
+          style={{
+            ...chipStyle(true, AR_THEME.accentWarm),
+            padding: 12,
+            fontWeight: 'bold',
+            color: '#0d1b2a',
+          }}
+        >
+          はい
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            if (classification?.ambiguous && classification?.rivalType && rivalOpt) {
+              setMode('rival');
+            } else {
+              setMode('pick');
+            }
+          }}
+          style={{
+            ...chipStyle(false, AR_THEME.muted),
+            padding: 12,
+            fontWeight: 600,
+          }}
+        >
+          違う
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -127,17 +251,45 @@ function ConfirmCard({
   onConfirm,
   onEditLocation,
   isEdit,
+  classifying = false,
 }) {
-  const needOpt = getNeedTypeOption(draft.needType) ?? NEED_CATEGORY_OPTIONS.find((o) => o.needType === draft.needType);
-  const confidencePct = Math.round((classification?.confidence ?? 0) * 100);
-  const isLow = (classification?.confidence ?? 0) < 0.55;
+  const needOpt = getNeedTypeOption(draft.needType);
+  const [needTypeConfirmed, setNeedTypeConfirmed] = useState(isEdit);
+  const isBad = draft.postKind === 'bad';
+  const canPost = !isBad || needTypeConfirmed;
+
+  useEffect(() => {
+    if (isEdit) return;
+    setNeedTypeConfirmed(false);
+  }, [draft.needType, classification?.suggestedNeedType, classification?.source, isEdit]);
+
+  if (classifying) {
+    return (
+      <div style={{
+        marginTop: 8,
+        padding: 24,
+        borderRadius: 16,
+        border: `1px solid ${AR_THEME.accent}55`,
+        background: 'rgba(255,255,255,0.04)',
+        textAlign: 'center',
+      }}
+      >
+        <Loader2
+          size={28}
+          color={AR_THEME.accent}
+          style={{ animation: 'spin 1s linear infinite', marginBottom: 10 }}
+        />
+        <div style={{ fontSize: 14, color: AR_THEME.muted }}>内容を整理しています…</div>
+      </div>
+    );
+  }
 
   return (
     <div style={{
       marginTop: 8,
       padding: 14,
       borderRadius: 16,
-      border: `1px solid ${isLow ? AR_THEME.accentWarm : AR_THEME.accent}55`,
+      border: `1px solid ${AR_THEME.accent}55`,
       background: 'rgba(255,255,255,0.04)',
     }}
     >
@@ -180,59 +332,13 @@ function ConfirmCard({
         </div>
       )}
 
-      {draft.postKind === 'bad' && (
-        <>
-          <div style={{ fontSize: 12, color: AR_THEME.muted, marginBottom: 6 }}>
-            困りの型
-            <span style={{ display: 'block', fontWeight: 'normal', marginTop: 4, lineHeight: 1.45 }}>
-              投稿内容から自動で選んでいます。違う場合はタップして選び直してください。
-            </span>
-            {classification?.ambiguous && classification?.rivalType && (
-              <span style={{ color: AR_THEME.accentWarm }}>
-                {' '}
-                ·
-                {NEED_CATEGORY_OPTIONS.find((o) => o.needType === classification.rivalType)?.label}
-                とも近い
-              </span>
-            )}
-            {!isLow && (
-              <span style={{ color: AR_THEME.muted }}>
-                {' '}
-                · 一致度
-                {confidencePct}
-                %
-              </span>
-            )}
-          </div>
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-            gap: 6,
-            marginBottom: 12,
-          }}
-          >
-            {NEED_CATEGORY_OPTIONS.map((opt) => (
-              <NeedTypeChip
-                key={opt.needType}
-                needType={opt.needType}
-                active={draft.needType === opt.needType}
-                onClick={() => onChange({
-                  needType: opt.needType,
-                  classification: {
-                    ...draft.classification,
-                    status: 'user_edited',
-                    editedNeedType: opt.needType,
-                  },
-                })}
-              />
-            ))}
-          </div>
-          {isLow && (
-            <p style={{ margin: '0 0 10px', fontSize: 12, color: AR_THEME.accentWarm }}>
-              自動判定の確信度が低いです。当てはまる型を選んでください。
-            </p>
-          )}
-        </>
+      {isBad && (
+        <NeedTypeConfirmSection
+          draft={draft}
+          classification={classification}
+          onChange={onChange}
+          onConfirmed={() => setNeedTypeConfirmed(true)}
+        />
       )}
 
       <div style={{ fontSize: 12, color: AR_THEME.muted, marginBottom: 6 }}>場所（入力）</div>
@@ -265,11 +371,11 @@ function ConfirmCard({
         ))}
       </div>
 
-      {(draft.whoText || draft.affectedGroups?.length > 0) && (
+      {draft.whoText && (
         <p style={{ margin: '0 0 8px', fontSize: 13, color: AR_THEME.muted }}>
           誰にとって:
           {' '}
-          {draft.whoText || [...(draft.affectedGroups ?? []), draft.affectedOther].filter(Boolean).join(' · ')}
+          {draft.whoText}
         </p>
       )}
 
@@ -281,15 +387,13 @@ function ConfirmCard({
         </p>
       )}
 
-      {draft.postKind === 'bad' && needOpt && (
-        <p style={{ margin: '0 0 12px', fontSize: 12, color: AR_THEME.muted }}>
-          選択中:
+      {isBad && needTypeConfirmed && needOpt && (
+        <p style={{ margin: '0 0 12px', fontSize: 12, color: AR_THEME.accent }}>
+          ✓
           {' '}
-          <strong style={{ color: AR_THEME.text }}>{needOpt.label}</strong>
+          {needOpt.label}
           {' '}
-          /
-          {' '}
-          {getPlaceLabel(draft.placeArchetype)}
+          で投稿します
         </p>
       )}
 
@@ -340,21 +444,26 @@ function ConfirmCard({
       <button
         type="button"
         onClick={onConfirm}
-        disabled={draft.postKind === 'bad' && !draft.needType}
+        disabled={!canPost || (isBad && !draft.needType)}
         style={{
           width: '100%',
           padding: 14,
           borderRadius: 14,
           border: 'none',
-          background: AR_THEME.accentWarm,
-          color: '#0d1b2a',
+          background: canPost ? AR_THEME.accentWarm : 'rgba(255,255,255,0.12)',
+          color: canPost ? '#0d1b2a' : AR_THEME.muted,
           fontWeight: 'bold',
           fontSize: 16,
-          cursor: 'pointer',
+          cursor: canPost ? 'pointer' : 'not-allowed',
         }}
       >
         {isEdit ? 'この内容で保存' : 'この内容で投稿'}
       </button>
+      {isBad && !needTypeConfirmed && (
+        <p style={{ margin: '8px 0 0', fontSize: 12, color: AR_THEME.muted, textAlign: 'center' }}>
+          困りの型を確認してから投稿できます
+        </p>
+      )}
     </div>
   );
 }
@@ -376,6 +485,7 @@ export function ArPostChat({
   const [inputText, setInputText] = useState('');
   const [messages, setMessages] = useState([]);
   const [showOptional, setShowOptional] = useState(false);
+  const [classifying, setClassifying] = useState(false);
   const scrollRef = useRef(null);
   const bootedRef = useRef(false);
 
@@ -425,23 +535,32 @@ export function ArPostChat({
     }
   }, [promptForStep]);
 
-  const goConfirm = useCallback((payload = draft) => {
+  const goConfirm = useCallback(async (payload = draft) => {
     const meta = classifyMetaFromDraft(payload);
     const merged = { ...payload, ...meta };
 
-    if (merged.postKind === 'bad') {
-      const result = classifyDraft(merged);
-      onChange({
-        ...meta,
-        needType: result.needType,
-        placeArchetype: merged.placeArchetype ?? result.placeArchetype,
-        classification: result.classification,
-      });
-    } else {
-      onChange(meta);
-    }
-    appendBot('内容を整理しました。下のカードで確認・修正してから投稿してください。');
     setPhase('confirm');
+    setClassifying(true);
+
+    try {
+      if (merged.postKind === 'bad') {
+        const result = await classifyAnnotation(merged);
+        onChange({
+          ...meta,
+          needType: result.needType,
+          placeArchetype: merged.placeArchetype ?? result.placeArchetype,
+          classification: result.classification,
+        });
+      } else {
+        onChange(meta);
+      }
+      appendBot('内容を整理しました。この分類で合っていますか？');
+    } catch (err) {
+      console.error('[goConfirm] classification failed', err);
+      appendBot('分類に失敗したため、自動判定で確認してください。');
+    } finally {
+      setClassifying(false);
+    }
   }, [appendBot, draft, onChange]);
 
   useEffect(() => {
@@ -502,7 +621,7 @@ export function ArPostChat({
         : '例：段差が高い / 歩道が狭い / 暗くて見えない';
     }
     if (stepId === 'place') return '例：駅前、歩道、公園…';
-    if (stepId === 'who') return '例：車いす、高齢者、みんな…';
+    if (stepId === 'who') return '例：女性・夜一人・車いす利用者…';
     if (stepId === 'optional') return '例：夜、軽い、深刻…';
     return '';
   }, [isGood, stepId]);
@@ -551,17 +670,12 @@ export function ArPostChat({
     }
 
     if (stepId === 'who') {
-      const meta = classifyMetaFromDraft({ ...draft, whoText: text });
-      onChange({
-        whoText: text,
-        affectedGroups: meta.affectedGroups,
-        affectedOther: meta.affectedOther,
-      });
+      onChange({ whoText: text });
       appendUser(text || '（スキップ）');
       setInputText('');
       const next = stepIndex + 1;
       if (next >= stepIds.length) {
-        goConfirm({ ...draft, whoText: text, ...meta });
+        goConfirm({ ...draft, whoText: text });
         return;
       }
       advanceToStep(next, postKind);
@@ -624,6 +738,7 @@ export function ArPostChat({
     const classification = {
       ...(draft.classification ?? {}),
       status: draft.classification?.status === 'user_edited' ? 'user_edited' : 'user_confirmed',
+      suggestedNeedType: draft.classification?.suggestedNeedType ?? draft.needType,
       confirmedAt: Date.now(),
     };
     onSubmit({
@@ -705,6 +820,7 @@ export function ArPostChat({
             onConfirm={handleConfirm}
             onEditLocation={onEditLocation}
             isEdit={isEdit}
+            classifying={classifying}
           />
         )}
 

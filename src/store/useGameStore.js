@@ -30,6 +30,11 @@ const saveToLocalStorage = () => {
       activeRemoteHubId: state.activeRemoteHubId,
       remoteExpansionLevel: state.remoteExpansionLevel,
       remoteIslandGeneration: state.remoteIslandGeneration,
+      islandSatisfaction: state.islandSatisfaction,
+      remainingBudget: state.remainingBudget,
+      questDecisions: state.questDecisions,
+      jokerUsed: state.jokerUsed,
+      tutorialSeen: state.tutorialSeen,
     }));
   }, 1000); // Save at most once per second
 };

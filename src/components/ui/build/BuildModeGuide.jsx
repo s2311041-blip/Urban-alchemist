@@ -1,7 +1,7 @@
 import React from 'react';
 import { SIDE_PANEL_WIDTH } from '../../../constants/uiLayout';
 
-/** 不満解決建築モード用の右下操作ガイド（フリー建築では非表示） */
+/** 不満解決建築モード用の左下操作ガイド（フリー建築では非表示） */
 export const BuildModeGuide = () => (
   <div style={{
     background: 'rgba(10, 10, 20, 0.88)',

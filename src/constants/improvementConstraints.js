@@ -24,10 +24,24 @@ export const PLAN_SHAPE_LIMITS = {
   lighting: { allowedShapes: ['light_pole', 'path', 'block'], maxBlocks: 10 },
   detour_path: { allowedShapes: ['path', 'sign_post', 'block'], maxBlocks: 14 },
   maintenance: { allowedShapes: ['path', 'bench', 'block', 'sign_post'], maxBlocks: 16 },
-  sign_info: { allowedShapes: ['sign_post', 'bench', 'path', 'block'], maxBlocks: 10 },
+  sign_info: { allowedShapes: ['sign_post', 'bench', 'path', 'block'], maxBlocks: 8 },
   care_point: { allowedShapes: ['bench', 'light_pole', 'path', 'block'], maxBlocks: 12 },
   transit_link: { allowedShapes: ['ferry_dock', 'path', 'block'], maxBlocks: 8 },
   mobility_support: { allowedShapes: ['bench', 'path', 'sign_post', 'block'], maxBlocks: 14 },
+};
+
+/** プランごとの「修理規模」（施策コストとは別の DIY 上限の見方） */
+export const PLAN_REPAIR_SCALE = {
+  hard_fix: { label: '大規模', hint: '構造改修・本格工事' },
+  mobility_support: { label: '大規模', hint: '動線の再設計を伴う' },
+  care_point: { label: '大規模', hint: '場の設備をまとめて整える' },
+  transit_link: { label: '大規模', hint: '接続インフラの設置' },
+  maintenance: { label: '中規模', hint: '清掃・補修・小さな設備' },
+  detour_path: { label: '中規模', hint: '迂回ルートの整備' },
+  lighting: { label: '中規模', hint: '照明と導線の追加' },
+  sign_info: { label: '小規模', hint: '看板・案内など最小限の手当' },
+  ignore: { label: '—', hint: '配置なし' },
+  joker_plan: { label: '可変', hint: '参加者が決めた規模' },
 };
 
 export const STAKEHOLDER_GROUPS = [
@@ -70,6 +84,16 @@ export const getBlockImprovementCost = (block) => {
 export const getPlanShapeLimits = (plan) => (
   PLAN_SHAPE_LIMITS[plan] ?? { allowedShapes: null, maxBlocks: 20 }
 );
+
+export const getPlanRepairScale = (plan) => {
+  const limits = getPlanShapeLimits(plan);
+  const meta = PLAN_REPAIR_SCALE[plan] ?? { label: '中規模', hint: '標準的な改善' };
+  return {
+    label: meta.label,
+    hint: meta.hint,
+    maxBlocks: limits.maxBlocks ?? 12,
+  };
+};
 
 export const getInitialStakeholderSatisfaction = (affectedGroups = []) => {
   const groups = {};

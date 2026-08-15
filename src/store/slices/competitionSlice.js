@@ -36,18 +36,18 @@ export const createCompetitionSlice = (set, get) => ({
   },
 
   submitCompetitionEntry: ({ label = null } = {}) => {
-    const { buildMode, bugs, placedBlocks, buildSession, competition, isSeriousMode, consensusSession } = get();
+    const { buildMode, bugs, placedBlocks, buildSession, competition, remainingBudget, islandSatisfaction, questDecisions } = get();
     
-    if (isSeriousMode && consensusSession) {
+    if (true) {
       const entry = normalizeCompetitionEntry({
         id: `entry_${Date.now()}`,
         label: label ?? `匿名案 ${competition.entries.length + 1}`,
         submittedAt: Date.now(),
         isSeriousMode: true,
-        remainingSessionBudget: consensusSession.remainingSessionBudget,
-        totalSessionBudget: consensusSession.totalSessionBudget,
-        islandSatisfaction: consensusSession.islandSatisfaction,
-        questDecisions: Object.values(consensusSession.questDecisions),
+        remainingSessionBudget: remainingBudget,
+        totalSessionBudget: 100,
+        islandSatisfaction: islandSatisfaction,
+        questDecisions: Object.values(questDecisions),
         // 本来は blockSnapshot も要るが一旦省略
       });
 
@@ -58,18 +58,13 @@ export const createCompetitionSlice = (set, get) => ({
           ...state.competition,
           entries: [...state.competition.entries, entry],
         }),
-        consensusSession: {
-          ...state.consensusSession,
-          phase: 'submitted',
-          submittedAt: Date.now(),
-        },
         postStats: appendPostEvent(state.postStats, {
           t: Date.now(),
           kind: 'session_submit',
-          sessionId: consensusSession.sessionId,
-          remainingSessionBudget: consensusSession.remainingSessionBudget,
+          sessionId: `session_${Date.now()}`,
+          remainingSessionBudget: remainingBudget,
           isSeriousMode: true,
-          ...satisfactionLogPayload(consensusSession.islandSatisfaction),
+          ...satisfactionLogPayload(islandSatisfaction),
         })
       }));
 

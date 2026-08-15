@@ -29,7 +29,9 @@ export const normalizeBug = (bug) => {
       ...meta.allowedPlans.map(normalizePlanId),
     ].filter((plan, idx, arr) => typeof plan === 'string' && arr.indexOf(plan) === idx);
   const chosenPlan = normalizePlanId(bug.chosenPlan);
-  const normalizedChosenPlan = chosenPlan && mergedPlans.includes(chosenPlan)
+  const normalizedChosenPlan = chosenPlan && (
+    mergedPlans.includes(chosenPlan) || chosenPlan === 'ignore'
+  )
     ? chosenPlan
     : null;
   return {

@@ -7,15 +7,15 @@ const gaugeRowStyle = {
   marginBottom: '8px',
 };
 
-const gaugeBarContainerStyle = {
+const gaugeBarContainerStyle = (height = 12) => ({
   flex: 1,
-  height: '12px',
+  height: `${height}px`,
   background: 'rgba(255, 255, 255, 0.1)',
   borderRadius: '6px',
   overflow: 'hidden',
   position: 'relative',
   marginRight: '8px',
-};
+});
 
 function gaugeBarStyle(percent, color, preview = false) {
   return {
@@ -38,10 +38,13 @@ export function SatisfactionGaugePanel({
   deltas = null,
   compact = false,
   showMinLine = true,
+  showNumericDetail = false,
   title = null,
 }) {
   const labelWidth = compact ? 72 : 108;
   const fontSize = compact ? 11 : 13;
+  const barHeight = showNumericDetail ? 14 : (compact ? 12 : 14);
+  const valueColumnWidth = showNumericDetail ? 108 : (compact ? 36 : 52);
 
   return (
     <div>
@@ -60,7 +63,7 @@ export function SatisfactionGaugePanel({
         const value = values[attr.key] ?? 0;
         const baseValue = baseline?.[attr.key];
         const delta = deltas?.[attr.key]
-          ?? (baseline != null ? Math.round(value - baseValue) : null);
+          ?? (baseline != null ? Math.round(value - (baseValue ?? 0)) : null);
 
         return (
           <div style={gaugeRowStyle} key={attr.key}>
@@ -74,7 +77,7 @@ export function SatisfactionGaugePanel({
             >
               {compact ? attr.shortLabel : attr.label}
             </div>
-            <div style={gaugeBarContainerStyle}>
+            <div style={gaugeBarContainerStyle(barHeight)}>
               {baseline != null && (
                 <div style={{
                   ...gaugeBarStyle(baseValue ?? 0, attr.color, true),
@@ -106,22 +109,35 @@ export function SatisfactionGaugePanel({
               )}
             </div>
             <div style={{
-              width: compact ? 36 : 52,
+              width: valueColumnWidth,
               textAlign: 'right',
               fontWeight: 'bold',
-              fontSize: compact ? 11 : 13,
+              fontSize: showNumericDetail ? 12 : (compact ? 11 : 13),
               color: value < MIN_ISLAND_SATISFACTION ? '#ef9a9a' : '#fff',
+              flexShrink: 0,
+              lineHeight: 1.25,
             }}
             >
-              {Math.round(value)}%
+              {showNumericDetail && baseline != null ? (
+                <>
+                  <span style={{ color: '#90a4ae', fontWeight: 600 }}>
+                    {Math.round(baseValue ?? 0)}
+                  </span>
+                  <span style={{ color: '#78909c', margin: '0 3px' }}>→</span>
+                  <span>{Math.round(value)}</span>
+                </>
+              ) : (
+                `${Math.round(value)}%`
+              )}
             </div>
-            {delta != null && delta !== 0 && (
+            {delta != null && (showNumericDetail || delta !== 0) && (
               <div style={{
-                width: 32,
+                width: showNumericDetail ? 40 : 32,
                 textAlign: 'right',
-                fontSize: 11,
+                fontSize: showNumericDetail ? 12 : 11,
                 fontWeight: 700,
-                color: delta > 0 ? '#81c784' : '#ef5350',
+                color: delta > 0 ? '#81c784' : (delta < 0 ? '#ef5350' : '#b0bec5'),
+                flexShrink: 0,
               }}
               >
                 {formatDelta(Math.round(delta))}

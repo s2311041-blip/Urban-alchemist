@@ -4,6 +4,7 @@ import { BlockButton } from '../../BlockButton';
 import { NaturePalette } from '../../NaturePalette';
 import { AgriPalette } from '../../AgriPalette';
 import { HoverboardPalette } from '../../HoverboardPalette';
+import { BuildMaterialSection } from './BuildMaterialSection';
 import { useGameStore } from '../../../../store/useGameStore';
 import { useShallow } from 'zustand/react/shallow';
 
@@ -115,6 +116,8 @@ export const BuildPaletteTab = (props) => {
               {selectedShape === 'hoverboard_station' && (
                 <HoverboardPalette disabled={selectedShape === 'diagonal' && isDesigningDiagonal} />
               )}
+
+              <BuildMaterialSection disabled={selectedShape === 'diagonal' && isDesigningDiagonal} />
 
               {/* 特殊ツール */}
               <div style={{ fontSize: '11px', fontWeight: 'bold', color: 'rgba(255,255,255,0.4)', marginTop: '4px' }}>

@@ -1,10 +1,9 @@
 import { KOTO_PLACE_OPTIONS } from '../constants/kotoArea';
-import { AFFECTED_OTHER_LABEL } from '../constants/arTargetGroups';
 import { inferPlaceFromText, normalizeClassifyText } from './classifyDraft';
 
-/** 入力欄下に表示する例（タップで追記） */
+/** 入力欄下に表示する例（タップで追記 — 固定属性への変換はしない） */
 export const PLACE_INPUT_HINTS = ['駅', '駅前', '広場', '歩道', '公園', '商店街', 'バス停', '路地', '水辺'];
-export const WHO_INPUT_HINTS = ['みんな', '高齢者', '車いす', 'ベビーカー', '子ども'];
+export const WHO_INPUT_HINTS = ['みんな', '高齢者', '女性', '車いす', '夜一人'];
 export const CONTEXT_INPUT_HINTS = ['常時', '夜', '夕方', '軽い', '中くらい', '深刻'];
 
 const TIME_LEXICON = {
@@ -20,14 +19,6 @@ const SEVERITY_LEXICON = {
   mid: ['中', '中くらい', '普通', 'mid'],
   high: ['深刻', 'ひどい', '大変', '危ない', '危険', 'high'],
 };
-
-const WHO_LEXICON = [
-  { label: 'みんな', words: ['みんな', '全員', '誰でも', '一般', 'すべて'] },
-  { label: '高齢者', words: ['高齢', 'お年寄', 'シニア', '老人'] },
-  { label: '車いす', words: ['車いす', '車椅子', 'wheelchair'] },
-  { label: 'ベビーカー', words: ['ベビーカー', ' stroller', '乳児', '赤ちゃん'] },
-  { label: '子ども', words: ['子ども', '子供', 'こども', '児童', '小学生'] },
-];
 
 function matchLexicon(text, lexicon) {
   const normalized = normalizeClassifyText(text);
@@ -54,37 +45,6 @@ export function inferSeverityFromText(text = '') {
   return matchLexicon(text, SEVERITY_LEXICON) ?? 'mid';
 }
 
-/**
- * @returns {{ affectedGroups: string[], affectedOther: string }}
- */
-export function inferAffectedFromText(text = '') {
-  const trimmed = text.trim();
-  if (!trimmed) {
-    return { affectedGroups: [], affectedOther: '' };
-  }
-
-  const normalized = normalizeClassifyText(trimmed);
-  const groups = [];
-  WHO_LEXICON.forEach(({ label, words }) => {
-    if (words.some((w) => normalized.includes(normalizeClassifyText(w)))) {
-      groups.push(label);
-    }
-  });
-
-  if (groups.includes('みんな')) {
-    return { affectedGroups: ['みんな'], affectedOther: '' };
-  }
-
-  if (groups.length > 0) {
-    return { affectedGroups: groups, affectedOther: '' };
-  }
-
-  return {
-    affectedGroups: [AFFECTED_OTHER_LABEL],
-    affectedOther: trimmed.slice(0, 30),
-  };
-}
-
 export function inferPlaceArchetypeFromText(text = '') {
   const fromLexicon = inferPlaceFromText(text);
   if (fromLexicon.placeArchetype) {
@@ -102,7 +62,7 @@ export function inferPlaceArchetypeFromText(text = '') {
   return { placeArchetype: text.trim() ? 'none' : null, placeSource: 'none' };
 }
 
-/** 自由記述フィールド → 構造化メタ */
+/** 自由記述フィールド → 構造化メタ（whoText はそのまま保存、属性チップへは変換しない） */
 export function classifyMetaFromDraft(draft = {}) {
   const placeText = draft.placeText?.trim() ?? '';
   const whoText = draft.whoText?.trim() ?? '';
@@ -111,10 +71,6 @@ export function classifyMetaFromDraft(draft = {}) {
   const place = placeText
     ? inferPlaceArchetypeFromText(placeText)
     : { placeArchetype: draft.placeArchetype ?? null, placeSource: 'user' };
-
-  const who = whoText
-    ? inferAffectedFromText(whoText)
-    : { affectedGroups: draft.affectedGroups ?? [], affectedOther: draft.affectedOther ?? '' };
 
   const timeTag = contextText
     ? inferTimeTagFromText(contextText)
@@ -130,8 +86,8 @@ export function classifyMetaFromDraft(draft = {}) {
     contextText: contextText || null,
     placeArchetype: place.placeArchetype,
     placeSource: place.placeSource,
-    affectedGroups: who.affectedGroups,
-    affectedOther: who.affectedOther,
+    affectedGroups: Array.isArray(draft.affectedGroups) ? [...draft.affectedGroups] : [],
+    affectedOther: draft.affectedOther?.trim() ?? '',
     timeTag,
     severity,
   };

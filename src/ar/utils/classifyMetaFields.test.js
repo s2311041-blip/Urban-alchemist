@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
   classifyMetaFromDraft,
-  inferAffectedFromText,
   inferPlaceArchetypeFromText,
   inferSeverityFromText,
   inferTimeTagFromText,
@@ -41,32 +40,27 @@ describe('inferSeverityFromText', () => {
   });
 });
 
-describe('inferAffectedFromText', () => {
-  it('maps wheelchair', () => {
-    expect(inferAffectedFromText('車いすユーザー').affectedGroups).toContain('車いす');
-  });
-
-  it('returns empty for skip', () => {
-    expect(inferAffectedFromText('')).toEqual({ affectedGroups: [], affectedOther: '' });
-  });
-
-  it('stores custom text as other', () => {
-    const r = inferAffectedFromText('観光客');
-    expect(r.affectedGroups).toEqual(['その他']);
-    expect(r.affectedOther).toBe('観光客');
-  });
-});
-
 describe('classifyMetaFromDraft', () => {
   it('merges free-text fields into structured meta', () => {
     const meta = classifyMetaFromDraft({
       placeText: '駅',
-      whoText: '高齢者',
+      whoText: '女性・夜一人',
       contextText: '夜、深刻',
     });
     expect(meta.placeArchetype).toBe('station');
-    expect(meta.affectedGroups).toContain('高齢者');
+    expect(meta.whoText).toBe('女性・夜一人');
+    expect(meta.affectedGroups).toEqual([]);
+    expect(meta.affectedOther).toBe('');
     expect(meta.timeTag).toBe('night');
     expect(meta.severity).toBe('high');
+  });
+
+  it('preserves legacy chip selections when present on draft', () => {
+    const meta = classifyMetaFromDraft({
+      whoText: '車いす',
+      affectedGroups: ['車いす'],
+    });
+    expect(meta.whoText).toBe('車いす');
+    expect(meta.affectedGroups).toEqual(['車いす']);
   });
 });

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   applyBuildSpend,
+  canPlaceBlockInImprovementSession,
   createImprovementSession,
   validateFinishSession,
 } from './improvementSession';
@@ -36,5 +37,16 @@ describe('improvementSession', () => {
     session = applyBuildSpend(session, { id: 'b2', shape: 'half' }, bug);
     const result = validateFinishSession(session);
     expect(result.ok).toBe(true);
+  });
+
+  it('blocks placement beyond repair scale in serious mode', () => {
+    const session = createImprovementSession(bug, []);
+    const check = canPlaceBlockInImprovementSession(session, {
+      isSeriousMode: true,
+      blocksPlaced: 12,
+      additionalBlocks: 1,
+    });
+    expect(check.ok).toBe(false);
+    expect(check.message).toMatch(/大規模/);
   });
 });

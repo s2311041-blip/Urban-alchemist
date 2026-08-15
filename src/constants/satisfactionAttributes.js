@@ -41,6 +41,29 @@ export function createInitialSatisfaction() {
   return Object.fromEntries(SATISFACTION_KEYS.map((k) => [k, INITIAL_ISLAND_SATISFACTION]));
 }
 
+/** Zustand セレクター用 — 毎レンダーで新オブジェクトを返さない */
+export const DEFAULT_ISLAND_SATISFACTION = Object.freeze(
+  Object.fromEntries(SATISFACTION_KEYS.map((k) => [k, INITIAL_ISLAND_SATISFACTION])),
+);
+
+/** セーブデータ復元用 */
+export function normalizeConsensusSession(raw) {
+  if (!raw || typeof raw !== 'object') return null;
+  return {
+    sessionId: typeof raw.sessionId === 'string' ? raw.sessionId : `session_${Date.now()}`,
+    isActive: raw.isActive !== false,
+    phase: typeof raw.phase === 'string' ? raw.phase : 'planning',
+    totalSessionBudget: Number.isFinite(raw.totalSessionBudget) ? raw.totalSessionBudget : 100,
+    remainingSessionBudget: Number.isFinite(raw.remainingSessionBudget) ? raw.remainingSessionBudget : 100,
+    budgetInitialFormula: raw.budgetInitialFormula ?? null,
+    islandSatisfaction: normalizeIslandSatisfaction(raw.islandSatisfaction),
+    questDecisions: raw.questDecisions && typeof raw.questDecisions === 'object' ? raw.questDecisions : {},
+    jokerUsed: !!raw.jokerUsed,
+    startedAt: Number.isFinite(raw.startedAt) ? raw.startedAt : Date.now(),
+    submittedAt: Number.isFinite(raw.submittedAt) ? raw.submittedAt : null,
+  };
+}
+
 /** 旧キー（mobility 等）からの読み込み互換 */
 export function normalizeIslandSatisfaction(raw) {
   if (!raw || typeof raw !== 'object') return createInitialSatisfaction();

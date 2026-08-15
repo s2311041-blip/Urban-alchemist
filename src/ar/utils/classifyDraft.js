@@ -467,6 +467,7 @@ export function inferPlaceFromText(text = '') {
 export function classifyDraft(draft = {}) {
   const parts = [
     draft.comment ?? '',
+    draft.whoText ?? '',
     ...(draft.affectedGroups ?? []),
     draft.affectedOther ?? '',
   ];
@@ -544,6 +545,8 @@ function buildResult({
     placeSource,
     classification: {
       status: 'auto_proposed',
+      source: 'fallback',
+      suggestedNeedType: needType,
       confidence: Number(confidence.toFixed(2)),
       needTypeScores,
       placeSource,

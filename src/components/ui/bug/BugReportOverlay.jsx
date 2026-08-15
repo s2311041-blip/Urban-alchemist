@@ -31,19 +31,23 @@ import {
   getPlanOrdinalStyle,
 } from '../../../constants/ui/bugReportOverlay';
 import { Pictogram } from '../Pictogram';
-import { getAllowedPlansForQuest } from '../../../constants/tradeoffMatrix';
+import { getSelectablePlansForQuest } from '../../../constants/tradeoffMatrix';
+import { getPlanRepairScale } from '../../../constants/improvementConstraints';
+import {
+  DEFAULT_BARRIER_META,
+  TYPE_TO_BARRIER_META,
+} from '../../../constants/barrierData';
 import {
   getPlanContextDescription,
   getPlanContextLabel,
 } from '../../../constants/planContextLabels';
 import {
   getPlanPreviewDeltas,
-  previewIslandSatisfaction,
 } from '../../../utils/planSatisfaction';
 import {
   PlanSatisfactionDeltas,
-  SatisfactionGaugePanel,
 } from '../consensus/SatisfactionGaugePanel';
+import { IslandSatisfactionBlock } from '../consensus/IslandSatisfactionBlock';
 import { JokerPlanForm } from '../consensus/JokerPlanForm';
 
 const SEVERITY_LABEL = Object.fromEntries(
@@ -52,6 +56,7 @@ const SEVERITY_LABEL = Object.fromEntries(
 const SEVERITY_ICON = Object.fromEntries(
   SEVERITY_OPTIONS.map((opt) => [opt.id, opt.iconSrc]),
 );
+const IGNORE_PLAN_ID = 'ignore';
 
 export const BugReportOverlay = ({
   activeBug,
@@ -62,47 +67,41 @@ export const BugReportOverlay = ({
   startDIY = () => {},
   setBugChosenPlan = () => {},
   openAREditQuest = () => {},
-  isSeriousMode,
   ignoreQuest,
   commitJokerQuest,
 }) => {
   const bug = useMemo(() => bugs.find((b) => b.id === activeBug), [bugs, activeBug]);
-  const allowedPlans = useMemo(
-    () => {
-      if (bug?.needType === 'O') return [];
-      if (bug?.needType) {
-        return getAllowedPlansForQuest({ needType: bug.needType });
-      }
-      return Array.isArray(bug?.allowedPlans) ? bug.allowedPlans : [];
-    },
-    [bug],
-  );
+  const effectiveNeedType = useMemo(() => {
+    if (!bug) return null;
+    return bug.needType ?? TYPE_TO_BARRIER_META[bug.type]?.needType ?? DEFAULT_BARRIER_META.needType ?? 'P';
+  }, [bug]);
+  const selectablePlans = useMemo(() => {
+    if (!effectiveNeedType || effectiveNeedType === 'O') return [];
+    return getSelectablePlansForQuest({ needType: effectiveNeedType, includeIgnore: true });
+  }, [effectiveNeedType]);
   const initialSelectedPlan = useMemo(() => {
     if (!bug) return null;
-    if (bug.chosenPlan && allowedPlans.includes(bug.chosenPlan)) return bug.chosenPlan;
-    return allowedPlans[0] ?? null;
-  }, [bug, allowedPlans]);
+    if (bug.chosenPlan && selectablePlans.includes(bug.chosenPlan)) return bug.chosenPlan;
+    return selectablePlans[0] ?? null;
+  }, [bug, selectablePlans]);
   const [selectedPlan, setSelectedPlan] = useState(initialSelectedPlan);
   const [phase, setPhase] = useState('decision');
-  const consensusSession = useGameStore((s) => s.consensusSession);
+  const remainingBudget = useGameStore((s) => s.remainingBudget);
+  const jokerAlreadyUsed = useGameStore((s) => !!s.jokerUsed);
 
   useEffect(() => {
     setSelectedPlan(initialSelectedPlan);
   }, [initialSelectedPlan, activeBug]);
 
-  const planPreview = useMemo(() => {
-    if (!isSeriousMode || !bug?.needType || !selectedPlan || !consensusSession) return null;
-    const needType = bug.needType;
-    const current = consensusSession.islandSatisfaction;
-    const preview = previewIslandSatisfaction(current, { needType, planId: selectedPlan });
-    const effect = getPlanPreviewDeltas(needType, selectedPlan);
-    return { current, preview, effect };
-  }, [isSeriousMode, bug, selectedPlan, consensusSession]);
+  useEffect(() => {
+    setPhase('decision');
+  }, [activeBug]);
+
+  const isIgnoreSelected = selectedPlan === IGNORE_PLAN_ID;
 
   if (!activeBug || !bug) return null;
 
   const isOQuest = bug.needType === 'O';
-  const jokerAlreadyUsed = !!consensusSession?.jokerUsed;
   const factorMeta = FACTOR_STYLE[bug.factor] ?? FACTOR_STYLE.hard;
   const scaleMeta = getScaleUi(bug.scale);
   const needCategory = NEED_CATEGORY_OPTIONS.find((opt) => opt.needType === bug.needType);
@@ -116,9 +115,9 @@ export const BugReportOverlay = ({
         imageUrl={heroPhoto}
         pins={bug.photoPins ?? []}
         height="100%"
-        minHeight="42vh"
+        minHeight="100vh"
       >
-        <div style={{ ...BUG_REPORT_STYLE.closeRow, justifyContent: 'flex-end', gap: 10, pointerEvents: 'auto' }}>
+        <div style={BUG_REPORT_STYLE.closeRow}>
           {canEditPost && (
             <button
               type="button"
@@ -129,7 +128,7 @@ export const BugReportOverlay = ({
               style={BUG_REPORT_STYLE.closeButton}
               title="投稿を編集"
             >
-              <Pencil size={22} color="white" />
+              <Pencil size={20} color="white" />
             </button>
           )}
           <button
@@ -137,10 +136,11 @@ export const BugReportOverlay = ({
             onClick={() => { setActiveBug(null); setIsReturning(true); }}
             style={BUG_REPORT_STYLE.closeButton}
           >
-            <X size={30} color="white" />
+            <X size={28} color="white" />
           </button>
         </div>
-        <div style={{ ...BUG_REPORT_STYLE.content, pointerEvents: 'auto' }}>
+        <div style={BUG_REPORT_STYLE.contentPanel} className="bug-report-scroll">
+          <div style={BUG_REPORT_STYLE.content}>
           <div style={BUG_REPORT_STYLE.chipRow}>
             <span style={getScaleChipStyle(scaleMeta)}>
               {scaleMeta.label}（{scaleMeta.subtitle}）
@@ -189,6 +189,17 @@ export const BugReportOverlay = ({
           <p style={BUG_REPORT_STYLE.comment}>
             「{bug.comment}」
           </p>
+          {phase !== 'plan' && (
+            <IslandSatisfactionBlock compact variant="overlay" />
+          )}
+          {phase === 'plan' && effectiveNeedType && selectedPlan && (
+            <IslandSatisfactionBlock
+              compact
+              variant="overlay"
+              previewNeedType={effectiveNeedType}
+              previewPlanId={selectedPlan}
+            />
+          )}
           {phase === 'decision' ? (
             <div style={BUG_REPORT_STYLE.actionRow}>
               <button
@@ -200,32 +211,18 @@ export const BugReportOverlay = ({
               >
                 {BUG_REPORT_COPY.cancel}
               </button>
-              {isSeriousMode && ignoreQuest && (
-                <button
-                  onClick={() => {
-                    if (window.confirm('この声を無視してよろしいですか？（深刻な満足度ペナルティがあります）')) {
-                      ignoreQuest(bug.sourceQuestId);
-                      setActiveBug(null);
-                      setIsReturning(true);
-                    }
-                  }}
-                  style={{ ...BUG_REPORT_STYLE.buttonBase, background: '#455a64', color: '#fff' }}
-                >
-                  無視する（コスト0）
-                </button>
-              )}
               <button
-                onClick={() => setPhase(isOQuest && isSeriousMode ? 'joker' : 'plan')}
+                onClick={() => setPhase(isOQuest ? 'joker' : 'plan')}
                 style={{ ...BUG_REPORT_STYLE.buttonBase, ...BUG_REPORT_STYLE.primaryResolveButton }}
               >
                 <Hammer size={22} />
-                {isOQuest && isSeriousMode ? '独自案を考える' : BUG_REPORT_COPY.resolve}
+                {isOQuest ? '独自案を考える' : BUG_REPORT_COPY.resolve}
               </button>
             </div>
           ) : phase === 'joker' ? (
             <JokerPlanForm
               jokerAlreadyUsed={jokerAlreadyUsed}
-              remainingBudget={consensusSession?.remainingSessionBudget ?? 0}
+              remainingBudget={remainingBudget ?? 0}
               onCancel={() => setPhase('decision')}
               onSubmit={(payload) => {
                 if (commitJokerQuest?.(activeBug, payload)) {
@@ -236,55 +233,38 @@ export const BugReportOverlay = ({
             />
           ) : (
             <>
-              {isOQuest && !isSeriousMode && (
+              {isOQuest && (
                 <div style={{ color: '#ffcc80', fontSize: 13, marginBottom: 12, lineHeight: 1.5 }}>
-                  「その他」の困りごとは、議会モードでジョーカー施策（独自案）として対応してください。
+                  「その他」の困りごとはジョーカー施策（独自案）として対応してください。
                 </div>
               )}
-              {allowedPlans.length > 0 && (
+              {selectablePlans.length > 0 && (
                 <div style={BUG_REPORT_STYLE.planSection}>
                   <div style={BUG_REPORT_STYLE.planTitle}>
                     {BUG_REPORT_COPY.choosePlan}
                   </div>
-                  {isSeriousMode && planPreview && (
-                    <div style={{
-                      marginBottom: 14,
-                      padding: '12px 14px',
-                      borderRadius: 12,
-                      background: 'rgba(0,0,0,0.45)',
-                      border: '1px solid rgba(255,202,40,0.35)',
-                    }}
-                    >
-                      <div style={{ fontSize: 12, color: '#ffca28', marginBottom: 8, fontWeight: 700 }}>
-                        島全体の満足度プレビュー（確定前）
-                        {planPreview.effect?.budgetCost != null && (
-                          <span style={{ color: '#90a4ae', fontWeight: 500, marginLeft: 8 }}>
-                            予算 -
-                            {planPreview.effect.budgetCost}
-                          </span>
-                        )}
-                      </div>
-                      <SatisfactionGaugePanel
-                        values={planPreview.preview}
-                        baseline={planPreview.current}
-                        compact
-                        showMinLine
-                      />
-                    </div>
-                  )}
-                  <div style={getPlanGridStyle(allowedPlans.length)}>
-                    {allowedPlans.map((plan, idx) => {
+                  <div style={getPlanGridStyle(selectablePlans.length)}>
+                    {selectablePlans.map((plan, idx) => {
                       const active = selectedPlan === plan;
+                      const isIgnorePlan = plan === IGNORE_PLAN_ID;
                       const accent = PLAN_CARD_ACCENT[plan] ?? '#90caf9';
-                      const cardDeltas = isSeriousMode && bug.needType
-                        ? getPlanPreviewDeltas(bug.needType, plan)
+                      const cardDeltas = effectiveNeedType
+                        ? getPlanPreviewDeltas(effectiveNeedType, plan)
                         : null;
-                      const contextLabel = bug.needType
-                        ? getPlanContextLabel(bug.needType, plan)
-                        : null;
-                      const contextDescription = bug.needType
-                        ? getPlanContextDescription(bug.needType, plan)
-                        : null;
+                      const contextLabel = isIgnorePlan
+                        ? BUG_REPORT_COPY.ignorePlanLabel
+                        : getPlanContextLabel(effectiveNeedType, plan);
+                      const contextDescription = isIgnorePlan
+                        ? BUG_REPORT_COPY.ignorePlanDescription
+                        : getPlanContextDescription(effectiveNeedType, plan);
+                      const typeNumber = selectablePlans
+                        .slice(0, idx)
+                        .filter((p) => p !== IGNORE_PLAN_ID)
+                        .length + 1;
+                      const planOrdinal = isIgnorePlan
+                        ? (active ? BUG_REPORT_COPY.selected : '無視')
+                        : (active ? BUG_REPORT_COPY.selected : `型 ${typeNumber}`);
+                      const repairScale = isIgnorePlan ? null : getPlanRepairScale(plan);
                       return (
                         <button
                           key={plan}
@@ -300,20 +280,40 @@ export const BugReportOverlay = ({
                               {contextLabel ?? PLAN_LABEL[plan] ?? plan}
                             </div>
                             <div style={getPlanOrdinalStyle({ active, accent })}>
-                              {active ? BUG_REPORT_COPY.selected : `型 ${idx + 1}`}
+                              {planOrdinal}
                             </div>
                           </div>
-                          <div style={{ fontSize: '12px', color: '#b0bec5', marginBottom: '8px', lineHeight: 1.4 }}>
+                          <div style={{ fontSize: 13, color: '#b0bec5', marginBottom: 6, lineHeight: 1.4 }}>
                             {contextDescription ?? PLAN_DESCRIPTION[plan] ?? ''}
                           </div>
-                          {isSeriousMode && cardDeltas && (
-                            <div style={{ fontSize: 11, color: '#ffcc80', marginBottom: 6 }}>
-                              予算 -
+                          {cardDeltas && (
+                            <div style={{ fontSize: 12, color: '#ffcc80', marginBottom: 4 }}>
+                              施策コスト
+                              {' '}
                               {cardDeltas.budgetCost}
+                              {' '}
+                              <span style={{ color: '#90a4ae', fontWeight: 500 }}>（固定）</span>
+                            </div>
+                          )}
+                          {!isIgnorePlan && repairScale && (
+                            <div style={{ fontSize: 12, color: '#80deea', marginBottom: 4 }}>
+                              修理規模:
+                              {' '}
+                              {repairScale.label}
+                              {' '}
+                              · 上限
+                              {' '}
+                              {repairScale.maxBlocks}
+                              {' '}
+                              ブロック
                             </div>
                           )}
                           <PlanSatisfactionDeltas deltas={cardDeltas?.deltas} />
-                          <div style={BUG_REPORT_STYLE.planHint}>{getPlanHint(plan, bug.scale) ?? BUG_REPORT_COPY.planFallbackHint}</div>
+                          <div style={BUG_REPORT_STYLE.planHint}>
+                            {isIgnorePlan
+                              ? BUG_REPORT_COPY.ignorePlanHint
+                              : (getPlanHint(plan, bug.scale) ?? BUG_REPORT_COPY.planFallbackHint)}
+                          </div>
                         </button>
                       );
                     })}
@@ -323,17 +323,31 @@ export const BugReportOverlay = ({
               <div style={BUG_REPORT_STYLE.actionRow}>
                 <button
                   onClick={() => setPhase('decision')}
-                  style={{ ...BUG_REPORT_STYLE.buttonBase, ...BUG_REPORT_STYLE.secondaryButton, padding: '15px' }}
+                  style={{ ...BUG_REPORT_STYLE.buttonBase, ...BUG_REPORT_STYLE.secondaryButton }}
                 >
                   {BUG_REPORT_COPY.back}
                 </button>
                 <button
-                  onClick={() => startDIY(activeBug, selectedPlan)}
+                  onClick={() => {
+                    if (isIgnoreSelected) {
+                      if (window.confirm('この声を無視してよろしいですか？（深刻な満足度ペナルティがあります）')) {
+                        if (bug.sourceQuestId || bug.id) {
+                          ignoreQuest?.(bug.sourceQuestId || bug.id);
+                        }
+                        setActiveBug(null);
+                        setIsReturning(true);
+                      }
+                      return;
+                    }
+                    startDIY(activeBug, selectedPlan);
+                  }}
                   disabled={!selectedPlan}
-                  style={BUG_REPORT_STYLE.startButton}
+                  style={isIgnoreSelected
+                    ? BUG_REPORT_STYLE.ignoreConfirmButton
+                    : BUG_REPORT_STYLE.startButton}
                 >
                   <Hammer size={20} />
-                  {BUG_REPORT_COPY.startBuild}
+                  {isIgnoreSelected ? BUG_REPORT_COPY.confirmIgnore : BUG_REPORT_COPY.startBuild}
                 </button>
               </div>
             </>
@@ -343,6 +357,7 @@ export const BugReportOverlay = ({
               <Trash2 size={16} />
               {BUG_REPORT_COPY.remove}
             </button>
+          </div>
           </div>
         </div>
       </PhotoPinSurface>

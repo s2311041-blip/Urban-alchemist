@@ -1,4 +1,4 @@
-import { TYPE_TO_BARRIER_META } from '../../constants/barrierData';
+import { TYPE_TO_BARRIER_META, normalizePlanId } from '../../constants/barrierData';
 import { evaluateActiveBuildResolution } from '../../utils/barrierActions';
 import { findBugById, sameBugId } from '../../utils/bugIds';
 import { getBarrierSideEffectToast } from '../../constants/barrierSideEffects';
@@ -37,38 +37,43 @@ import {
   applyBuildSpend,
   applyPlanCompletionBonus,
   buildImprovementBuildEvent,
+  canPlaceBlockInImprovementSession,
   createImprovementSession,
   exportResearchLogCsv,
   extendResolveEvent,
   validateFinishSession,
 } from '../../utils/improvementSession';
 import { createTradeoffBugFromResolution } from '../../utils/tradeoffSpawn';
-import { getImprovementBudgetLimit } from '../../constants/improvementConstraints';
+import { getImprovementBudgetLimit, getPlanRepairScale } from '../../constants/improvementConstraints';
+import { getAllowedPlansForQuest } from '../../constants/tradeoffMatrix';
+import { getPlanBudgetCost } from '../../utils/planSatisfaction';
 
 export const createBugSlice = (set, get) => ({
   trackSessionBlockPlacement: (block) => {
-    const { buildMode, buildSession, bugs, consensusSession, isSeriousMode } = get();
+    const { buildMode, buildSession, bugs, questDecisions } = get();
     if (!buildMode || buildMode === 'free' || !block) return;
     const bug = findBugById(bugs, buildMode);
     if (!bug) return;
 
-    if (isSeriousMode && consensusSession) {
-      const { getBlockImprovementCost } = require('../../constants/improvementConstraints');
-      const cost = getBlockImprovementCost(block);
-      const decision = consensusSession.questDecisions[bug.sourceQuestId];
+    if (true) {
+      const decision = questDecisions[bug.sourceQuestId];
       if (decision) {
+        const nextBlocksPlaced = (decision.blocksPlaced ?? 0) + 1;
         set({
-          consensusSession: {
-            ...consensusSession,
-            remainingSessionBudget: consensusSession.remainingSessionBudget - cost,
-            questDecisions: {
-              ...consensusSession.questDecisions,
-              [bug.sourceQuestId]: {
-                ...decision,
-                blockCostSpent: decision.blockCostSpent + cost,
-              }
-            }
-          }
+          questDecisions: {
+            ...questDecisions,
+            [bug.sourceQuestId]: {
+              ...decision,
+              blocksPlaced: nextBlocksPlaced,
+            },
+          },
+          ...(buildSession ? {
+            buildSession: applyBuildSpend(buildSession, block, bug, { skipBudget: true }),
+          } : {}),
+        });
+      } else if (buildSession) {
+        set({
+          buildSession: applyBuildSpend(buildSession, block, bug, { skipBudget: true }),
         });
       }
     } else if (buildSession) {
@@ -78,28 +83,35 @@ export const createBugSlice = (set, get) => ({
   },
 
   trackSessionBlockRemoval: (block) => {
-    const { buildMode, bugs, consensusSession, isSeriousMode } = get();
+    const { buildMode, buildSession, bugs, questDecisions } = get();
     if (!buildMode || buildMode === 'free' || !block) return;
     const bug = findBugById(bugs, buildMode);
     if (!bug) return;
 
-    if (isSeriousMode && consensusSession) {
-      const { getBlockImprovementCost } = require('../../constants/improvementConstraints');
-      const cost = getBlockImprovementCost(block);
-      const decision = consensusSession.questDecisions[bug.sourceQuestId];
+    if (true) {
+      const decision = questDecisions[bug.sourceQuestId];
       if (decision) {
         set({
-          consensusSession: {
-            ...consensusSession,
-            remainingSessionBudget: consensusSession.remainingSessionBudget + cost,
-            questDecisions: {
-              ...consensusSession.questDecisions,
-              [bug.sourceQuestId]: {
-                ...decision,
-                blockCostSpent: Math.max(0, decision.blockCostSpent - cost),
-              }
-            }
-          }
+          questDecisions: {
+            ...questDecisions,
+            [bug.sourceQuestId]: {
+              ...decision,
+              blocksPlaced: Math.max(0, (decision.blocksPlaced ?? 0) - 1),
+            },
+          },
+          ...(buildSession ? {
+            buildSession: {
+              ...buildSession,
+              blockCount: Math.max(0, buildSession.blockCount - 1),
+            },
+          } : {}),
+        });
+      } else if (buildSession) {
+        set({
+          buildSession: {
+            ...buildSession,
+            blockCount: Math.max(0, buildSession.blockCount - 1),
+          },
         });
       }
     }
@@ -128,10 +140,13 @@ export const createBugSlice = (set, get) => ({
       get().ingestQuestPost(post, { silent: true });
       imported += 1;
     }
+    const alreadyHadDemo = imported === 0 && skipped > 0;
     const summary = imported > 0
       ? `デモ ${imported} 件を島に載せました${skipped > 0 ? `（${skipped} 件スキップ）` : ''}`
-      : 'デモデータは取り込み済みです';
-    setTimedToast({ set, get, message: summary, durationMs: 4000 });
+      : alreadyHadDemo
+        ? 'デモは取り込み済みです'
+        : 'デモデータは取り込み済みです';
+    setTimedToast({ set, get, message: summary, durationMs: 4500 });
     return { imported, skipped };
   },
 
@@ -177,15 +192,32 @@ export const createBugSlice = (set, get) => ({
           stakeholderSatisfaction: applyPlanCompletionBonus(sessionForFinish, targetBug),
         };
         const sessionCheck = validateFinishSession(sessionForFinish);
-        if (!get().isSeriousMode && !sessionCheck.ok) {
+        if (!sessionCheck.ok) {
           set({ buildFinishError: sessionCheck.message, farmingToast: sessionCheck.message });
           setTimeout(() => {
             if (get().farmingToast === sessionCheck.message) set({ farmingToast: null });
           }, 2800);
           return;
-        } else if (get().isSeriousMode && get().consensusSession) {
-          if (get().consensusSession.remainingSessionBudget < 0) {
-            const msg = '全体予算が不足しています。ブロックを減らすか、他のQuestを調整してください。';
+        } else if (targetBug.sourceQuestId) {
+          const planId = resolution?.planId ?? targetBug.chosenPlan;
+          const needType = targetBug.needType ?? 'P';
+          const decision = get().questDecisions[targetBug.sourceQuestId];
+          if (!decision?.satisfactionDeltaApplied) {
+            const policyCost = getPlanBudgetCost(needType, planId);
+            const remaining = get().remainingBudget;
+            if (policyCost > remaining) {
+              const msg = `施策コスト（${policyCost}）に対してセッション予算（${remaining}）が不足しています。`;
+              set({ buildFinishError: msg, farmingToast: msg });
+              setTimeout(() => {
+                if (get().farmingToast === msg) set({ farmingToast: null });
+              }, 2800);
+              return;
+            }
+          }
+          const repair = getPlanRepairScale(planId);
+          const blocksPlaced = decision?.blocksPlaced ?? sessionForFinish?.blockCount ?? 0;
+          if (blocksPlaced > repair.maxBlocks) {
+            const msg = `修理規模（${repair.label}）の上限 ${repair.maxBlocks} ブロックを超えています。`;
             set({ buildFinishError: msg, farmingToast: msg });
             setTimeout(() => {
               if (get().farmingToast === msg) set({ farmingToast: null });
@@ -213,7 +245,7 @@ export const createBugSlice = (set, get) => ({
           quests: markQuestResolved(get().quests, targetBug.sourceQuestId, targetBug.id),
         }
         : {};
-      const shouldTrackResolve = !!targetBug.sourceQuestId;
+      const shouldTrackResolve = true;
       const sessionValidation = sessionForFinish
         ? {
           sessionId: sessionForFinish.sessionId,
@@ -228,7 +260,7 @@ export const createBugSlice = (set, get) => ({
           if (shouldTrackResolve) {
             nextStats = appendPostEvent(nextStats, extendResolveEvent(buildResolveEvent({
               t: Date.now(),
-              questId: targetBug.sourceQuestId,
+              questId: targetBug.sourceQuestId || targetBug.id,
               bugId: targetBug.id,
               chosenPlan: resolution?.planId ?? targetBug.chosenPlan ?? null,
             }), sessionValidation));
@@ -243,8 +275,8 @@ export const createBugSlice = (set, get) => ({
           return { postStats: nextStats };
         })()
         : {};
-      const resolveToast = targetBug.sourceQuestId
-        ? (get().isSeriousMode && targetBug.needType
+      const resolveToast = (targetBug.sourceQuestId || targetBug.id)
+        ? (targetBug.needType
           ? buildPlanResolutionFeedback({
             needType: targetBug.needType,
             planId: resolution?.planId ?? targetBug.chosenPlan,
@@ -259,37 +291,26 @@ export const createBugSlice = (set, get) => ({
         : null;
 
       if (solvedCount > 0) {
-        if (get().isSeriousMode) {
-          get().resolveQuestDecision?.(targetBug.sourceQuestId, resolution?.planId ?? targetBug.chosenPlan);
+        if (targetBug) {
+          const planId = resolution?.planId ?? targetBug.chosenPlan;
+          const questIdForDecision = targetBug.sourceQuestId || targetBug.id;
+          get().commitQuestPlanChoice?.(questIdForDecision, planId);
+          get().finalizeQuestDecision?.(questIdForDecision);
         }
 
-        const expansion = get().isSeriousMode ? null : computeWorldExpansionAfterSolve({
-          updatedBugs: bugsWithTradeoff,
-          islandChunks,
-          placedBlocks,
-          solvedCount,
-          activeRemoteHubId: get().activeRemoteHubId,
-          remoteExpansionLevel: get().remoteExpansionLevel,
-          remoteIslandGeneration: get().remoteIslandGeneration,
-        });
+        const expansion = null; // 満足度モードでは島は拡張しない（固定ルールにする）
 
         if (expansion) {
           set({
             ...expansion.patch,
             buildSession: null,
+            narrativeFeedback: resolveToast,
             ...resolvedQuestPatch,
             ...resolveStatsPatch,
-            ...(resolveToast ? { farmingToast: resolveToast } : sideEffectToast ? { farmingToast: sideEffectToast } : {}),
+            ...(sideEffectToast ? { farmingToast: sideEffectToast } : {}),
           });
 
-          if (resolveToast) {
-            setTimedToast({
-              set,
-              get,
-              message: resolveToast,
-              durationMs: get().isSeriousMode ? 9000 : 5000,
-            });
-          } else if (sideEffectToast) setTimedToast({ set, get, message: sideEffectToast, durationMs: 2600 });
+          if (sideEffectToast) setTimedToast({ set, get, message: sideEffectToast, durationMs: 2600 });
 
           const { meta } = expansion;
           setTimeout(() => {
@@ -309,6 +330,22 @@ export const createBugSlice = (set, get) => ({
             }
             set(nextState);
           }, 2500);
+        } else {
+          set({
+            buildMode: null,
+            buildSession: null,
+            hoverPosition: null,
+            placingPresetArchetype: null,
+            isReturning: true,
+            bugs: bugsWithTradeoff,
+            narrativeFeedback: resolveToast,
+            ...resolvedQuestPatch,
+            ...resolveStatsPatch,
+            ...(sideEffectToast ? { farmingToast: sideEffectToast } : {}),
+          });
+          if (sideEffectToast) {
+            setTimedToast({ set, get, message: sideEffectToast, durationMs: 2600 });
+          }
         }
       } else {
         set({
@@ -326,7 +363,7 @@ export const createBugSlice = (set, get) => ({
             set,
             get,
             message: resolveToast,
-            durationMs: get().isSeriousMode ? 9000 : 5000,
+              durationMs: 9000,
           });
         }
       }
@@ -538,20 +575,45 @@ export const createBugSlice = (set, get) => ({
       }, 2600);
       return;
     }
+    const needType = targetBug.needType
+      ?? TYPE_TO_BARRIER_META[targetBug.type]?.needType
+      ?? 'P';
+    const matrixPlans = getAllowedPlansForQuest({ needType }).map(normalizePlanId);
     const allowedPlans = Array.isArray(targetBug.allowedPlans) ? targetBug.allowedPlans : [];
-    const resolvedPlan = (selectedPlan && allowedPlans.includes(selectedPlan))
-      ? selectedPlan
-      : (targetBug.chosenPlan && allowedPlans.includes(targetBug.chosenPlan)
+    const selectedNormalized = selectedPlan ? normalizePlanId(selectedPlan) : null;
+    const canUseSelected = selectedNormalized
+      && (
+        allowedPlans.includes(selectedNormalized)
+        || matrixPlans.includes(selectedNormalized)
+      );
+    const resolvedPlan = canUseSelected
+      ? selectedNormalized
+      : (targetBug.chosenPlan && (allowedPlans.includes(targetBug.chosenPlan) || matrixPlans.includes(targetBug.chosenPlan))
         ? targetBug.chosenPlan
-        : (TYPE_TO_BARRIER_META[targetBug.type]?.defaultPlan ?? allowedPlans[0] ?? null));
+        : (matrixPlans[0]
+          ?? TYPE_TO_BARRIER_META[targetBug.type]?.defaultPlan
+          ?? allowedPlans[0]
+          ?? null));
     const initialShape = resolvedPlan === 'transit_link' ? 'ferry_dock' : 'block';
+    const planForSession = resolvedPlan ?? targetBug.chosenPlan;
+
+    const questIdForDecision = targetBug.sourceQuestId || targetBug.id;
+    if (planForSession) {
+      const committed = get().commitQuestPlanChoice?.(questIdForDecision, planForSession);
+      if (!committed) {
+        console.error('commitQuestPlanChoice failed for', questIdForDecision, planForSession);
+        setTimedToast({ set, get, message: 'プランの確定に失敗しました。予算が足りないか、状態が不正です。', durationMs: 3000 });
+        return;
+      }
+    }
 
     set((state) => ({
       ...buildModeDefaults,
       buildMode: bugId,
       buildFinishError: null,
+      activeBug: null,
       buildSession: createImprovementSession(
-        { ...targetBug, chosenPlan: resolvedPlan ?? targetBug.chosenPlan },
+        { ...targetBug, chosenPlan: planForSession ?? targetBug.chosenPlan },
         state.placedBlocks,
       ),
       selectedShape: initialShape,
@@ -570,23 +632,20 @@ export const createBugSlice = (set, get) => ({
 
   commitJokerQuest: (bugId, jokerInput) => {
     const targetBug = findBugById(get().bugs, bugId);
-    if (!targetBug?.sourceQuestId) {
-      setTimedToast({ set, get, message: 'クエストに紐づいていない不満です。', durationMs: 2600 });
-      return false;
-    }
+    const questIdForDecision = targetBug.sourceQuestId || bugId;
     if (targetBug.needType !== 'O') {
       setTimedToast({ set, get, message: 'ジョーカー施策は「その他」の困りごと専用です。', durationMs: 2800 });
       return false;
     }
-    if (!get().isSeriousMode || !get().consensusSession) {
+    if (false) {
       setTimedToast({ set, get, message: '議会モード中のみジョーカー施策を使えます。', durationMs: 2800 });
       return false;
     }
 
-    const committed = get().commitJokerPlan?.(targetBug.sourceQuestId, jokerInput);
+    const committed = get().commitJokerPlan?.(questIdForDecision, jokerInput);
     if (!committed) return false;
 
-    const jokerPayload = get().consensusSession?.questDecisions?.[targetBug.sourceQuestId]?.jokerPlan;
+    const jokerPayload = get().questDecisions?.[questIdForDecision]?.jokerPlan;
     const updatedBugs = get().bugs.map((b) => (
       sameBugId(b.id, bugId)
         ? normalizeBug({
@@ -608,18 +667,16 @@ export const createBugSlice = (set, get) => ({
       bugs: updatedBugs,
       activeBug: null,
       isReturning: true,
-      quests: markQuestResolved(get().quests, targetBug.sourceQuestId, targetBug.id),
+      narrativeFeedback: feedback,
+      quests: targetBug.sourceQuestId ? markQuestResolved(get().quests, targetBug.sourceQuestId, targetBug.id) : get().quests,
       postStats: appendPostEvent(get().postStats, buildResolveEvent({
         t: Date.now(),
-        questId: targetBug.sourceQuestId,
+        questId: questIdForDecision,
         bugId: targetBug.id,
         chosenPlan: JOKER_PLAN_ID,
       })),
     });
 
-    if (feedback) {
-      setTimedToast({ set, get, message: feedback, durationMs: 9000 });
-    }
     return true;
   },
 

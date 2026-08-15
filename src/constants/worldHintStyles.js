@@ -14,4 +14,5 @@ export const WORLD_PROXIMITY_HINT_STYLE = {
   fontFamily: UI_THEME.fontFamily,
   lineHeight: 1.2,
   boxShadow: UI_THEME.cardShadow,
+  transform: 'translateY(-15px)', // Move up to avoid covering the bug sphere text
 };

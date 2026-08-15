@@ -13,11 +13,19 @@ export function getAnnotationTags(annotation) {
   const place = KOTO_PLACE_OPTIONS.find((o) => o.id === annotation.placeArchetype);
   if (place) tags.push({ id: `place:${place.id}`, label: place.label, group: 'place' });
 
-  (annotation.affectedGroups ?? []).forEach((g) => {
-    tags.push({ id: `who:${g}`, label: g, group: 'who' });
-  });
-  if (annotation.affectedOther) {
-    tags.push({ id: `who:other:${annotation.affectedOther}`, label: annotation.affectedOther, group: 'who' });
+  if (annotation.whoText?.trim()) {
+    tags.push({
+      id: `who:text:${annotation.whoText.trim()}`,
+      label: annotation.whoText.trim(),
+      group: 'who',
+    });
+  } else {
+    (annotation.affectedGroups ?? []).forEach((g) => {
+      tags.push({ id: `who:${g}`, label: g, group: 'who' });
+    });
+    if (annotation.affectedOther) {
+      tags.push({ id: `who:other:${annotation.affectedOther}`, label: annotation.affectedOther, group: 'who' });
+    }
   }
 
   if (annotation.timeTag) tags.push({ id: `when:${annotation.timeTag}`, label: annotation.timeTag, group: 'when' });
@@ -41,6 +49,7 @@ export function filterAnnotations(annotations, { query = '', activeTagIds = [], 
     if (!q) return true;
     const hay = [
       a.comment,
+      a.whoText,
       a.needType,
       a.placeArchetype,
       a.timeTag,

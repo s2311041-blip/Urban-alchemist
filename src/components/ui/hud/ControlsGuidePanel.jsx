@@ -1,5 +1,6 @@
 import React from 'react';
 import { controlsGuidePanelStyle } from './hudPanelStyles';
+import { SIDE_PANEL_INSET } from '../../../constants/uiLayout';
 import { useInputProfile } from '../../../utils/useInputProfile';
 import { useGameStore } from '../../../store/useGameStore';
 
@@ -14,26 +15,32 @@ export const ControlsGuidePanel = ({ viewMode }) => {
   const inputProfile = useInputProfile();
   const isTouch = inputProfile === 'touch';
   const isWorldMapOpen = useGameStore((s) => s.isWorldMapOpen);
+  const buildMode = useGameStore((s) => s.buildMode);
 
-  if (isWorldMapOpen) return null;
+  if (isWorldMapOpen || buildMode) return null;
 
   return (
     <div style={{
       ...controlsGuidePanelStyle({
         position: 'absolute',
-        bottom: '20px',
-        right: '20px',
-        background: 'rgba(0,0,0,0.6)',
+        bottom: `${SIDE_PANEL_INSET}px`,
+        left: `${SIDE_PANEL_INSET}px`,
+        background: 'rgba(0,0,0,0.72)',
         color: 'white',
-        fontSize: '12px',
+        fontSize: '11px',
         display: 'flex',
         flexDirection: 'column',
-        gap: '8px',
+        gap: '5px',
         pointerEvents: 'none',
+        zIndex: 10,
+        padding: '10px 12px',
+        borderRadius: '12px',
+        maxHeight: '42vh',
+        overflowY: 'auto',
       }),
     }}
     >
-      <div style={{ fontWeight: 'bold', marginBottom: '5px', fontSize: '14px' }}>
+      <div style={{ fontWeight: 'bold', marginBottom: '2px', fontSize: '12px', lineHeight: 1.3 }}>
         🎮 操作ガイド ({viewMode === 'tps' ? 'アバター' : '神様'})
         {isTouch ? ' · スマホ' : ''}
       </div>

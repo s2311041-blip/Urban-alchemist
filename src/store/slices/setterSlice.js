@@ -28,6 +28,7 @@ import {
   SAVE_KEY,
 } from '../helpers/saveSchema'
 import { createDefaultPlacedBlocks } from '../../utils/placePresets'
+import { DEFAULT_ISLAND_SATISFACTION } from '../../constants/satisfactionAttributes'
 
 
 
@@ -139,6 +140,8 @@ export const createSetterSlice = (set, get) => ({
   setSignTextPrompt: (signTextPrompt) => set({ signTextPrompt }),
   setFavorites: (favorites) => set({ favorites }),
   setFarmingToast: (farmingToast) => set({ farmingToast }),
+  setNarrativeFeedback: (narrativeFeedback) => set({ narrativeFeedback }),
+  setTutorialSeen: (seen) => set({ tutorialSeen: seen }),
   awardPostCoins: ({ captureMode = 'onsite', postKind = 'bad' } = {}) => {
     const state = get();
     const reward = computePostReward({
@@ -314,6 +317,12 @@ export const createSetterSlice = (set, get) => ({
       goodSpots: [],
       isGoodSpotBookOpen: false,
       isWorldMapOpen: false,
+      islandSatisfaction: DEFAULT_ISLAND_SATISFACTION,
+      remainingBudget: 100,
+      questDecisions: {},
+      jokerUsed: false,
+      tutorialSeen: false,
+      uiMode: 'explore',
       studioHistory: [],
       studioHistoryIndex: -1,
       sizeAdjustHistory: [],
@@ -332,11 +341,16 @@ export const createSetterSlice = (set, get) => ({
         placedBlocks: defaultState.placedBlocks,
         recentDiagonals: defaultState.recentDiagonals,
         worldTime: defaultState.worldTime,
-      pauseTimeInBuildMode: defaultState.pauseTimeInBuildMode,
+        pauseTimeInBuildMode: defaultState.pauseTimeInBuildMode,
         farmingProgress: defaultState.farmingProgress,
         economy: defaultState.economy,
         postStats: defaultState.postStats,
         goodSpots: defaultState.goodSpots,
+      islandSatisfaction: DEFAULT_ISLAND_SATISFACTION,
+      remainingBudget: 100,
+      questDecisions: {},
+      jokerUsed: false,
+      tutorialSeen: false,
       }));
       localStorage.setItem(FAV_KEY, JSON.stringify(defaultFavorites));
     } catch (_) {

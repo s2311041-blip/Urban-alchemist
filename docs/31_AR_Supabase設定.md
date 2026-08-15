@@ -61,3 +61,5 @@ npm run dev:mobile
 ## 本番デプロイ
 
 Supabase 設定後、Vercel へ載せる手順は [32_AR_本番デプロイ_Supabase_Vercel.md](./32_AR_本番デプロイ_Supabase_Vercel.md) を参照。
+
+LLM による困り型分類を使う場合は [33_AR_LLM分類設定.md](./33_AR_LLM分類設定.md) もあわせて設定してください。

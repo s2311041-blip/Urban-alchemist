@@ -489,7 +489,7 @@ export const MainGameScene = ({
                 />
                 
                 {!showBugExperienceHints ? null : (
-                  <Html position={[bug.pos[0], bug.pos[1] + 0.6, bug.pos[2]]} center>
+                  <Html position={[bug.pos[0], bug.pos[1] + 0.9, bug.pos[2]]} center zIndexRange={[100, 0]}>
                     <div style={{ ...WORLD_PROXIMITY_HINT_STYLE, animation: 'bounce 2s infinite' }}>
                       タップして追体験
                     </div>

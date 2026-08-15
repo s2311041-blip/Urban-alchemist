@@ -3,6 +3,62 @@ import { Pictogram } from '../../components/ui/Pictogram';
 import { AR_THEME } from '../constants/arTheme';
 import { PPS_NEED_GROUPS, getNeedTypeOption } from '../constants/needTypeGroups';
 
+/** グループ見出しの補足（参加者向け） */
+const GROUP_DESCRIPTIONS = {
+  access: '足元・通路・案内 — その場所や行き方の問題',
+  uses: '座って休む・待つ場所が足りない',
+  comfort: '明るさ・清潔さ・維持管理',
+  sociability: '安心感・困ったとき誰に頼れるか',
+  other: '上記のどれにも当てはまらない',
+};
+
+export function NeedTypeChoiceButton({
+  needType,
+  active = false,
+  onClick,
+  accentColor = AR_THEME.accent,
+}) {
+  const opt = getNeedTypeOption(needType);
+  if (!opt) return null;
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        width: '100%',
+        padding: '12px 12px',
+        borderRadius: 12,
+        border: active ? `2px solid ${accentColor}` : '1px solid rgba(255,255,255,0.14)',
+        background: active ? `${accentColor}22` : 'rgba(255,255,255,0.04)',
+        color: AR_THEME.text,
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: 10,
+        textAlign: 'left',
+        boxSizing: 'border-box',
+      }}
+    >
+      <div style={{ flexShrink: 0, width: 40, display: 'grid', placeItems: 'center' }}>
+        {opt.iconSrc ? (
+          <Pictogram src={opt.iconSrc} size={36} alt="" />
+        ) : (
+          <span style={{ fontSize: 28 }} aria-hidden>💬</span>
+        )}
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 15, fontWeight: active ? 'bold' : '600', marginBottom: 4 }}>
+          {opt.label}
+        </div>
+        <div style={{ fontSize: 13, color: AR_THEME.muted, lineHeight: 1.45 }}>
+          {opt.hint}
+        </div>
+      </div>
+    </button>
+  );
+}
+
 export function ArNeedTypePicker({ value, onChange }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -13,7 +69,7 @@ export function ArNeedTypePicker({ value, onChange }) {
         lineHeight: 1.5,
       }}
       >
-        タップして1つ選んでください
+        いちばん近いものを1つ選んでください。名前の下に具体例があります。
       </p>
       {PPS_NEED_GROUPS.map((group) => (
         <section
@@ -29,67 +85,41 @@ export function ArNeedTypePicker({ value, onChange }) {
             padding: '10px 12px',
             background: `${group.color}22`,
             borderLeft: `4px solid ${group.color}`,
-            fontSize: 14,
-            fontWeight: 'bold',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
           }}
           >
-            <span aria-hidden>{group.emoji}</span>
-            <span>{group.label}</span>
+            <div style={{
+              fontSize: 14,
+              fontWeight: 'bold',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+            }}
+            >
+              <span aria-hidden>{group.emoji}</span>
+              <span>{group.label}</span>
+            </div>
+            {GROUP_DESCRIPTIONS[group.id] && (
+              <div style={{ fontSize: 12, color: AR_THEME.muted, marginTop: 4, lineHeight: 1.4 }}>
+                {GROUP_DESCRIPTIONS[group.id]}
+              </div>
+            )}
           </div>
           <div style={{
-            display: 'grid',
-            gridTemplateColumns: group.options.length === 1 ? '1fr' : 'repeat(2, minmax(0, 1fr))',
+            display: 'flex',
+            flexDirection: 'column',
             gap: 8,
             padding: 10,
           }}
           >
-            {group.options.map((needType) => {
-              const opt = getNeedTypeOption(needType);
-              if (!opt) return null;
-              const active = value === needType;
-              return (
-                <button
-                  key={needType}
-                  type="button"
-                  onClick={() => onChange(needType)}
-                  style={{
-                    minHeight: 72,
-                    padding: '10px 8px',
-                    borderRadius: 12,
-                    border: active ? `2px solid ${group.color}` : '1px solid rgba(255,255,255,0.14)',
-                    background: active ? `${group.color}28` : 'rgba(255,255,255,0.04)',
-                    color: AR_THEME.text,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 4,
-                    boxSizing: 'border-box',
-                  }}
-                >
-                  {opt.iconSrc ? (
-                    <Pictogram src={opt.iconSrc} size={36} alt={opt.label} />
-                  ) : (
-                    <span style={{ fontSize: 28 }} aria-hidden>💬</span>
-                  )}
-                  <span style={{ fontSize: 14, fontWeight: active ? 'bold' : '600' }}>{opt.label}</span>
-                  <span style={{
-                    fontSize: 11,
-                    color: AR_THEME.muted,
-                    lineHeight: 1.3,
-                    textAlign: 'center',
-                    padding: '0 4px',
-                  }}
-                  >
-                    {opt.hint}
-                  </span>
-                </button>
-              );
-            })}
+            {group.options.map((needType) => (
+              <NeedTypeChoiceButton
+                key={needType}
+                needType={needType}
+                active={value === needType}
+                accentColor={group.color}
+                onClick={() => onChange(needType)}
+              />
+            ))}
           </div>
         </section>
       ))}

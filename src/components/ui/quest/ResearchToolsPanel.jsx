@@ -21,7 +21,7 @@ const btnStyle = {
   cursor: 'pointer',
 };
 
-export function ResearchToolsPanel({ exportResearchLog, loadDemoQuestSet, postStats, isSeriousMode, startConsensusSession }) {
+export function ResearchToolsPanel({ exportResearchLog, loadDemoQuestSet, postStats }) {
   const [loading, setLoading] = useState(false);
   const eventCount = postStats?.events?.length ?? 0;
 
@@ -34,12 +34,6 @@ export function ResearchToolsPanel({ exportResearchLog, loadDemoQuestSet, postSt
     }
   };
 
-  const runConsensusSession = () => {
-    if (window.confirm('合意形成セッションを開始しますか？島上のQuestが全て出現し、共有予算モードになります。')) {
-      startConsensusSession?.();
-    }
-  };
-
   return (
     <div style={panelStyle}>
       <div style={{ fontSize: 12, color: '#ce93d8', fontWeight: 'bold', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -47,10 +41,10 @@ export function ResearchToolsPanel({ exportResearchLog, loadDemoQuestSet, postSt
         研究・WS ツール
       </div>
       <p style={{ margin: '0 0 10px', fontSize: 12, color: '#b0bec5', lineHeight: 1.5 }}>
-        デモ 3 件（同一駅 + 異 needType）と研究ログ CSV（
+        デモ 3 件（同一駅 + 異 needType）を読み込みます。研究ログ CSV（
         {eventCount}
         {' '}
-        イベント）。
+        イベント）も出力できます。
       </p>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         <button
@@ -60,7 +54,7 @@ export function ResearchToolsPanel({ exportResearchLog, loadDemoQuestSet, postSt
           onClick={runDemo}
         >
           <PlayCircle size={14} />
-          WS デモ 3 件を載せる
+          {loading ? '読込中...' : 'WS デモ 3 件を載せる'}
         </button>
         <button
           type="button"
@@ -70,16 +64,6 @@ export function ResearchToolsPanel({ exportResearchLog, loadDemoQuestSet, postSt
           <Download size={14} />
           研究ログ CSV
         </button>
-        {!isSeriousMode && startConsensusSession && (
-          <button
-            type="button"
-            style={{ ...btnStyle, background: '#ff9800', color: '#000' }}
-            onClick={runConsensusSession}
-          >
-            <PlayCircle size={14} />
-            合意形成セッション開始
-          </button>
-        )}
       </div>
     </div>
   );

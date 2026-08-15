@@ -14,6 +14,9 @@ const GROUP_FRAMES = {
 };
 
 export function getPerspectiveFrame(annotation) {
+  if (annotation.whoText?.trim()) {
+    return `${annotation.whoText.trim()}の視点`;
+  }
   const primary = annotation.affectedGroups?.[0];
   return GROUP_FRAMES[primary] ?? 'この場所を利用する人の視点';
 }
@@ -44,20 +47,24 @@ export function getAnnotationStoryRows(annotation) {
     rows.push({ key: 'place', label: 'どんな場所？', value: place.label });
   }
 
-  if (!isGood && (annotation.affectedGroups?.length || annotation.affectedOther)) {
-    const whoParts = [...(annotation.affectedGroups ?? [])];
-    if (annotation.affectedOther) {
-      const otherIdx = whoParts.indexOf('その他');
-      if (otherIdx >= 0) {
-        whoParts[otherIdx] = `その他（${annotation.affectedOther}）`;
-      } else {
-        whoParts.push(annotation.affectedOther);
-      }
-    }
+  if (!isGood && (annotation.whoText?.trim() || annotation.affectedGroups?.length || annotation.affectedOther)) {
+    const value = annotation.whoText?.trim()
+      || (() => {
+        const whoParts = [...(annotation.affectedGroups ?? [])];
+        if (annotation.affectedOther) {
+          const otherIdx = whoParts.indexOf('その他');
+          if (otherIdx >= 0) {
+            whoParts[otherIdx] = `その他（${annotation.affectedOther}）`;
+          } else {
+            whoParts.push(annotation.affectedOther);
+          }
+        }
+        return whoParts.join('、');
+      })();
     rows.push({
       key: 'who',
       label: 'だれに影響？',
-      value: whoParts.join('、'),
+      value,
     });
   }
 

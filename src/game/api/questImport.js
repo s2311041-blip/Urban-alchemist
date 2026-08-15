@@ -4,6 +4,8 @@ import { annotationToGameExport } from '../../ar/utils/normalizeAnnotation';
 import { NEED_TYPE_TO_DEFAULT_TYPE } from '../../constants/barrierData';
 
 function formatDemographic(annotation = {}) {
+  const whoText = annotation.whoText?.trim();
+  if (whoText) return whoText;
   const groups = Array.isArray(annotation.affectedGroups) ? annotation.affectedGroups : [];
   const other = annotation.affectedOther?.trim();
   if (other) return other;

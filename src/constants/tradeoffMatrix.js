@@ -61,3 +61,12 @@ export function getAllowedPlansForQuest({ needType }) {
   const row = TRADEOFF_MATRIX[needType] ?? TRADEOFF_MATRIX.P;
   return Object.keys(row).filter((plan) => plan !== 'ignore' && plan !== 'joker_plan');
 }
+
+/** 改善プラン3種 + 無視（4択） */
+export function getSelectablePlansForQuest({ needType, includeIgnore = true } = {}) {
+  const plans = getAllowedPlansForQuest({ needType });
+  if (!includeIgnore || !needType || needType === 'O') return plans;
+  const row = TRADEOFF_MATRIX[needType] ?? TRADEOFF_MATRIX.P;
+  if (!row.ignore) return plans;
+  return [...plans, 'ignore'];
+}

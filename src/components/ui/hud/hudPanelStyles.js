@@ -29,10 +29,10 @@ export const hudPanelStyleCompact = (overrides = {}) => panelBase({
 
 export const hudPanelStyleMap = hudPanelStyleCompact;
 
-/** 右下操作ガイドと同系 */
+/** 左下操作ガイドと同系 */
 export const controlsGuidePanelStyle = (overrides = {}) => panelBase({
-  padding: '15px',
-  borderRadius: '15px',
+  padding: '10px 12px',
+  borderRadius: '12px',
   backdropFilter: 'blur(5px)',
   ...overrides,
 });

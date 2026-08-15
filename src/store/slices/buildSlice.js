@@ -11,7 +11,7 @@ import { computeFerryAutoDockBlocks } from '../../utils/placement/ferryAutoDockP
 import { realignAllFerryDocks } from '../../utils/ferryDockPlacement'
 import { setTimedToast } from '../helpers/uiFeedback'
 import { findClosestBlock, isPresetLockedBlock } from '../helpers/blockProtection'
-import { canPlaceShapeInSession } from '../../utils/improvementSession'
+import { canPlaceShapeInSession, canPlaceBlockInImprovementSession } from '../../utils/improvementSession'
 import { ENABLE_FREE_BUILD_PLACE_PRESETS } from '../../constants/buildFeatureFlags'
 import { PLACE_PRESET_TEMPLATES } from '../../constants/placePresetTemplates'
 import {
@@ -272,6 +272,22 @@ export const createBuildSlice = (set, get) => ({
       if (!shapeCheck.ok) {
         setTimedToast({ set, get, message: shapeCheck.message, durationMs: 2400 });
         return;
+      }
+      const { bugs } = get();
+      if (buildSession) {
+        const targetBug = bugs.find((b) => b.id === buildMode);
+        const decision = targetBug?.sourceQuestId
+          ? get().questDecisions?.[targetBug.sourceQuestId]
+          : null;
+        const blockCheck = canPlaceBlockInImprovementSession(buildSession, {
+          isSeriousMode: true,
+          blocksPlaced: decision?.blocksPlaced ?? buildSession.blockCount ?? 0,
+          additionalBlocks: 1,
+        });
+        if (!blockCheck.ok) {
+          setTimedToast({ set, get, message: blockCheck.message, durationMs: 2800 });
+          return;
+        }
       }
     }
 

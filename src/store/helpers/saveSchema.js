@@ -12,6 +12,7 @@ import {
 } from '../../constants/worldTimeConfig';
 import { normalizeAgriState } from '../../utils/agriGrowth';
 import { getIslandTopYAt, snapTerrainPosition } from '../../utils/terrainPlacement';
+import { normalizeIslandSatisfaction } from '../../constants/satisfactionAttributes';
 import { normalizeBug, normalizeGoodSpot, normalizeQuest } from './bugFactory';
 import {
   createDefaultCenterIslandChunk,
@@ -244,6 +245,15 @@ export const loadSavedData = () => {
           return { ...b, pos: [b.pos[0], y, b.pos[2]] };
         });
       }
+
+      data.islandSatisfaction = normalizeIslandSatisfaction(data.islandSatisfaction);
+      if (data.remainingBudget > 100) {
+        data.remainingBudget = 100; // Migrate old >100 budgets to 100
+      }
+      data.remainingBudget = Number.isFinite(data.remainingBudget) ? data.remainingBudget : 100;
+      data.questDecisions = data.questDecisions && typeof data.questDecisions === 'object' ? data.questDecisions : {};
+      data.jokerUsed = !!data.jokerUsed;
+      data.tutorialSeen = !!data.tutorialSeen;
 
       return data;
     } catch(e) {

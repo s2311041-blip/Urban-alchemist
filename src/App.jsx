@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react'
+import React, { useRef } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { KeyboardControls } from '@react-three/drei'
 import * as THREE from 'three'
@@ -22,7 +22,6 @@ import { PlacingPresetOverlay } from './components/ui/build/PlacingPresetOverlay
 import { GoodSpotBookOverlay } from './components/ui/goodSpot/GoodSpotBookOverlay'
 import { keyboardMap } from './constants/gameData'
 import { interactionHintBottomPx, SIDE_PANEL_WIDTH } from './constants/uiLayout'
-import { useBuildKeyboardShortcuts } from './hooks/useBuildKeyboardShortcuts'
 import { useBuildPointerPlacement } from './hooks/useBuildPointerPlacement'
 import { useFerryFade } from './hooks/useFerryFade'
 import { useGameStore } from './store/useGameStore'
@@ -30,7 +29,10 @@ import { PALETTE, RENDERER } from './constants/artDirection'
 import { ART_DIRECTION } from './constants/buildFeatureFlags'
 import './index.css'
 
-import { ConsensusDashboardOverlay } from './components/ui/consensus/ConsensusDashboardOverlay'
+import { IslandSatisfactionHudPanel } from './components/ui/hud/IslandSatisfactionHudPanel'
+
+import { NarrativeDialog } from './components/ui/tutorial/TutorialDialog'
+import { TUTORIAL_SCENARIO } from './constants/narrativeData'
 
 export default function App() {
   const store = useGameStore(useShallow(state => ({
@@ -71,28 +73,26 @@ export default function App() {
     setIsGoodSpotBookOpen: state.setIsGoodSpotBookOpen,
     interactionHint: state.interactionHint,
     expandingLevel: state.expandingLevel,
-    isSeriousMode: state.isSeriousMode,
+    isSeriousMode: true,
     startConsensusSession: state.startConsensusSession,
     commitJokerQuest: state.commitJokerQuest,
     ignoreQuest: state.ignoreQuest,
     uiMode: state.uiMode,
     setUiMode: state.setUiMode,
-    consensusSession: state.consensusSession,
+    // consensusSession: state.consensusSession,
     undoQuestDecision: state.undoQuestDecision,
   })));
   const ferryTransitionUntil = useGameStore((s) => s.ferryTransitionUntil);
   const showFerryFade = useFerryFade(ferryTransitionUntil);
-  const [showBuildShortcuts, setShowBuildShortcuts] = useState(false);
-  const showBuildShortcutsRef = useRef(false);
+
+  const tutorialSeen = useGameStore((s) => s.tutorialSeen);
+  const setTutorialSeen = useGameStore((s) => s.setTutorialSeen);
+  const narrativeFeedback = useGameStore((s) => s.narrativeFeedback);
+  const setNarrativeFeedback = useGameStore((s) => s.setNarrativeFeedback);
 
   const controlsRef = useRef();
   const avatarPos = useRef(new THREE.Vector3(0, 3, 2));
 
-  useEffect(() => {
-    showBuildShortcutsRef.current = showBuildShortcuts;
-  }, [showBuildShortcuts]);
-
-  useBuildKeyboardShortcuts({ showBuildShortcutsRef, setShowBuildShortcuts });
   const { handleGroundClick, handleGroundDoubleClick, handlePointerMove } = useBuildPointerPlacement();
 
   return (
@@ -124,11 +124,18 @@ export default function App() {
         </Canvas>
 
         <BuildPreLayerOverlays />
-        <BuildModeLayer
-          showBuildShortcuts={store.buildMode ? showBuildShortcuts : false}
-          setShowBuildShortcuts={setShowBuildShortcuts}
-        />
+        <BuildModeLayer />
         <BuildPostLayerOverlays />
+
+        {!tutorialSeen && (
+          <NarrativeDialog scenario={TUTORIAL_SCENARIO} onClose={() => setTutorialSeen(true)} />
+        )}
+        
+        {narrativeFeedback && (
+          <NarrativeDialog scenario={narrativeFeedback} onClose={() => setNarrativeFeedback(null)} />
+        )}
+
+        <IslandSatisfactionHudPanel />
 
         {!store.activeBug && !store.isQuestBoardOpen && !store.placingQuest && !store.placingPresetArchetype && store.expandingLevel === 0 && (
           <>
@@ -161,8 +168,6 @@ export default function App() {
           voteCompetitionEntry={store.voteCompetitionEntry}
           resetCompetition={store.resetCompetition}
           setCompetitionTopic={store.setCompetitionTopic}
-          isSeriousMode={store.isSeriousMode}
-          startConsensusSession={store.startConsensusSession}
         />
 
         <QuestTutorialOverlay quests={store.quests} />
@@ -177,7 +182,6 @@ export default function App() {
           removeBug={store.removeBug}
           startDIY={store.startDIY}
           setBugChosenPlan={store.setBugChosenPlan}
-          isSeriousMode={store.isSeriousMode}
           ignoreQuest={store.ignoreQuest}
           commitJokerQuest={store.commitJokerQuest}
         />
@@ -233,38 +237,6 @@ export default function App() {
           }} />
         )}
 
-        {store.isSeriousMode && store.uiMode !== 'macro' && (
-          <button
-            style={{
-              position: 'absolute',
-              top: '20px',
-              left: '50%',
-              transform: 'translateX(-50%)',
-              padding: '10px 20px',
-              borderRadius: '20px',
-              background: '#ffca28',
-              color: '#000',
-              fontWeight: 'bold',
-              border: 'none',
-              cursor: 'pointer',
-              zIndex: 1000,
-              boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-            }}
-            onClick={() => store.setUiMode('macro')}
-          >
-            議会へ
-          </button>
-        )}
-
-        <ConsensusDashboardOverlay
-          consensusSession={store.consensusSession}
-          quests={store.quests}
-          uiMode={store.uiMode}
-          setUiMode={store.setUiMode}
-          undoQuestDecision={store.undoQuestDecision}
-          submitCompetitionEntry={store.submitCompetitionEntry}
-        />
-        
         <style>{`
           @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
           @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
@@ -289,6 +261,16 @@ export default function App() {
           }
           .material-scroll-container::-webkit-scrollbar-thumb:hover {
             background: rgba(0, 229, 255, 0.6);
+          }
+          .bug-report-scroll::-webkit-scrollbar {
+            width: 6px;
+          }
+          .bug-report-scroll::-webkit-scrollbar-track {
+            background: transparent;
+          }
+          .bug-report-scroll::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.22);
+            border-radius: 8px;
           }
         `}</style>
       </div>

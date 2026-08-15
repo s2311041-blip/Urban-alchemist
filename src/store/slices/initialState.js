@@ -16,6 +16,7 @@ import {
 } from '../helpers/saveSchema'
 import { createDefaultPlacedBlocks } from '../../utils/placePresets'
 import { normalizeCompetition } from '../../constants/competitionData'
+import { DEFAULT_ISLAND_SATISFACTION } from '../../constants/satisfactionAttributes'
 
 export const createInitialState = (savedData) => {
   const islandChunks = savedData?.islandChunks || createDefaultIslandChunks();
@@ -106,7 +107,7 @@ export const createInitialState = (savedData) => {
   farmingProgress: savedData?.farmingProgress || { ...DEFAULT_FARMING_PROGRESS },
   economy: savedData?.economy || { ...DEFAULT_ECONOMY },
   postStats: normalizePostStats(savedData?.postStats),
-  farmingToast: null,
+  narrativeFeedback: null,
   buildFinishError: null,
   buildSession: null,
   competition: normalizeCompetition(savedData?.competition),
@@ -120,9 +121,12 @@ export const createInitialState = (savedData) => {
   isGoodSpotBookOpen: false,
   isWorldMapOpen: false,
 
-  isSeriousMode: false,
-  consensusSession: null,
-  uiMode: 'explore',
+  islandSatisfaction: savedData?.islandSatisfaction ?? DEFAULT_ISLAND_SATISFACTION,
+  remainingBudget: savedData?.remainingBudget ?? 100,
+  questDecisions: savedData?.questDecisions ?? {},
+  jokerUsed: !!savedData?.jokerUsed,
+
+  tutorialSeen: savedData?.tutorialSeen ?? false,
 
   };
 };

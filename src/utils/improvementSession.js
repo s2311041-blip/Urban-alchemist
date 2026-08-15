@@ -3,6 +3,7 @@ import {
   getBlockImprovementCost,
   getImprovementBudgetLimit,
   getInitialStakeholderSatisfaction,
+  getPlanRepairScale,
   getPlanShapeLimits,
   MIN_STAKEHOLDER_SATISFACTION,
   PLAN_STAKEHOLDER_BONUS,
@@ -40,6 +41,25 @@ export const canPlaceShapeInSession = (session, shape) => {
   };
 };
 
+/** 議会モード: 修理規模（ブロック上限）のみチェック */
+export const canPlaceBlockInImprovementSession = (session, {
+  blocksPlaced = 0,
+  additionalBlocks = 1,
+} = {}) => {
+  if (!session?.plan) return { ok: true };
+
+  const repair = getPlanRepairScale(session.plan);
+  const nextCount = blocksPlaced + additionalBlocks;
+  if (nextCount > repair.maxBlocks) {
+    return {
+      ok: false,
+      message: `修理規模（${repair.label}）の上限 ${repair.maxBlocks} ブロックを超えます（現在 ${blocksPlaced}）。`,
+      repairScale: repair,
+    };
+  }
+  return { ok: true, repairScale: repair };
+};
+
 export const applyStakeholderPlacementDelta = (session, block, bug) => {
   const shape = block?.shape ?? 'block';
   const penalties = SHAPE_STAKEHOLDER_PENALTY[shape];
@@ -55,9 +75,9 @@ export const applyStakeholderPlacementDelta = (session, block, bug) => {
   return next;
 };
 
-export const applyBuildSpend = (session, block, bug) => {
+export const applyBuildSpend = (session, block, bug, { skipBudget = false } = {}) => {
   if (!session || !block) return session;
-  const cost = getBlockImprovementCost(block);
+  const cost = skipBudget ? 0 : getBlockImprovementCost(block);
   return {
     ...session,
     budgetSpent: session.budgetSpent + cost,
