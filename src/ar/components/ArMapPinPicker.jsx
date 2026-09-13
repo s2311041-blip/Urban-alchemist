@@ -55,7 +55,7 @@ export function ArMapPinPicker({
         </button>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 11, color: AR_THEME.accent }}>位置の指定</div>
-          <div style={{ fontWeight: 'bold' }}>地図で刺す（精度◎）</div>
+          <div style={{ fontWeight: 'bold' }}>地図で位置を決める</div>
         </div>
       </header>
 
@@ -119,7 +119,7 @@ export function ArMapPinPicker({
             cursor: 'pointer',
           }}
         >
-          この位置に刺す
+          この位置にピンを置く
         </button>
       </div>
     </div>

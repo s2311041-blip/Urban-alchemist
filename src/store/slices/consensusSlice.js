@@ -36,7 +36,20 @@ export const createConsensusSlice = (set, get) => ({
     const decision = state.questDecisions[questId] || getInitialDecision(state, questId);
     if (decision.status !== 'pending') return;
 
-    const nextSat = applyPlanDeltaToSatisfaction(state.islandSatisfaction, {
+    // 先に選んでいたプラン（型・独自案）があれば巻き戻してから無視を適用する
+    let baseBudget = state.remainingBudget;
+    let baseSatisfaction = state.islandSatisfaction;
+    if (decision.satisfactionDeltaApplied && decision.chosenPlan) {
+      baseBudget += decision.planMatrixCostApplied;
+      baseSatisfaction = decision.chosenPlan === JOKER_PLAN_ID && decision.jokerPlan
+        ? revertJokerDeltasFromSatisfaction(baseSatisfaction, decision.jokerPlan.deltas)
+        : revertPlanDeltaFromSatisfaction(baseSatisfaction, {
+          needType: decision.needType,
+          planId: decision.chosenPlan,
+        });
+    }
+
+    const nextSat = applyPlanDeltaToSatisfaction(baseSatisfaction, {
       needType: decision.needType,
       planId: 'ignore',
     });
@@ -47,6 +60,7 @@ export const createConsensusSlice = (set, get) => ({
       chosenPlan: 'ignore',
       planMatrixCostApplied: 0,
       satisfactionDeltaApplied: true,
+      jokerPlan: null,
     };
 
     const targetBug = state.bugs.find(b => b.sourceQuestId === questId || b.id === questId);
@@ -62,6 +76,7 @@ export const createConsensusSlice = (set, get) => ({
     }) : null;
 
     set({
+      remainingBudget: baseBudget,
       islandSatisfaction: nextSat,
       bugs: updatedBugs,
       quests: targetBug && targetBug.sourceQuestId ? markQuestResolved(state.quests, targetBug.sourceQuestId, targetBug.id) : state.quests,
@@ -95,12 +110,16 @@ export const createConsensusSlice = (set, get) => ({
     if (decision.satisfactionDeltaApplied) {
       if (decision.chosenPlan === chosenPlan) return true;
       // Revert old plan if they changed their mind before finishing
-      const oldCost = getPlanBudgetCost(decision.needType, decision.chosenPlan);
-      baseBudget += oldCost;
-      baseSatisfaction = revertPlanDeltaFromSatisfaction(baseSatisfaction, {
-        needType: decision.needType,
-        planId: decision.chosenPlan,
-      });
+      if (decision.chosenPlan === JOKER_PLAN_ID && decision.jokerPlan) {
+        baseBudget += decision.planMatrixCostApplied;
+        baseSatisfaction = revertJokerDeltasFromSatisfaction(baseSatisfaction, decision.jokerPlan.deltas);
+      } else {
+        baseBudget += getPlanBudgetCost(decision.needType, decision.chosenPlan);
+        baseSatisfaction = revertPlanDeltaFromSatisfaction(baseSatisfaction, {
+          needType: decision.needType,
+          planId: decision.chosenPlan,
+        });
+      }
     }
 
     const row = TRADEOFF_MATRIX[decision.needType] ?? TRADEOFF_MATRIX.P;
@@ -128,6 +147,7 @@ export const createConsensusSlice = (set, get) => ({
       chosenPlan,
       planMatrixCostApplied: cost,
       satisfactionDeltaApplied: true,
+      jokerPlan: null,
     };
 
     set({
@@ -183,15 +203,14 @@ export const createConsensusSlice = (set, get) => ({
     return get().finalizeQuestDecision?.(questId) ?? false;
   },
 
+  /** 独自案（ジョーカー）の確定 — 全 needType 共通、1クエストにつき1回 */
   commitJokerPlan: (questId, jokerInput) => {
     const state = get();
-    if (state.jokerUsed) {
-      setTimedToast({ set, get, message: 'ジョーカー施策は1回までです。', durationMs: 3200 });
-      return false;
-    }
 
     const decision = state.questDecisions[questId] || getInitialDecision(state, questId);
-    if (decision.status !== 'pending' || decision.needType !== 'O') {
+    if (decision.status !== 'pending') return false;
+    if (decision.chosenPlan === JOKER_PLAN_ID && decision.satisfactionDeltaApplied) {
+      setTimedToast({ set, get, message: 'このクエストでは既に独自案を確定しています。', durationMs: 3200 });
       return false;
     }
 
@@ -202,15 +221,27 @@ export const createConsensusSlice = (set, get) => ({
     }
 
     const { payload } = validation;
-    if (state.remainingBudget < payload.budgetCost) {
+
+    // 型プランを選んだあとに独自案へ切り替えた場合は、先に元のプランを巻き戻す
+    let baseBudget = state.remainingBudget;
+    let baseSatisfaction = state.islandSatisfaction;
+    if (decision.satisfactionDeltaApplied && decision.chosenPlan) {
+      baseBudget += decision.planMatrixCostApplied;
+      baseSatisfaction = revertPlanDeltaFromSatisfaction(baseSatisfaction, {
+        needType: decision.needType,
+        planId: decision.chosenPlan,
+      });
+    }
+
+    if (baseBudget < payload.budgetCost) {
       setTimedToast({ set, get, message: '残り予算が不足しています。', durationMs: 3200 });
       return false;
     }
 
-    const nextSat = applyJokerDeltasToSatisfaction(state.islandSatisfaction, payload.deltas);
+    const nextSat = applyJokerDeltasToSatisfaction(baseSatisfaction, payload.deltas);
     const nextDecision = {
       ...decision,
-      status: 'resolved',
+      status: 'pending',
       chosenPlan: JOKER_PLAN_ID,
       planMatrixCostApplied: payload.budgetCost,
       satisfactionDeltaApplied: true,
@@ -218,9 +249,8 @@ export const createConsensusSlice = (set, get) => ({
     };
 
     set({
-      remainingBudget: state.remainingBudget - payload.budgetCost,
+      remainingBudget: baseBudget - payload.budgetCost,
       islandSatisfaction: nextSat,
-      jokerUsed: true,
       questDecisions: {
         ...state.questDecisions,
         [questId]: nextDecision,
@@ -231,7 +261,7 @@ export const createConsensusSlice = (set, get) => ({
         questId,
         chosenPlan: JOKER_PLAN_ID,
         budgetSpent: payload.budgetCost,
-        remainingSessionBudget: state.remainingBudget - payload.budgetCost,
+        remainingSessionBudget: baseBudget - payload.budgetCost,
         isSeriousMode: true,
         jokerTitle: payload.title,
         ...satisfactionLogPayload(nextSat),
@@ -263,12 +293,12 @@ export const createConsensusSlice = (set, get) => ({
       planMatrixCostApplied: 0,
       blocksPlaced: 0,
       satisfactionDeltaApplied: false,
+      jokerPlan: null,
     };
 
     set({
       remainingBudget: state.remainingBudget + refundCost,
       islandSatisfaction: nextSat,
-      jokerUsed: wasJoker ? false : state.jokerUsed,
       questDecisions: {
         ...state.questDecisions,
         [questId]: nextDecision,
@@ -291,5 +321,6 @@ function getInitialDecision(state, questId) {
     scale: meta.scale || 'point',
     needType: bug?.needType ?? meta.needType ?? 'P',
     satisfactionDeltaApplied: false,
+    jokerPlan: null,
   };
 }

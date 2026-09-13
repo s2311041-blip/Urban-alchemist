@@ -19,7 +19,7 @@ export function ArVisiblePinBar({ visiblePins = [], onSelectPin }) {
       }}
     >
       <div style={{ fontSize: 11, color: AR_THEME.muted, marginBottom: 6, paddingLeft: 4 }}>
-        視界内の記録（タップで視点置換）
+        視界内の投稿（タップで写真と声を見る）
       </div>
       <div style={{
         display: 'flex',

@@ -5,11 +5,14 @@ import {
 } from '../constants/barrierData';
 import {
   countShapesNearByScale,
+  getBlocksNear,
+  getRadiusByScale,
   hasDetourPathByScale,
   hasFerryRoute,
   hasShapeNearByScale,
 } from './barrierValidation';
 import { findBugById } from './bugIds';
+import { JOKER_PLAN_ID, getJokerRequiredBlocks } from './jokerPlan';
 
 export const evaluateBugResolution = (bug, placedBlocks = [], context = {}) => {
   if (!bug) {
@@ -32,6 +35,24 @@ export const evaluateBugResolution = (bug, placedBlocks = [], context = {}) => {
     area: { hardFixCount: 3, maintenancePathCount: 5, signPathCount: 3, careBenchCount: 2, careLightCount: 2 },
   };
   const req = requirementByScale[scale] ?? requirementByScale.point;
+
+  if (plan === JOKER_PLAN_ID) {
+    // 独自案は形の縛りがないため、地点の近くに一定数の配置があれば実施とみなす
+    const required = getJokerRequiredBlocks(context.jokerBudgetCost);
+    const placedNear = getBlocksNear(
+      bug.pos,
+      placedBlocks,
+      getRadiusByScale(scale, BUG_RESOLVE_RADIUS),
+    ).length;
+    if (placedNear >= required) {
+      return { ok: true, message: '独自案を実施しました。', planId: plan };
+    }
+    return {
+      ok: false,
+      message: `独自案の実施には、この地点の近くにブロックが ${required} 個以上必要です（現在 ${placedNear} 個）。`,
+      planId: plan,
+    };
+  }
 
   if (plan === 'lighting') {
     ok = hasShapeNearByScale(bug.pos, placedBlocks, ['light_pole'], scale, BUG_RESOLVE_RADIUS, req.careLightCount);

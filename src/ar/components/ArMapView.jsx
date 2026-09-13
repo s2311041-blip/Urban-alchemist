@@ -12,7 +12,7 @@ import { ArLiveView } from './ArLiveView';
 import { BoundsLock } from './ArMapBoundsLock';
 
 /**
- * 地図ハブ：ピン位置の確認 + タップで視点置換 + 任意でカメラAR
+ * 地図ハブ：ピン位置の確認 + タップで詳細 + かざして見る
  */
 export function ArMapView({
   annotations = [],
@@ -54,14 +54,20 @@ export function ArMapView({
       >
         <button type="button" onClick={onClose} style={headerBtnStyle}>
           <ChevronLeft size={20} />
-          ホーム
+          戻る
         </button>
         <div style={{ flex: 1, textAlign: 'center' }}>
           <div style={{ fontSize: 11, color: AR_THEME.accent }}>地図</div>
-          <div style={{ fontWeight: 'bold', fontSize: 16 }}>地図で見る</div>
+          <div style={{ fontWeight: 'bold', fontSize: 16 }}>みんなのピン（地図）</div>
         </div>
-        <button type="button" onClick={() => setPanel('camera')} style={headerBtnStyle} title="現地で見る（任意）">
-          <Camera size={20} />
+        <button
+          type="button"
+          onClick={() => setPanel('camera')}
+          style={{ ...headerBtnStyle, fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap' }}
+          title="かざして見る"
+        >
+          <Camera size={16} />
+          かざして見る
         </button>
       </header>
 
@@ -75,7 +81,7 @@ export function ArMapView({
       }}
       >
         <MapIcon size={12} style={{ verticalAlign: 'middle', marginRight: 4 }} />
-        ピンをタップ → 記録を読む。カメラは任意です。
+        地図上のピンをタップすると記録を読めます。現地では「かざして見る」がおすすめです。
       </p>
 
       <div style={{ flex: 1, minHeight: 0 }}>

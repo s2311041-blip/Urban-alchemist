@@ -6,7 +6,6 @@ import { classifyAnnotation } from '../api/classifyAnnotation';
 import { getPlaceLabel } from '../utils/classifyDraft';
 import {
   classifyMetaFromDraft,
-  CONTEXT_INPUT_HINTS,
   getPlaceDisplayLabel,
   getSeverityLabel,
   getTimeTagLabel,
@@ -14,12 +13,14 @@ import {
   PLACE_INPUT_HINTS,
   WHO_INPUT_HINTS,
 } from '../utils/classifyMetaFields';
+import { TIME_TAG_OPTIONS, SEVERITY_OPTIONS } from '../../constants/barrierData';
+import { Pictogram } from '../../components/ui/Pictogram';
 import { getNeedTypeOption } from '../constants/needTypeGroups';
 import { ArNeedTypePicker, NeedTypeChoiceButton } from './ArNeedTypePicker';
 
-const BAD_STEPS = ['kind', 'story', 'place', 'who', 'optional'];
+const BAD_STEPS = ['kind', 'story', 'place', 'who', 'when', 'severity'];
 const GOOD_STEPS = ['kind', 'place', 'story'];
-const TEXT_INPUT_STEPS = new Set(['story', 'place', 'who', 'optional']);
+const TEXT_INPUT_STEPS = new Set(['story', 'place', 'who']);
 
 const getStepIds = (postKind) => (postKind === 'good' ? GOOD_STEPS : BAD_STEPS);
 
@@ -61,6 +62,35 @@ function UserBubble({ children }) {
         {children}
       </div>
     </div>
+  );
+}
+
+function ChipOptionButton({ active, onClick, children, accent = AR_THEME.accent }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        width: '100%',
+        minHeight: 52,
+        padding: '8px 10px',
+        borderRadius: 12,
+        border: active ? `2px solid ${accent}` : '1px solid rgba(255,255,255,0.14)',
+        background: active ? `${accent}18` : 'rgba(255,255,255,0.04)',
+        color: AR_THEME.text,
+        cursor: 'pointer',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 4,
+        fontSize: 14,
+        fontWeight: active ? 'bold' : '600',
+        boxSizing: 'border-box',
+      }}
+    >
+      {children}
+    </button>
   );
 }
 
@@ -294,7 +324,7 @@ function ConfirmCard({
     }}
     >
       <div style={{ fontSize: 13, color: AR_THEME.accent, fontWeight: 'bold', marginBottom: 10 }}>
-        確認 — この内容で投稿しますか？
+        確認 — この内容でピンを置きますか？
       </div>
 
       {draft.photo && (
@@ -315,7 +345,7 @@ function ConfirmCard({
         {draft.comment}
       </p>
 
-      {(draft.placeText || draft.whoText || draft.contextText) && (
+      {(draft.placeText || (isBad && draft.whoText)) && (
         <div style={{
           margin: '0 0 12px',
           padding: 10,
@@ -327,8 +357,23 @@ function ConfirmCard({
         }}
         >
           {draft.placeText && <div>場所: {draft.placeText}</div>}
-          {draft.whoText && <div>誰にとって: {draft.whoText}</div>}
-          {draft.contextText && <div>時間・程度: {draft.contextText}</div>}
+          {isBad && draft.whoText && <div>誰にとって: {draft.whoText}</div>}
+        </div>
+      )}
+
+      {isBad && (
+        <div style={{
+          margin: '0 0 12px',
+          padding: 10,
+          borderRadius: 10,
+          background: 'rgba(255,255,255,0.04)',
+          fontSize: 13,
+          lineHeight: 1.5,
+          color: AR_THEME.muted,
+        }}
+        >
+          <div>いつ: {getTimeTagLabel(draft.timeTag ?? 'always')}</div>
+          <div>程度: {getSeverityLabel(draft.severity ?? 'mid')}</div>
         </div>
       )}
 
@@ -370,22 +415,6 @@ function ConfirmCard({
           </button>
         ))}
       </div>
-
-      {draft.whoText && (
-        <p style={{ margin: '0 0 8px', fontSize: 13, color: AR_THEME.muted }}>
-          誰にとって:
-          {' '}
-          {draft.whoText}
-        </p>
-      )}
-
-      {(draft.contextText || draft.timeTag || draft.severity) && (
-        <p style={{ margin: '0 0 12px', fontSize: 13, color: AR_THEME.muted }}>
-          時間・深刻度:
-          {' '}
-          {draft.contextText || `${getTimeTagLabel(draft.timeTag)} · ${getSeverityLabel(draft.severity)}`}
-        </p>
-      )}
 
       {isBad && needTypeConfirmed && needOpt && (
         <p style={{ margin: '0 0 12px', fontSize: 12, color: AR_THEME.accent }}>
@@ -457,7 +486,7 @@ function ConfirmCard({
           cursor: canPost ? 'pointer' : 'not-allowed',
         }}
       >
-        {isEdit ? 'この内容で保存' : 'この内容で投稿'}
+        {isEdit ? 'この内容で保存' : 'この内容でピンを置く'}
       </button>
       {isBad && !needTypeConfirmed && (
         <p style={{ margin: '8px 0 0', fontSize: 12, color: AR_THEME.muted, textAlign: 'center' }}>
@@ -475,6 +504,7 @@ export function ArPostChat({
   onSubmit,
   onEditLocation,
   isEdit = false,
+  headerExtra = null,
 }) {
   const postKind = draft.postKind ?? 'bad';
   const isGood = postKind === 'good';
@@ -484,7 +514,6 @@ export function ArPostChat({
   const [phase, setPhase] = useState('chat');
   const [inputText, setInputText] = useState('');
   const [messages, setMessages] = useState([]);
-  const [showOptional, setShowOptional] = useState(false);
   const [classifying, setClassifying] = useState(false);
   const scrollRef = useRef(null);
   const bootedRef = useRef(false);
@@ -519,8 +548,11 @@ export function ArPostChat({
       case 'who':
         appendBot('誰にとって困りますか？\n（自由記述 — 任意・スキップ可）');
         break;
-      case 'optional':
-        appendBot('いつ・どのくらい困りますか？\n（例：夜、深刻 — 任意・スキップ可）');
+      case 'when':
+        appendBot('いつ困りますか？\n（タップして選んでください — 任意・スキップ可）');
+        break;
+      case 'severity':
+        appendBot('どのくらい困りますか？\n（タップして選んでください — 任意・スキップ可）');
         break;
       default:
         break;
@@ -583,18 +615,17 @@ export function ArPostChat({
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
-  }, [messages, phase, showOptional]);
+  }, [messages, phase]);
 
   useEffect(() => {
     if (phase !== 'chat' || !TEXT_INPUT_STEPS.has(stepId)) return;
     if (stepId === 'story') setInputText(draft.comment ?? '');
     if (stepId === 'place') setInputText(draft.placeText ?? '');
     if (stepId === 'who') setInputText(draft.whoText ?? '');
-    if (stepId === 'optional') setInputText(draft.contextText ?? '');
-  }, [phase, stepId, draft.comment, draft.placeText, draft.whoText, draft.contextText]);
+  }, [phase, stepId, draft.comment, draft.placeText, draft.whoText]);
 
   const canSendText = useMemo(() => {
-    if (stepId === 'who' || stepId === 'optional') return true;
+    if (stepId === 'who') return true;
     return inputText.trim().length >= 1;
   }, [inputText, stepId]);
 
@@ -610,7 +641,6 @@ export function ArPostChat({
   const textStepHints = useMemo(() => {
     if (stepId === 'place') return PLACE_INPUT_HINTS;
     if (stepId === 'who') return WHO_INPUT_HINTS;
-    if (stepId === 'optional') return CONTEXT_INPUT_HINTS;
     return [];
   }, [stepId]);
 
@@ -622,7 +652,6 @@ export function ArPostChat({
     }
     if (stepId === 'place') return '例：駅前、歩道、公園…';
     if (stepId === 'who') return '例：女性・夜一人・車いす利用者…';
-    if (stepId === 'optional') return '例：夜、軽い、深刻…';
     return '';
   }, [isGood, stepId]);
 
@@ -682,16 +711,22 @@ export function ArPostChat({
       return;
     }
 
-    if (stepId === 'optional') {
-      const meta = classifyMetaFromDraft({ ...draft, contextText: text });
-      onChange({
-        contextText: text,
-        timeTag: meta.timeTag,
-        severity: meta.severity,
-      });
-      appendUser(text || '（スキップ）');
-      goConfirm({ ...draft, contextText: text, timeTag: meta.timeTag, severity: meta.severity });
-    }
+  };
+
+  const handleWhenConfirm = (skipped = false) => {
+    const timeTag = draft.timeTag ?? 'always';
+    onChange({ timeTag });
+    appendUser(skipped ? '（スキップ — 常時）' : getTimeTagLabel(timeTag));
+    advanceToStep(stepIndex + 1, postKind);
+  };
+
+  const handleSeverityConfirm = (skipped = false) => {
+    const timeTag = draft.timeTag ?? 'always';
+    const severity = draft.severity ?? 'mid';
+    const patch = { timeTag, severity };
+    onChange(patch);
+    appendUser(skipped ? '（スキップ — 中くらい）' : getSeverityLabel(severity));
+    goConfirm({ ...draft, ...patch });
   };
 
   const handleGoBackStep = () => {
@@ -708,7 +743,6 @@ export function ArPostChat({
         if (lastStep === 'story') setInputText(draft.comment ?? '');
         if (lastStep === 'place') setInputText(draft.placeText ?? '');
         if (lastStep === 'who') setInputText(draft.whoText ?? '');
-        if (lastStep === 'optional') setInputText(draft.contextText ?? '');
       }
       return;
     }
@@ -728,10 +762,6 @@ export function ArPostChat({
     if (prevStep === 'story') setInputText(draft.comment ?? '');
     if (prevStep === 'place') setInputText(draft.placeText ?? '');
     if (prevStep === 'who') setInputText(draft.whoText ?? '');
-    if (prevStep === 'optional') setInputText(draft.contextText ?? '');
-    if (prevStep === 'optional') {
-      setShowOptional(false);
-    }
   };
 
   const handleConfirm = () => {
@@ -758,6 +788,9 @@ export function ArPostChat({
       overflow: 'hidden',
     }}
     >
+      {headerExtra && (
+        <div style={{ padding: '8px 16px 0', flexShrink: 0 }}>{headerExtra}</div>
+      )}
       <header style={{
         flexShrink: 0,
         padding: '12px 16px',
@@ -772,11 +805,13 @@ export function ArPostChat({
         </button>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 12, color: AR_THEME.muted }}>
-            {phase === 'confirm' ? '確認' : `${stepIndex + 1} / ${stepIds.length}`}
+            {phase === 'confirm'
+              ? '確認'
+              : `${stepIndex + 1} / ${stepIds.length}${stepIds.length - stepIndex - 1 > 0 ? ` · あと ${stepIds.length - stepIndex - 1} 問` : ''}`}
             {isEdit ? ' · 編集' : ''}
           </div>
           <div style={{ fontWeight: 'bold', fontSize: 18 }}>
-            {phase === 'confirm' ? '内容の確認' : '投稿を記録'}
+            {phase === 'confirm' ? '内容の確認' : 'ピンの内容を決める'}
           </div>
         </div>
         {canGoBack && (
@@ -859,6 +894,105 @@ export function ArPostChat({
           </div>
         )}
 
+        {phase === 'chat' && stepId === 'when' && (
+          <div style={{ marginTop: 4 }}>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+              gap: 8,
+            }}
+            >
+              {TIME_TAG_OPTIONS.map((opt) => (
+                <ChipOptionButton
+                  key={opt.id}
+                  active={(draft.timeTag ?? 'always') === opt.id}
+                  onClick={() => onChange({ timeTag: opt.id })}
+                >
+                  <Pictogram src={opt.iconSrc} size={32} alt={opt.label} />
+                  <span>{opt.label}</span>
+                </ChipOptionButton>
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+              <button
+                type="button"
+                onClick={() => handleWhenConfirm(true)}
+                style={{
+                  ...actionBtnStyle,
+                  flex: 1,
+                  background: 'rgba(255,255,255,0.12)',
+                  color: AR_THEME.text,
+                }}
+              >
+                スキップ
+                <SkipForward size={18} />
+              </button>
+              <button
+                type="button"
+                onClick={() => handleWhenConfirm(false)}
+                style={{
+                  ...actionBtnStyle,
+                  flex: 2,
+                  background: AR_THEME.accentWarm,
+                  color: '#0d1b2a',
+                }}
+              >
+                次へ
+              </button>
+            </div>
+          </div>
+        )}
+
+        {phase === 'chat' && stepId === 'severity' && (
+          <div style={{ marginTop: 4 }}>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+              gap: 8,
+            }}
+            >
+              {SEVERITY_OPTIONS.map((opt) => (
+                <ChipOptionButton
+                  key={opt.id}
+                  active={(draft.severity ?? 'mid') === opt.id}
+                  onClick={() => onChange({ severity: opt.id })}
+                  accent={AR_THEME.accentWarm}
+                >
+                  <Pictogram src={opt.iconSrc} size={32} alt={opt.label} />
+                  <span>{opt.label}</span>
+                </ChipOptionButton>
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+              <button
+                type="button"
+                onClick={() => handleSeverityConfirm(true)}
+                style={{
+                  ...actionBtnStyle,
+                  flex: 1,
+                  background: 'rgba(255,255,255,0.12)',
+                  color: AR_THEME.text,
+                }}
+              >
+                スキップ
+                <SkipForward size={18} />
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSeverityConfirm(false)}
+                style={{
+                  ...actionBtnStyle,
+                  flex: 2,
+                  background: AR_THEME.accentWarm,
+                  color: '#0d1b2a',
+                }}
+              >
+                確認へ
+              </button>
+            </div>
+          </div>
+        )}
+
       </div>
 
       {phase === 'chat' && TEXT_INPUT_STEPS.has(stepId) && (
@@ -886,7 +1020,7 @@ export function ArPostChat({
             }}
           />
           <div style={{ display: 'flex', gap: 8 }}>
-            {(stepId === 'who' || stepId === 'optional') && (
+            {stepId === 'who' && (
               <button
                 type="button"
                 onClick={() => handleTextStepSubmit('')}
@@ -907,14 +1041,14 @@ export function ArPostChat({
               onClick={handleTextStepSubmit}
               style={{
                 ...actionBtnStyle,
-                flex: stepId === 'who' || stepId === 'optional' ? 2 : 1,
-                width: stepId === 'who' || stepId === 'optional' ? undefined : '100%',
+                flex: stepId === 'who' ? 2 : 1,
+                width: stepId === 'who' ? undefined : '100%',
                 background: canSendText ? AR_THEME.accentWarm : 'rgba(255,255,255,0.12)',
                 color: canSendText ? '#0d1b2a' : AR_THEME.muted,
                 cursor: canSendText ? 'pointer' : 'not-allowed',
               }}
             >
-              {stepId === 'optional' ? '確認へ' : '送信'}
+              送信
               <Send size={18} />
             </button>
           </div>

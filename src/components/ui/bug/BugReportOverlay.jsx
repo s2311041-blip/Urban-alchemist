@@ -49,6 +49,11 @@ import {
 } from '../consensus/SatisfactionGaugePanel';
 import { IslandSatisfactionBlock } from '../consensus/IslandSatisfactionBlock';
 import { JokerPlanForm } from '../consensus/JokerPlanForm';
+import {
+  JOKER_BUDGET_MAX,
+  JOKER_BUDGET_MIN,
+  JOKER_PLAN_ID,
+} from '../../../utils/jokerPlan';
 
 const SEVERITY_LABEL = Object.fromEntries(
   SEVERITY_OPTIONS.map((opt) => [opt.id, opt.label]),
@@ -57,6 +62,9 @@ const SEVERITY_ICON = Object.fromEntries(
   SEVERITY_OPTIONS.map((opt) => [opt.id, opt.iconSrc]),
 );
 const IGNORE_PLAN_ID = 'ignore';
+const JOKER_PLAN_LABEL = '独自案をつくる';
+const JOKER_PLAN_DESCRIPTION = '型に当てはまらない案を、話し合って自分たちで設計します。';
+const JOKER_PLAN_HINT = '予算と4属性の増減を自分たちで決め、そのままDIYで形にします。';
 
 export const BugReportOverlay = ({
   activeBug,
@@ -76,7 +84,7 @@ export const BugReportOverlay = ({
     return bug.needType ?? TYPE_TO_BARRIER_META[bug.type]?.needType ?? DEFAULT_BARRIER_META.needType ?? 'P';
   }, [bug]);
   const selectablePlans = useMemo(() => {
-    if (!effectiveNeedType || effectiveNeedType === 'O') return [];
+    if (!effectiveNeedType) return [];
     return getSelectablePlansForQuest({ needType: effectiveNeedType, includeIgnore: true });
   }, [effectiveNeedType]);
   const initialSelectedPlan = useMemo(() => {
@@ -87,7 +95,6 @@ export const BugReportOverlay = ({
   const [selectedPlan, setSelectedPlan] = useState(initialSelectedPlan);
   const [phase, setPhase] = useState('decision');
   const remainingBudget = useGameStore((s) => s.remainingBudget);
-  const jokerAlreadyUsed = useGameStore((s) => !!s.jokerUsed);
 
   useEffect(() => {
     setSelectedPlan(initialSelectedPlan);
@@ -98,10 +105,10 @@ export const BugReportOverlay = ({
   }, [activeBug]);
 
   const isIgnoreSelected = selectedPlan === IGNORE_PLAN_ID;
+  const isJokerSelected = selectedPlan === JOKER_PLAN_ID;
 
   if (!activeBug || !bug) return null;
 
-  const isOQuest = bug.needType === 'O';
   const factorMeta = FACTOR_STYLE[bug.factor] ?? FACTOR_STYLE.hard;
   const scaleMeta = getScaleUi(bug.scale);
   const needCategory = NEED_CATEGORY_OPTIONS.find((opt) => opt.needType === bug.needType);
@@ -192,7 +199,7 @@ export const BugReportOverlay = ({
           {phase !== 'plan' && (
             <IslandSatisfactionBlock compact variant="overlay" />
           )}
-          {phase === 'plan' && effectiveNeedType && selectedPlan && (
+          {phase === 'plan' && effectiveNeedType && selectedPlan && !isJokerSelected && (
             <IslandSatisfactionBlock
               compact
               variant="overlay"
@@ -212,32 +219,24 @@ export const BugReportOverlay = ({
                 {BUG_REPORT_COPY.cancel}
               </button>
               <button
-                onClick={() => setPhase(isOQuest ? 'joker' : 'plan')}
+                onClick={() => setPhase('plan')}
                 style={{ ...BUG_REPORT_STYLE.buttonBase, ...BUG_REPORT_STYLE.primaryResolveButton }}
               >
                 <Hammer size={22} />
-                {isOQuest ? '独自案を考える' : BUG_REPORT_COPY.resolve}
+                {BUG_REPORT_COPY.resolve}
               </button>
             </div>
           ) : phase === 'joker' ? (
             <JokerPlanForm
-              jokerAlreadyUsed={jokerAlreadyUsed}
               remainingBudget={remainingBudget ?? 0}
-              onCancel={() => setPhase('decision')}
+              onCancel={() => setPhase('plan')}
               onSubmit={(payload) => {
-                if (commitJokerQuest?.(activeBug, payload)) {
-                  setActiveBug(null);
-                  setIsReturning(true);
-                }
+                // 成功時は startDIY が activeBug を閉じて建築モードへ移す
+                commitJokerQuest?.(activeBug, payload);
               }}
             />
           ) : (
             <>
-              {isOQuest && (
-                <div style={{ color: '#ffcc80', fontSize: 13, marginBottom: 12, lineHeight: 1.5 }}>
-                  「その他」の困りごとはジョーカー施策（独自案）として対応してください。
-                </div>
-              )}
               {selectablePlans.length > 0 && (
                 <div style={BUG_REPORT_STYLE.planSection}>
                   <div style={BUG_REPORT_STYLE.planTitle}>
@@ -247,31 +246,38 @@ export const BugReportOverlay = ({
                     {selectablePlans.map((plan, idx) => {
                       const active = selectedPlan === plan;
                       const isIgnorePlan = plan === IGNORE_PLAN_ID;
+                      const isJokerPlan = plan === JOKER_PLAN_ID;
                       const accent = PLAN_CARD_ACCENT[plan] ?? '#90caf9';
-                      const cardDeltas = effectiveNeedType
+                      const cardDeltas = effectiveNeedType && !isJokerPlan
                         ? getPlanPreviewDeltas(effectiveNeedType, plan)
                         : null;
                       const contextLabel = isIgnorePlan
                         ? BUG_REPORT_COPY.ignorePlanLabel
-                        : getPlanContextLabel(effectiveNeedType, plan);
+                        : isJokerPlan
+                          ? JOKER_PLAN_LABEL
+                          : getPlanContextLabel(effectiveNeedType, plan);
                       const contextDescription = isIgnorePlan
                         ? BUG_REPORT_COPY.ignorePlanDescription
-                        : getPlanContextDescription(effectiveNeedType, plan);
+                        : isJokerPlan
+                          ? JOKER_PLAN_DESCRIPTION
+                          : getPlanContextDescription(effectiveNeedType, plan);
                       const typeNumber = selectablePlans
                         .slice(0, idx)
-                        .filter((p) => p !== IGNORE_PLAN_ID)
+                        .filter((p) => p !== IGNORE_PLAN_ID && p !== JOKER_PLAN_ID)
                         .length + 1;
                       const planOrdinal = isIgnorePlan
                         ? (active ? BUG_REPORT_COPY.selected : '無視')
-                        : (active ? BUG_REPORT_COPY.selected : `型 ${typeNumber}`);
-                      const repairScale = isIgnorePlan ? null : getPlanRepairScale(plan);
+                        : isJokerPlan
+                          ? (active ? BUG_REPORT_COPY.selected : '独自案')
+                          : (active ? BUG_REPORT_COPY.selected : `型 ${typeNumber}`);
+                      const repairScale = isIgnorePlan || isJokerPlan ? null : getPlanRepairScale(plan);
                       return (
                         <button
                           key={plan}
                           type="button"
                           onClick={() => {
                             setSelectedPlan(plan);
-                            setBugChosenPlan(activeBug, plan);
+                            if (!isJokerPlan) setBugChosenPlan(activeBug, plan);
                           }}
                           style={getPlanCardStyle({ active, accent })}
                         >
@@ -295,6 +301,17 @@ export const BugReportOverlay = ({
                               <span style={{ color: '#90a4ae', fontWeight: 500 }}>（固定）</span>
                             </div>
                           )}
+                          {isJokerPlan && (
+                            <div style={{ fontSize: 12, color: '#ffcc80', marginBottom: 4 }}>
+                              施策コスト
+                              {' '}
+                              {JOKER_BUDGET_MIN}
+                              〜
+                              {JOKER_BUDGET_MAX}
+                              {' '}
+                              <span style={{ color: '#90a4ae', fontWeight: 500 }}>（話し合いで決める）</span>
+                            </div>
+                          )}
                           {!isIgnorePlan && repairScale && (
                             <div style={{ fontSize: 12, color: '#80deea', marginBottom: 4 }}>
                               修理規模:
@@ -312,7 +329,9 @@ export const BugReportOverlay = ({
                           <div style={BUG_REPORT_STYLE.planHint}>
                             {isIgnorePlan
                               ? BUG_REPORT_COPY.ignorePlanHint
-                              : (getPlanHint(plan, bug.scale) ?? BUG_REPORT_COPY.planFallbackHint)}
+                              : isJokerPlan
+                                ? JOKER_PLAN_HINT
+                                : (getPlanHint(plan, bug.scale) ?? BUG_REPORT_COPY.planFallbackHint)}
                           </div>
                         </button>
                       );
@@ -329,6 +348,10 @@ export const BugReportOverlay = ({
                 </button>
                 <button
                   onClick={() => {
+                    if (isJokerSelected) {
+                      setPhase('joker');
+                      return;
+                    }
                     if (isIgnoreSelected) {
                       if (window.confirm('この声を無視してよろしいですか？（深刻な満足度ペナルティがあります）')) {
                         if (bug.sourceQuestId || bug.id) {
@@ -347,7 +370,11 @@ export const BugReportOverlay = ({
                     : BUG_REPORT_STYLE.startButton}
                 >
                   <Hammer size={20} />
-                  {isIgnoreSelected ? BUG_REPORT_COPY.confirmIgnore : BUG_REPORT_COPY.startBuild}
+                  {isIgnoreSelected
+                    ? BUG_REPORT_COPY.confirmIgnore
+                    : isJokerSelected
+                      ? '独自案を設計する'
+                      : BUG_REPORT_COPY.startBuild}
                 </button>
               </div>
             </>

@@ -1,37 +1,37 @@
 import React from 'react';
-import { X, Home, Map, Plus, BookOpen, Heart, Crosshair } from 'lucide-react';
+import { X, Home, Camera, Eye, Map, BookOpen, Heart } from 'lucide-react';
 import { AR_HOME } from '../constants/arTheme';
 
 const STEPS = [
   {
     icon: Home,
-    title: 'ホーム',
-    body: '「今月のお題」「特設のお題（あるときだけ）」「自由投稿」の3つから記録を始められます。お題を選ばずに記録することもできます。',
+    title: 'ホームは2つだけ',
+    body: '「記録する」か「投稿を見る」を選びます。記録するを押すと、お題か自由かを選べます。',
   },
   {
-    icon: Plus,
-    title: '記録の始め方',
-    body: '① 場所（現在地 / 地図）→ ② 撮影 → ③ 空間注釈（任意）→ ④ 質問に回答。常設お題は毎月自動で切り替わります。',
+    icon: Camera,
+    title: '記録する',
+    body: '① 場所を決める → ② 撮影する → ③ 写真に印（任意）→ ④ 質問に答える。場所は現在地か地図で決めます。',
   },
   {
-    icon: Crosshair,
-    title: '現在地で場所を決める',
-    body: '「この位置で記録できます」と表示されたら刺せます。位置はおおよそで、数十メートルずれることがあります。正確には地図指定がおすすめです。',
+    icon: Eye,
+    title: '投稿を見る',
+    body: 'スマホをかざすと、近く（約50m以内）のみんなの投稿が見られます。ピンをタップすると、その人の写真と声を読めます。',
   },
   {
     icon: Map,
-    title: '地図で見る',
-    body: 'みんなのピンを地図で確認できます。タップで記録の詳細を読めます。',
+    title: 'みんなのピンを地図で見る',
+    body: '地図上のピンをタップすると記録を読めます。全体の位置を確認したいときに使います。',
   },
   {
     icon: BookOpen,
-    title: '記録図鑑',
-    body: '「自分 / みんな」で絞り込み、検索もできます。自分の記録だけ編集・削除できます。',
+    title: '記録一覧',
+    body: '「みんな / 自分」で絞り込み、検索もできます。自分の記録だけ編集・削除できます。',
   },
   {
     icon: Heart,
-    title: 'ポイントと共感（いいね）',
-    body: '記録するとポイントがもらえます。図鑑で他人の記録に 1 pt を使って「共感」できます。自分の記録には使えません。',
+    title: '共感ポイント',
+    body: '記録するとポイントが増えます。記録一覧で他人の投稿に 1pt 使って「共感」できます。自分の記録には使えません。',
   },
 ];
 
@@ -117,10 +117,11 @@ export function ArHelpSheet({ onClose }) {
           border: `1px solid ${AR_HOME.border}`,
           fontSize: 13,
           lineHeight: 1.55,
-          color: AR_HOME.muted,
+          color: AR_HOME.textSecondary,
+          fontWeight: 600,
         }}
         >
-          現地カメラ AR は数 m の誤差があります。正確な位置は地図のピンで確認してください。
+          位置はおおよそです。かざして見るピンがずれることがあります。正確な位置は地図で確認してください。
         </div>
       </div>
     </div>

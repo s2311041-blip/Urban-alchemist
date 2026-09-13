@@ -36,9 +36,10 @@ function BuildBudgetRow({
   if (!buildSession) return null;
 
   const needType = targetBug?.needType ?? 'P';
-  const policyCost = getPlanBudgetCost(needType, buildSession.plan);
+  const policyCost = buildSession.jokerBudgetCost
+    ?? getPlanBudgetCost(needType, buildSession.plan);
   const remaining = remainingBudget ?? 0;
-  const repair = getPlanRepairScale(buildSession.plan);
+  const repair = getPlanRepairScale(buildSession.plan, { jokerBudgetCost: buildSession.jokerBudgetCost });
   const decision = targetBug?.sourceQuestId
     ? questDecisions?.[targetBug.sourceQuestId]
     : null;
@@ -70,7 +71,7 @@ function BuildBudgetRow({
         -
         {policyCost}
         {' '}
-        （確定時）
+        {buildSession.jokerBudgetCost ? '（消費済み）' : '（確定時）'}
       </span>
       <span style={{ color: blockColor, fontWeight: 700 }}>
         修理

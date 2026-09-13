@@ -124,7 +124,6 @@ export const createInitialState = (savedData) => {
   islandSatisfaction: savedData?.islandSatisfaction ?? DEFAULT_ISLAND_SATISFACTION,
   remainingBudget: savedData?.remainingBudget ?? 100,
   questDecisions: savedData?.questDecisions ?? {},
-  jokerUsed: !!savedData?.jokerUsed,
 
   tutorialSeen: savedData?.tutorialSeen ?? false,
 

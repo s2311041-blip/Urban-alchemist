@@ -72,13 +72,11 @@ export function classifyMetaFromDraft(draft = {}) {
     ? inferPlaceArchetypeFromText(placeText)
     : { placeArchetype: draft.placeArchetype ?? null, placeSource: 'user' };
 
-  const timeTag = contextText
-    ? inferTimeTagFromText(contextText)
-    : (draft.timeTag ?? 'always');
+  const timeTag = draft.timeTag
+    ?? (contextText ? inferTimeTagFromText(contextText) : 'always');
 
-  const severity = contextText
-    ? inferSeverityFromText(contextText)
-    : (draft.severity ?? 'mid');
+  const severity = draft.severity
+    ?? (contextText ? inferSeverityFromText(contextText) : 'mid');
 
   return {
     placeText: placeText || null,
@@ -97,6 +95,17 @@ export function getPlaceDisplayLabel(placeArchetype, placeText) {
   if (placeText?.trim()) return placeText.trim();
   const opt = KOTO_PLACE_OPTIONS.find((o) => o.id === placeArchetype);
   return opt?.label ?? '未選択';
+}
+
+/** LLM 分類用 — チップ選択を短い文脈文字列にまとめる */
+export function buildClassificationContext(draft = {}) {
+  const parts = [];
+  const timeTag = draft.timeTag ?? 'always';
+  const severity = draft.severity ?? 'mid';
+  if (timeTag !== 'always') parts.push(getTimeTagLabel(timeTag));
+  if (severity !== 'mid') parts.push(getSeverityLabel(severity));
+  if (draft.contextText?.trim()) parts.push(draft.contextText.trim());
+  return parts.join('、');
 }
 
 export function getTimeTagLabel(timeTagId) {

@@ -320,7 +320,6 @@ export const createSetterSlice = (set, get) => ({
       islandSatisfaction: DEFAULT_ISLAND_SATISFACTION,
       remainingBudget: 100,
       questDecisions: {},
-      jokerUsed: false,
       tutorialSeen: false,
       uiMode: 'explore',
       studioHistory: [],
@@ -349,7 +348,6 @@ export const createSetterSlice = (set, get) => ({
       islandSatisfaction: DEFAULT_ISLAND_SATISFACTION,
       remainingBudget: 100,
       questDecisions: {},
-      jokerUsed: false,
       tutorialSeen: false,
       }));
       localStorage.setItem(FAV_KEY, JSON.stringify(defaultFavorites));

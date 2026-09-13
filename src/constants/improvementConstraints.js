@@ -1,4 +1,5 @@
 /** RQ2 Phase 2 — 改善予算・プラン制約・ステークホルダー満足度 */
+import { JOKER_PLAN_ID, getJokerMaxBlocks } from '../utils/jokerPlan';
 
 export const IMPROVEMENT_BUDGET_BY_SCALE = {
   point: 24,
@@ -28,6 +29,8 @@ export const PLAN_SHAPE_LIMITS = {
   care_point: { allowedShapes: ['bench', 'light_pole', 'path', 'block'], maxBlocks: 12 },
   transit_link: { allowedShapes: ['ferry_dock', 'path', 'block'], maxBlocks: 8 },
   mobility_support: { allowedShapes: ['bench', 'path', 'sign_post', 'block'], maxBlocks: 14 },
+  /** 独自案は形の縛りなし。maxBlocks は消費予算から都度算出する */
+  [JOKER_PLAN_ID]: { allowedShapes: null, maxBlocks: null },
 };
 
 /** プランごとの「修理規模」（施策コストとは別の DIY 上限の見方） */
@@ -85,9 +88,16 @@ export const getPlanShapeLimits = (plan) => (
   PLAN_SHAPE_LIMITS[plan] ?? { allowedShapes: null, maxBlocks: 20 }
 );
 
-export const getPlanRepairScale = (plan) => {
-  const limits = getPlanShapeLimits(plan);
+export const getPlanRepairScale = (plan, { jokerBudgetCost } = {}) => {
   const meta = PLAN_REPAIR_SCALE[plan] ?? { label: '中規模', hint: '標準的な改善' };
+  if (plan === JOKER_PLAN_ID) {
+    return {
+      label: meta.label,
+      hint: meta.hint,
+      maxBlocks: getJokerMaxBlocks(jokerBudgetCost),
+    };
+  }
+  const limits = getPlanShapeLimits(plan);
   return {
     label: meta.label,
     hint: meta.hint,

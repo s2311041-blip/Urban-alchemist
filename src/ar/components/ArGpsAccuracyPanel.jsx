@@ -11,7 +11,7 @@ const LEVEL_COLOR = {
 };
 
 /**
- * 投稿前の位置確認 — 「刺せるか」が分かれば十分
+ * 投稿前の位置確認 — 「ピンを置けるか」が分かれば十分
  */
 export function ArGpsAccuracyPanel({
   geo,
@@ -26,13 +26,13 @@ export function ArGpsAccuracyPanel({
   let hint = '屋外で数秒待つと記録できるようになります。';
 
   if (level === 'excellent' || level === 'good') {
-    status = 'この位置で記録できます';
+    status = 'この位置でピンを置けます';
     hint = 'ピンは実際の位置から数十メートルずれることがあります。';
   } else if (level === 'fair') {
-    status = allowOverride ? 'この位置で記録できます' : 'もう少し待つと記録できます';
+    status = allowOverride ? 'この位置でピンを置けます' : 'もう少し待つとピンを置けます';
     hint = '位置はおおよそです。正確に指定するなら地図がおすすめです。';
   } else if (level === 'poor') {
-    status = allowOverride ? 'この位置で記録できます' : 'まだ記録できません';
+    status = allowOverride ? 'この位置でピンを置けます' : 'まだピンを置けません';
     hint = '位置はおおよそです。地図指定の方が正確です。';
   }
 

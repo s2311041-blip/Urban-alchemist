@@ -63,8 +63,8 @@ function AttributeIntroGrid() {
             flexShrink: 0,
           }}
           >
-            <div style={{ fontSize: 13, fontWeight: 800, color: attr.color }}>
-              {attr.shortLabel}
+            <div style={{ fontSize: 12, fontWeight: 800, color: attr.color, lineHeight: 1.35 }}>
+              {attr.label}
             </div>
             <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.72)', lineHeight: 1.3, marginTop: 2 }}>
               {attr.hint}

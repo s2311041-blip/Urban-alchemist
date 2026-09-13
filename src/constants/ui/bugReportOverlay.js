@@ -14,6 +14,7 @@ export const PLAN_CARD_ACCENT = {
   maintenance: '#ab47bc',
   sign_info: '#90caf9',
   care_point: '#ce93d8',
+  joker_plan: '#ba68c8',
   ignore: '#78909c',
 };
 

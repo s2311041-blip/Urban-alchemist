@@ -252,7 +252,6 @@ export const loadSavedData = () => {
       }
       data.remainingBudget = Number.isFinite(data.remainingBudget) ? data.remainingBudget : 100;
       data.questDecisions = data.questDecisions && typeof data.questDecisions === 'object' ? data.questDecisions : {};
-      data.jokerUsed = !!data.jokerUsed;
       data.tutorialSeen = !!data.tutorialSeen;
 
       return data;

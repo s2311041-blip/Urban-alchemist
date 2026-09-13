@@ -14,7 +14,7 @@ export const SESSION_BUDGET_TOTAL = 100;
 export const SATISFACTION_ATTRS = [
   {
     key: 'link',
-    label: '移動・効率性',
+    label: '移動・効率性 (Link)',
     shortLabel: '移動',
     hint: 'スムーズかつ迅速に通れるか',
     color: '#00bcd4',
@@ -22,7 +22,7 @@ export const SATISFACTION_ATTRS = [
   },
   {
     key: 'place',
-    label: '滞在・賑わい',
+    label: '滞在・賑わい (Place)',
     shortLabel: '滞在',
     hint: '留まって楽しむ・交流できるか',
     color: '#ff9800',
@@ -30,7 +30,7 @@ export const SATISFACTION_ATTRS = [
   },
   {
     key: 'inclusive',
-    label: '安全・バリアフリー',
+    label: '安全・バリアフリー (Inclusive)',
     shortLabel: '安全',
     hint: '誰もが安心して通行できるか',
     color: '#66bb6a',
@@ -38,8 +38,8 @@ export const SATISFACTION_ATTRS = [
   },
   {
     key: 'livability',
-    label: '静けさ・住環境',
-    shortLabel: '静けさ',
+    label: '静穏・住環境 (Livability)',
+    shortLabel: '静穏',
     hint: '騒音・ゴミ・混雑なく、静かに暮らせるか',
     color: '#9c27b0',
     imageSrc: livabilityIllustration,
@@ -71,7 +71,6 @@ export function normalizeConsensusSession(raw) {
     budgetInitialFormula: raw.budgetInitialFormula ?? null,
     islandSatisfaction: normalizeIslandSatisfaction(raw.islandSatisfaction),
     questDecisions: raw.questDecisions && typeof raw.questDecisions === 'object' ? raw.questDecisions : {},
-    jokerUsed: !!raw.jokerUsed,
     startedAt: Number.isFinite(raw.startedAt) ? raw.startedAt : Date.now(),
     submittedAt: Number.isFinite(raw.submittedAt) ? raw.submittedAt : null,
   };

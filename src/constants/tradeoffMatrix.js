@@ -51,22 +51,28 @@ export const TRADEOFF_MATRIX = {
     sign_info: { budget: -5, link: -5, place: 0, inclusive: -15, livability: 0 },
     ignore: { budget: 0, link: -5, place: -15, inclusive: -25, livability: 0 },
   },
-  /** O は joker_plan 専用。固定プランなし（ignore のペナルティのみ定義） */
+  /** O は固定プランなし。独自案（joker_plan）か無視のみ */
   O: {
     ignore: { budget: 0, link: -10, place: -10, inclusive: -10, livability: -10 },
   },
 };
 
+export const JOKER_PLAN_OPTION_ID = 'joker_plan';
+
 export function getAllowedPlansForQuest({ needType }) {
   const row = TRADEOFF_MATRIX[needType] ?? TRADEOFF_MATRIX.P;
-  return Object.keys(row).filter((plan) => plan !== 'ignore' && plan !== 'joker_plan');
+  return Object.keys(row).filter((plan) => plan !== 'ignore' && plan !== JOKER_PLAN_OPTION_ID);
 }
 
-/** 改善プラン3種 + 無視（4択） */
-export function getSelectablePlansForQuest({ needType, includeIgnore = true } = {}) {
+/** 型プラン + 独自案（全型共通） + 無視 */
+export function getSelectablePlansForQuest({
+  needType,
+  includeIgnore = true,
+  includeJoker = true,
+} = {}) {
   const plans = getAllowedPlansForQuest({ needType });
-  if (!includeIgnore || !needType || needType === 'O') return plans;
   const row = TRADEOFF_MATRIX[needType] ?? TRADEOFF_MATRIX.P;
-  if (!row.ignore) return plans;
-  return [...plans, 'ignore'];
+  if (includeJoker) plans.push(JOKER_PLAN_OPTION_ID);
+  if (includeIgnore && row.ignore) plans.push('ignore');
+  return plans;
 }

@@ -5,7 +5,9 @@ import {
   JOKER_BUDGET_MAX,
   JOKER_BUDGET_MIN,
   createEmptyJokerDeltas,
+  getJokerMaxBlocks,
   getJokerPlusBudgetCap,
+  getJokerRequiredBlocks,
   validateJokerPlan,
 } from '../../../utils/jokerPlan';
 import { PlanSatisfactionDeltas } from './SatisfactionGaugePanel';
@@ -31,7 +33,6 @@ const labelStyle = {
 };
 
 export function JokerPlanForm({
-  jokerAlreadyUsed = false,
   remainingBudget = 0,
   onSubmit,
   onCancel,
@@ -43,6 +44,8 @@ export function JokerPlanForm({
   const [error, setError] = useState('');
 
   const plusCap = useMemo(() => getJokerPlusBudgetCap(budgetCost), [budgetCost]);
+  const maxBlocks = useMemo(() => getJokerMaxBlocks(budgetCost), [budgetCost]);
+  const requiredBlocks = useMemo(() => getJokerRequiredBlocks(budgetCost), [budgetCost]);
   const validation = useMemo(
     () => validateJokerPlan({ title, description, budgetCost, deltas }),
     [title, description, budgetCost, deltas],
@@ -57,10 +60,6 @@ export function JokerPlanForm({
   };
 
   const handleSubmit = () => {
-    if (jokerAlreadyUsed) {
-      setError('このセッションではジョーカー施策は1回までです。');
-      return;
-    }
     if (budgetCost > remainingBudget) {
       setError(`残り予算（${remainingBudget}）を超えています。`);
       return;
@@ -83,15 +82,10 @@ export function JokerPlanForm({
     }}
     >
       <div style={{ fontSize: 15, fontWeight: 700, color: '#e1bee7', marginBottom: 8 }}>
-        ジョーカー施策（参加者オリジナル案）
+        独自案（参加者オリジナル案）
       </div>
       <div style={{ fontSize: 12, color: '#cfd8dc', lineHeight: 1.5, marginBottom: 12 }}>
-        8つの型に当てはまらない困りごと用です。予算と満足度の増減を話し合って決め、DIYなしで確定します。
-        {jokerAlreadyUsed && (
-          <span style={{ display: 'block', color: '#ef9a9a', marginTop: 6 }}>
-            ※ このセッションでは既にジョーカーを使用済みです。
-          </span>
-        )}
+        用意された型のかわりに、自分たちで考えた案を実行します。予算と4属性の増減を話し合って決めたあと、DIYで実際に形にします。
       </div>
 
       <label style={labelStyle}>案の名前</label>
@@ -134,6 +128,18 @@ export function JokerPlanForm({
           </option>
         ))}
       </select>
+
+      <div style={{ fontSize: 12, color: '#80deea', lineHeight: 1.5, marginBottom: 12 }}>
+        DIY 規模: 最大
+        {' '}
+        {maxBlocks}
+        {' '}
+        ブロック（完成には現地に
+        {' '}
+        {requiredBlocks}
+        {' '}
+        ブロック以上の配置が必要）
+      </div>
 
       <label style={labelStyle}>4属性の増減（整数・副作用必須）</label>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10 }}>
@@ -181,19 +187,18 @@ export function JokerPlanForm({
         <button
           type="button"
           onClick={handleSubmit}
-          disabled={jokerAlreadyUsed}
           style={{
             flex: 2,
             padding: '12px',
             borderRadius: 10,
             border: 'none',
-            background: jokerAlreadyUsed ? '#616161' : '#8e24aa',
+            background: '#8e24aa',
             color: '#fff',
             fontWeight: 700,
-            cursor: jokerAlreadyUsed ? 'not-allowed' : 'pointer',
+            cursor: 'pointer',
           }}
         >
-          この案で確定する（DIYなし）
+          この案でDIYを始める
         </button>
       </div>
     </div>

@@ -63,4 +63,14 @@ describe('classifyMetaFromDraft', () => {
     expect(meta.whoText).toBe('車いす');
     expect(meta.affectedGroups).toEqual(['車いす']);
   });
+
+  it('prefers explicit timeTag and severity over contextText', () => {
+    const meta = classifyMetaFromDraft({
+      timeTag: 'day',
+      severity: 'low',
+      contextText: '夜、深刻',
+    });
+    expect(meta.timeTag).toBe('day');
+    expect(meta.severity).toBe('low');
+  });
 });

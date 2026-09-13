@@ -11,11 +11,12 @@ import {
   STAKEHOLDER_GROUPS,
 } from '../constants/improvementConstraints';
 
-export const createImprovementSession = (bug, placedBlocksSnapshot = []) => ({
+export const createImprovementSession = (bug, placedBlocksSnapshot = [], { jokerBudgetCost = null } = {}) => ({
   sessionId: `sess_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
   bugId: bug.id,
   questId: bug.sourceQuestId ?? null,
   plan: bug.chosenPlan ?? null,
+  jokerBudgetCost,
   budgetLimit: getImprovementBudgetLimit(bug),
   budgetSpent: 0,
   blockCount: 0,
@@ -48,7 +49,7 @@ export const canPlaceBlockInImprovementSession = (session, {
 } = {}) => {
   if (!session?.plan) return { ok: true };
 
-  const repair = getPlanRepairScale(session.plan);
+  const repair = getPlanRepairScale(session.plan, { jokerBudgetCost: session.jokerBudgetCost });
   const nextCount = blocksPlaced + additionalBlocks;
   if (nextCount > repair.maxBlocks) {
     return {

@@ -10,7 +10,8 @@ export const KOTO_BOUNDS = {
 };
 
 export const KOTO_MAP_ZOOM = 14;
-export const MAX_AR_VIEW_DISTANCE_M = 120;
+/** 現地AR・付近リスト：同じ場所感の写真追体験のため狭め（GPS誤差を考慮し50m） */
+export const MAX_AR_VIEW_DISTANCE_M = 50;
 export const DEFAULT_PIN_DISTANCE_M = 8;
 
 /** ゲーム placeArchetype 互換の場所チップ（id は spawn プリセットと一致） */

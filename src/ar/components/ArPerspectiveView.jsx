@@ -71,7 +71,7 @@ export function ArPerspectiveView({
           <ChevronLeft size={22} />
         </button>
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 11, color: AR_THEME.accent }}>視点置換</div>
+          <div style={{ fontSize: 11, color: AR_THEME.accent }}>その人の見え方</div>
           <div style={{ fontSize: 15, fontWeight: 'bold' }}>{frame}</div>
         </div>
         {onOpenDetails && (

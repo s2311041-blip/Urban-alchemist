@@ -1,4 +1,5 @@
 import { classifyDraft } from '../utils/classifyDraft';
+import { buildClassificationContext } from '../utils/classifyMetaFields';
 import { getSupabase, isSupabaseConfigured } from './supabaseClient';
 import { ensureSupabaseAuth } from './annotationsSupabase';
 
@@ -20,7 +21,7 @@ export async function classifyAnnotation(draft = {}) {
           comment: draft.comment ?? '',
           placeText: draft.placeText ?? '',
           whoText: draft.whoText ?? '',
-          contextText: draft.contextText ?? '',
+          contextText: buildClassificationContext(draft),
           postKind: draft.postKind ?? 'bad',
         },
       });

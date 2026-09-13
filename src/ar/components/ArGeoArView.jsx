@@ -94,10 +94,13 @@ export function ArGeoArView({
 
   const nearbyPins = useMemo(() => {
     if (!geo) return [];
-    return annotations.filter((a) => {
-      if (!a.worldPin) return false;
-      return haversineDistanceM(geo, a.worldPin) <= MAX_AR_VIEW_DISTANCE_M;
-    });
+    return annotations
+      .filter((a) => a.worldPin && haversineDistanceM(geo, a.worldPin) <= MAX_AR_VIEW_DISTANCE_M)
+      .map((a) => ({
+        ...a,
+        nearbyDistM: haversineDistanceM(geo, a.worldPin),
+      }))
+      .sort((a, b) => a.nearbyDistM - b.nearbyDistM);
   }, [annotations, geo]);
 
   const geoAccuracyM = geo?.accuracy != null ? Math.round(geo.accuracy) : null;
@@ -297,13 +300,15 @@ export function ArGeoArView({
         {isBrowse && (
           <>
             <div style={{ textAlign: 'center', flex: 1 }}>
-              <div style={{ fontSize: 12, color: AR_THEME.accent }}>現地カメラ</div>
+              <div style={{ fontSize: 12, color: AR_THEME.accent }}>かざして見る</div>
               <div style={{ fontSize: 15, fontWeight: 'bold' }}>
-                {mode === 'place' ? '場所を決める' : '近くの記録を見る'}
+                {mode === 'place' ? '場所を決める' : '近くのみんなの投稿'}
               </div>
           {mode === 'view' && compassActive && geoUsable && (
             <div style={{ fontSize: 10, color: AR_THEME.muted, marginTop: 2 }}>
-              ピンは投稿場所に固定 · 端末を向けて探す
+              約
+              {MAX_AR_VIEW_DISTANCE_M}
+              m以内 · 端末を向けて探す
               {geoAccuracyM != null && geoAccuracyM <= 28 && (
                 <span> · GPS ±{geoAccuracyM}m</span>
               )}
@@ -363,10 +368,9 @@ export function ArGeoArView({
               boxShadow: '0 12px 40px rgba(0,0,0,0.5)',
             }}
           >
-            <strong style={{ fontSize: 16 }}>向きセンサー（コンパス）が必要です</strong>
+            <strong style={{ fontSize: 16 }}>スマホを動かすと、目の前にピンが見えます</strong>
             <p style={{ margin: '12px 0 0', fontSize: 13, color: AR_THEME.muted }}>
-              ピンは投稿されたGPS位置に固定されます。カメラ映像と一致させるには、
-              端末の向きを検知する必要があります。
+              近くの投稿を重ねて見るために、向きの許可が必要です。位置はおおよそです。
             </p>
             {permissionState === 'pending' && (
               <p style={{ margin: '10px 0 0', fontSize: 12, color: AR_THEME.accent }}>
@@ -531,7 +535,7 @@ export function ArGeoArView({
             pointerEvents: 'none',
           }}
         >
-          GPS精度が低い（約±{geoAccuracyM ?? '?'}m）ため AR ピンを非表示にしています。屋外で数秒待つか、地図で確認してください。
+          GPS精度が低い（約±{geoAccuracyM ?? '?'}m）ため、ピンは浮かせず付近のリストで見られます。
         </div>
       )}
 
@@ -604,7 +608,7 @@ export function ArGeoArView({
             pointerEvents: 'none',
           }}
         >
-          見えているピンをタップ → 投稿者の視点へ
+          ピンをタップ → その人の写真と声を見る
         </div>
       )}
 
@@ -625,7 +629,7 @@ export function ArGeoArView({
             pointerEvents: 'none',
           }}
         >
-          {MAX_AR_VIEW_DISTANCE_M}m以内に記録がありません。地図で確認してください。
+          約{MAX_AR_VIEW_DISTANCE_M}m以内に投稿がありません。地図か記録一覧で確認してください。
         </div>
       )}
 
@@ -683,6 +687,66 @@ export function ArGeoArView({
           }}
         >
           {camError || geoError}
+        </div>
+      )}
+
+      {isBrowse && mode === 'view' && nearbyPins.length > 0 && (!geoUsable || !compassActive) && (
+        <div
+          data-ar-ui
+          style={{
+            position: 'absolute',
+            left: 12,
+            right: 12,
+            bottom: `calc(${AR_THEME.safeBottom} + 12px)`,
+            zIndex: 20,
+            maxHeight: '38vh',
+            overflowY: 'auto',
+            pointerEvents: 'auto',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 8,
+          }}
+        >
+          <div style={{
+            fontSize: 13,
+            fontWeight: 800,
+            textAlign: 'center',
+            color: AR_THEME.text,
+            textShadow: '0 1px 6px #000',
+          }}
+          >
+            この付近の投稿（約
+            {MAX_AR_VIEW_DISTANCE_M}
+            m以内）
+          </div>
+          {nearbyPins.map((pin) => (
+            <button
+              key={pin.id}
+              type="button"
+              onClick={() => handleSelectPin(pin)}
+              style={{
+                width: '100%',
+                textAlign: 'left',
+                padding: '12px 14px',
+                borderRadius: 14,
+                border: '1px solid rgba(255,255,255,0.18)',
+                background: 'rgba(8, 16, 28, 0.88)',
+                color: AR_THEME.text,
+                cursor: 'pointer',
+              }}
+            >
+              <div style={{ fontSize: 12, fontWeight: 700, color: AR_THEME.accent, marginBottom: 4 }}>
+                約
+                {Math.round(pin.nearbyDistM)}
+                m
+                {' · '}
+                {pin.kind === 'positive' ? '良い場所' : '困りごと'}
+              </div>
+              <div style={{ fontSize: 14, lineHeight: 1.45 }}>
+                {pin.comment?.slice(0, 48) || '（本文なし）'}
+              </div>
+            </button>
+          ))}
         </div>
       )}
 

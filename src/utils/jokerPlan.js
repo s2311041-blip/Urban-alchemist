@@ -11,6 +11,22 @@ export const JOKER_BUDGET_OPTIONS = [10, 15, 20, 25, 30];
 export const JOKER_MAX_DELTA_PER_ATTR = 25;
 export const JOKER_PLUS_RATE = 1.5;
 export const JOKER_MINUS_RATE = 0.5;
+export const JOKER_BLOCKS_PER_BUDGET = 0.5;
+export const JOKER_MIN_MAX_BLOCKS = 3;
+export const JOKER_MAX_MAX_BLOCKS = 15;
+
+/** 独自案の DIY ブロック上限（消費予算に比例） */
+export function getJokerMaxBlocks(budgetCost) {
+  const budget = Number(budgetCost);
+  if (!Number.isFinite(budget)) return JOKER_MIN_MAX_BLOCKS;
+  const raw = Math.round(budget * JOKER_BLOCKS_PER_BUDGET);
+  return Math.min(JOKER_MAX_MAX_BLOCKS, Math.max(JOKER_MIN_MAX_BLOCKS, raw));
+}
+
+/** 独自案を「完成」とみなすのに必要な最低ブロック数 */
+export function getJokerRequiredBlocks(budgetCost) {
+  return Math.max(1, Math.floor(getJokerMaxBlocks(budgetCost) / 3));
+}
 
 export function createEmptyJokerDeltas() {
   return Object.fromEntries(SATISFACTION_KEYS.map((k) => [k, 0]));

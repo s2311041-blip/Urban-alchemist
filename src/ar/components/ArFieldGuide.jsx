@@ -46,16 +46,15 @@ export function ArFieldGuide({
       <header style={styles.header}>
         <button type="button" onClick={onClose} style={styles.backBtn}>
           <ChevronLeft size={20} />
-          ホーム
+          戻る
         </button>
         <div style={{ flex: 1 }}>
-          <div style={styles.headerEyebrow}>記録図鑑</div>
+          <div style={styles.headerEyebrow}>記録一覧</div>
           <div style={styles.headerTitle}>
             {filtered.length}
             {' '}
-            件 · 共感に使える
+            件 · 共感ポイント
             {availablePoints}
-            {' '}
             pt
           </div>
         </div>

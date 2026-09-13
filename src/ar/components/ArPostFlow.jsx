@@ -57,15 +57,67 @@ const PLACE_MODES = [
   { id: 'map', label: '地図', icon: MapPin },
 ];
 
+const POST_STEPS = [
+  { id: 'place', label: '場所' },
+  { id: 'capture', label: '撮影' },
+  { id: 'annotate', label: '印' },
+  { id: 'form', label: '質問' },
+  { id: 'stick', label: '完了' },
+];
+
+function stepIndexForPhase(phase) {
+  if (phase === 'place') return 0;
+  if (phase === 'captureIntro' || phase === 'capture') return 1;
+  if (phase === 'annotate') return 2;
+  if (phase === 'form') return 3;
+  return 4;
+}
+
+function PostProgress({ phase }) {
+  const current = stepIndexForPhase(phase);
+  return (
+    <div style={{
+      display: 'flex',
+      gap: 4,
+      marginBottom: 10,
+      alignItems: 'center',
+    }}
+    >
+      {POST_STEPS.map((step, i) => (
+        <div key={step.id} style={{ flex: 1, textAlign: 'center' }}>
+          <div style={{
+            height: 6,
+            borderRadius: 999,
+            background: i <= current ? AR_THEME.accent : 'rgba(255,255,255,0.18)',
+            marginBottom: 4,
+          }}
+          />
+          <div style={{
+            fontSize: 10,
+            fontWeight: 700,
+            color: i === current ? AR_THEME.text : AR_THEME.muted,
+          }}
+          >
+            {i + 1}
+            /
+            {POST_STEPS.length}
+            {' '}
+            {step.label}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function ArPostFlow({
-  annotations,
-  authorId,
   postEntry = null,
   editTarget = null,
   onSubmit,
   onUpdate,
   onCancel,
   onDone,
+  onViewAfterPost,
 }) {
   const isEdit = !!editTarget?.id;
   const [phase, setPhase] = useState(isEdit ? 'form' : 'place');
@@ -197,7 +249,6 @@ export function ArPostFlow({
       }
       await onSubmit(payload);
       setStickDone(true);
-      setTimeout(() => onDone(), 1400);
     } catch (err) {
       alert(err?.message ?? (isEdit ? '保存に失敗しました' : '投稿に失敗しました'));
       setPhase('form');
@@ -211,7 +262,7 @@ export function ArPostFlow({
 
   if (phase === 'place') {
     const placeHint = placeMode === 'feet'
-      ? '困っている場所に立ち、GPSが安定したら刺してください'
+      ? '困っている場所に立ち、位置が安定したらピンを置いてください。屋外なら10秒ほどお待ちください。'
       : '地図で正確な位置を指定します';
 
     return (
@@ -264,6 +315,7 @@ export function ArPostFlow({
           pointerEvents: 'auto',
         }}
         >
+          <PostProgress phase="place" />
           <PromptContextBar draft={draft} />
 
           <p style={{
@@ -324,7 +376,7 @@ export function ArPostFlow({
                 onClick={confirmFeetPlacement}
                 style={bottomBtnStyle(feetReady)}
               >
-                この場所に刺す
+                ここにピンを置く
               </button>
             )}
             {placeMode === 'map' && (
@@ -367,12 +419,13 @@ export function ArPostFlow({
           lineHeight: 1.6,
         }}
         >
+          <PostProgress phase="captureIntro" />
           <div style={{ fontSize: 11, color: AR_THEME.accent, marginBottom: 6 }}>② 撮影の準備</div>
           <strong style={{ fontSize: 18 }}>十字の中心に合わせて撮影します</strong>
           <ul style={{ margin: '16px 0', paddingLeft: 20, fontSize: 14, color: AR_THEME.muted }}>
-            <li>端末を動かして、画面中央の<strong style={{ color: AR_THEME.text }}>十字</strong>を困りごとの方向に合わせる</li>
-            <li>撮影した瞬間の<strong style={{ color: AR_THEME.text }}>向き・俯角</strong>が保存される</li>
-            <li>写真は自然な構図のまま（枠で切り取りません）</li>
+            <li>画面中央の十字を、気になる場所に合わせる</li>
+            <li>撮影した瞬間の向きが保存されます</li>
+            <li>枠で切り取りません</li>
           </ul>
           <button
             type="button"
@@ -389,7 +442,7 @@ export function ArPostFlow({
               cursor: 'pointer',
             }}
           >
-            OK · 撮影画面へ
+            📷 撮影画面へ
           </button>
           <button
             type="button"
@@ -414,7 +467,7 @@ export function ArPostFlow({
   if (phase === 'capture') {
     return (
       <ArCameraShell
-        title="② 撮影"
+        title="② 撮影（2/5）"
         onClose={() => setPhase('captureIntro')}
         captureRef={captureRef}
         showReticle
@@ -439,7 +492,7 @@ export function ArPostFlow({
           }}
           >
             <Camera size={22} />
-            撮影する
+            📷 撮影する
           </button>
         </div>
       </ArCameraShell>
@@ -463,10 +516,11 @@ export function ArPostFlow({
           borderBottom: '1px solid rgba(255,255,255,0.08)',
         }}
         >
-          <div style={{ fontSize: 12, color: AR_THEME.accent }}>③ 空間注釈（任意）</div>
+          <PostProgress phase="annotate" />
+          <div style={{ fontSize: 12, color: AR_THEME.accent }}>③ 任意 — 写真に印をつける</div>
           <div style={{ fontWeight: 'bold', fontSize: 18 }}>写真にピンを追加</div>
           <p style={{ margin: '8px 0 0', fontSize: 13, color: AR_THEME.muted, lineHeight: 1.45 }}>
-            困りごとの位置をタップで追加できます。不要ならスキップしてください。
+            困りごとの位置をタップできます。不要なら「スキップしてOK」を押してください。
           </p>
         </header>
 
@@ -495,7 +549,7 @@ export function ArPostFlow({
             onClick={() => setPhase('form')}
             style={{ ...bottomBtnStyle(true), flex: 1, background: 'rgba(255,255,255,0.12)', color: AR_THEME.text }}
           >
-            スキップ
+            スキップしてOK
           </button>
           <button
             type="button"
@@ -525,6 +579,7 @@ export function ArPostFlow({
           draft={draft}
           onChange={patchDraft}
           isEdit={isEdit}
+          headerExtra={!isEdit ? <PostProgress phase="form" /> : null}
           onBack={() => {
             if (isEdit) onCancel();
             else setPhase('annotate');
@@ -553,14 +608,58 @@ export function ArPostFlow({
             <ArPinMarker nx={placementTap.nx} ny={placementTap.ny} kind={draft.postKind === 'good' ? 'positive' : 'barrier'} large pulsing />
           </div>
         )}
-        <div style={{ position: 'absolute', bottom: '30%', textAlign: 'center' }}>
+        <div style={{
+          position: 'absolute',
+          bottom: '18%',
+          left: 24,
+          right: 24,
+          textAlign: 'center',
+        }}
+        >
           {stickDone ? (
             <>
               <Check size={48} color={AR_THEME.positive} />
-              <div style={{ fontSize: 22, fontWeight: 'bold', marginTop: 12 }}>記録しました！</div>
+              <div style={{ fontSize: 22, fontWeight: 'bold', marginTop: 12 }}>ピンを置きました！</div>
+              <p style={{
+                margin: '12px auto 0',
+                maxWidth: 320,
+                fontSize: 14,
+                lineHeight: 1.55,
+                color: AR_THEME.muted,
+              }}
+              >
+                現地で投稿を見ると、他の人も目の前にピンとして見られます。位置はおおよそです。
+              </p>
+              <button
+                type="button"
+                onClick={() => (onViewAfterPost ? onViewAfterPost() : onDone())}
+                style={{
+                  ...bottomBtnStyle(true),
+                  width: '100%',
+                  marginTop: 16,
+                }}
+              >
+                投稿を見る
+              </button>
+              <button
+                type="button"
+                onClick={onDone}
+                style={{
+                  width: '100%',
+                  marginTop: 8,
+                  padding: 12,
+                  border: 'none',
+                  background: 'transparent',
+                  color: AR_THEME.muted,
+                  fontSize: 14,
+                  cursor: 'pointer',
+                }}
+              >
+                ホームへ戻る
+              </button>
             </>
           ) : (
-            <div style={{ fontSize: 18 }}>{submitting ? '保存中…' : '保存中…'}</div>
+            <div style={{ fontSize: 18 }}>保存中…</div>
           )}
         </div>
       </div>

@@ -3,10 +3,13 @@ import { useShallow } from 'zustand/react/shallow';
 import { useArPostingStore } from './store/useArPostingStore';
 import { initArBackend } from './api/annotationsClient';
 import { ArHomeScreen } from './components/ArHomeScreen';
+import { ArRecordChooseScreen } from './components/ArRecordChooseScreen';
+import { ArViewHubScreen } from './components/ArViewHubScreen';
 import { ArPostFlow } from './components/ArPostFlow';
 import { ArMapView } from './components/ArMapView';
 import { ArHelpSheet } from './components/ArHelpSheet';
 import { ArFieldGuide } from './components/ArFieldGuide';
+import { ArLiveView } from './components/ArLiveView';
 
 export function ArPostingApp() {
   const [screen, setScreen] = useState('home');
@@ -19,8 +22,6 @@ export function ArPostingApp() {
     authorId,
     annotations,
     totalPoints,
-    syncStatus,
-    lastSyncAt,
     helpSeenOnce,
     markHelpSeen,
     setAuthorId,
@@ -35,8 +36,6 @@ export function ArPostingApp() {
     authorId: s.authorId,
     annotations: s.annotations,
     totalPoints: s.totalPoints,
-    syncStatus: s.syncStatus,
-    lastSyncAt: s.lastSyncAt,
     helpSeenOnce: s.helpSeenOnce,
     markHelpSeen: s.markHelpSeen,
     setAuthorId: s.setAuthorId,
@@ -57,7 +56,7 @@ export function ArPostingApp() {
         if (!cancelled && cloudAuthorId) setAuthorId(cloudAuthorId);
         await syncAnnotations();
       } catch {
-        // 同期失敗は syncStatus: error でホームに表示
+        // 同期失敗はホーム以外では黙って継続
       } finally {
         if (!cancelled) setBootReady(true);
       }
@@ -90,10 +89,15 @@ export function ArPostingApp() {
   }));
 
   const myCount = mineMarked.filter((a) => a.isMine).length;
-  const recentItems = mineMarked.slice(0, 6);
 
   const goHome = () => {
     setScreen('home');
+    setEditTarget(null);
+    setPostEntry(null);
+  };
+
+  const goView = () => {
+    setScreen('view');
     setEditTarget(null);
     setPostEntry(null);
   };
@@ -115,7 +119,7 @@ export function ArPostingApp() {
         display: 'grid',
         placeItems: 'center',
         background: '#f8fafc',
-        color: '#64748b',
+        color: '#334155',
         fontSize: 15,
       }}
       >
@@ -128,16 +132,35 @@ export function ArPostingApp() {
     return (
       <>
         <ArHomeScreen
-          totalPoints={totalPoints}
-          pinCount={myCount}
-          annotations={mineMarked}
-          recentItems={recentItems}
-          onStartPost={startPost}
-          onNavigate={setScreen}
+          onRecord={() => setScreen('record')}
+          onView={goView}
           onHelp={() => setHelpOpen(true)}
         />
         {helpOpen && <ArHelpSheet onClose={() => setHelpOpen(false)} />}
       </>
+    );
+  }
+
+  if (screen === 'record') {
+    return (
+      <ArRecordChooseScreen
+        onChoose={startPost}
+        onBack={goHome}
+      />
+    );
+  }
+
+  if (screen === 'view') {
+    return (
+      <ArViewHubScreen
+        pinCount={myCount}
+        totalPoints={totalPoints}
+        availablePoints={getAvailablePoints()}
+        onBrowse={() => setScreen('browse')}
+        onMap={() => setScreen('map')}
+        onGuide={() => setScreen('guide')}
+        onBack={goHome}
+      />
     );
   }
 
@@ -150,19 +173,29 @@ export function ArPostingApp() {
         editTarget={screen === 'edit' ? editTarget : null}
         onSubmit={submitDraft}
         onUpdate={updateDraft}
-        onCancel={goHome}
+        onCancel={screen === 'edit' ? goView : () => setScreen('record')}
         onDone={goHome}
+        onViewAfterPost={goView}
       />
     );
   }
 
   return (
     <>
+      {screen === 'browse' && (
+        <ArLiveView
+          annotations={mineMarked}
+          authorId={authorId}
+          mode="view"
+          onClose={goView}
+        />
+      )}
+
       {screen === 'map' && (
         <ArMapView
           annotations={mineMarked}
           authorId={authorId}
-          onClose={goHome}
+          onClose={goView}
           onEditMine={startEdit}
         />
       )}
@@ -183,7 +216,7 @@ export function ArPostingApp() {
           onExport={downloadExport}
           onDelete={removeAnnotation}
           onEdit={startEdit}
-          onClose={goHome}
+          onClose={goView}
         />
       )}
 

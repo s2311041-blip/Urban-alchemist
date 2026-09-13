@@ -172,9 +172,16 @@ export const createBugSlice = (set, get) => ({
         return;
       }
 
+      const questIdForDecision = targetBug.sourceQuestId || targetBug.id;
+      const decisionForBuild = get().questDecisions?.[questIdForDecision] ?? null;
+      const jokerPayload = decisionForBuild?.chosenPlan === JOKER_PLAN_ID
+        ? decisionForBuild.jokerPlan
+        : null;
+
       const resolution = evaluateActiveBuildResolution(buildMode, bugs, placedBlocks, {
         islandChunks,
         ferryRoutes,
+        jokerBudgetCost: jokerPayload?.budgetCost,
       });
       if (!resolution?.ok) {
         const message = resolution?.message ?? 'まだ条件を満たしていません。';
@@ -214,7 +221,7 @@ export const createBugSlice = (set, get) => ({
               return;
             }
           }
-          const repair = getPlanRepairScale(planId);
+          const repair = getPlanRepairScale(planId, { jokerBudgetCost: jokerPayload?.budgetCost });
           const blocksPlaced = decision?.blocksPlaced ?? sessionForFinish?.blockCount ?? 0;
           if (blocksPlaced > repair.maxBlocks) {
             const msg = `修理規模（${repair.label}）の上限 ${repair.maxBlocks} ブロックを超えています。`;
@@ -275,7 +282,14 @@ export const createBugSlice = (set, get) => ({
           return { postStats: nextStats };
         })()
         : {};
-      const resolveToast = (targetBug.sourceQuestId || targetBug.id)
+      const resolveToast = jokerPayload
+        ? buildJokerResolutionFeedback({
+          jokerPlan: jokerPayload,
+          affectedGroups: targetBug.affectedGroups,
+          questComment: get().quests.find((q) => q.id === targetBug.sourceQuestId)?.comment
+            ?? targetBug.comment,
+        })
+        : (targetBug.sourceQuestId || targetBug.id)
         ? (targetBug.needType
           ? buildPlanResolutionFeedback({
             needType: targetBug.needType,
@@ -293,8 +307,10 @@ export const createBugSlice = (set, get) => ({
       if (solvedCount > 0) {
         if (targetBug) {
           const planId = resolution?.planId ?? targetBug.chosenPlan;
-          const questIdForDecision = targetBug.sourceQuestId || targetBug.id;
-          get().commitQuestPlanChoice?.(questIdForDecision, planId);
+          // 独自案は commitJokerPlan で確定済みのため、完了マークのみ行う
+          if (planId !== JOKER_PLAN_ID) {
+            get().commitQuestPlanChoice?.(questIdForDecision, planId);
+          }
           get().finalizeQuestDecision?.(questIdForDecision);
         }
 
@@ -581,14 +597,14 @@ export const createBugSlice = (set, get) => ({
     const matrixPlans = getAllowedPlansForQuest({ needType }).map(normalizePlanId);
     const allowedPlans = Array.isArray(targetBug.allowedPlans) ? targetBug.allowedPlans : [];
     const selectedNormalized = selectedPlan ? normalizePlanId(selectedPlan) : null;
-    const canUseSelected = selectedNormalized
-      && (
-        allowedPlans.includes(selectedNormalized)
-        || matrixPlans.includes(selectedNormalized)
-      );
+    // 独自案は型に紐づかないため、常に選択可能として扱う
+    const isPlanUsable = (plan) => plan === JOKER_PLAN_ID
+      || allowedPlans.includes(plan)
+      || matrixPlans.includes(plan);
+    const canUseSelected = Boolean(selectedNormalized && isPlanUsable(selectedNormalized));
     const resolvedPlan = canUseSelected
       ? selectedNormalized
-      : (targetBug.chosenPlan && (allowedPlans.includes(targetBug.chosenPlan) || matrixPlans.includes(targetBug.chosenPlan))
+      : (targetBug.chosenPlan && isPlanUsable(targetBug.chosenPlan)
         ? targetBug.chosenPlan
         : (matrixPlans[0]
           ?? TYPE_TO_BARRIER_META[targetBug.type]?.defaultPlan
@@ -598,7 +614,8 @@ export const createBugSlice = (set, get) => ({
     const planForSession = resolvedPlan ?? targetBug.chosenPlan;
 
     const questIdForDecision = targetBug.sourceQuestId || targetBug.id;
-    if (planForSession) {
+    // 独自案は commitJokerPlan で予算・満足度を反映済みなので再確定しない
+    if (planForSession && planForSession !== JOKER_PLAN_ID) {
       const committed = get().commitQuestPlanChoice?.(questIdForDecision, planForSession);
       if (!committed) {
         console.error('commitQuestPlanChoice failed for', questIdForDecision, planForSession);
@@ -606,6 +623,10 @@ export const createBugSlice = (set, get) => ({
         return;
       }
     }
+
+    const jokerBudgetCost = planForSession === JOKER_PLAN_ID
+      ? get().questDecisions?.[questIdForDecision]?.jokerPlan?.budgetCost ?? null
+      : null;
 
     set((state) => ({
       ...buildModeDefaults,
@@ -615,6 +636,7 @@ export const createBugSlice = (set, get) => ({
       buildSession: createImprovementSession(
         { ...targetBug, chosenPlan: planForSession ?? targetBug.chosenPlan },
         state.placedBlocks,
+        { jokerBudgetCost },
       ),
       selectedShape: initialShape,
       bugs: state.bugs.map((bug) => {
@@ -630,53 +652,19 @@ export const createBugSlice = (set, get) => ({
     }));
   },
 
+  /** 独自案を確定して、そのまま DIY 建築へ入る（全 needType 共通） */
   commitJokerQuest: (bugId, jokerInput) => {
     const targetBug = findBugById(get().bugs, bugId);
-    const questIdForDecision = targetBug.sourceQuestId || bugId;
-    if (targetBug.needType !== 'O') {
-      setTimedToast({ set, get, message: 'ジョーカー施策は「その他」の困りごと専用です。', durationMs: 2800 });
-      return false;
-    }
-    if (false) {
-      setTimedToast({ set, get, message: '議会モード中のみジョーカー施策を使えます。', durationMs: 2800 });
+    if (!targetBug) {
+      setTimedToast({ set, get, message: '対象の不満データが見つかりません。', durationMs: 2800 });
       return false;
     }
 
+    const questIdForDecision = targetBug.sourceQuestId || bugId;
     const committed = get().commitJokerPlan?.(questIdForDecision, jokerInput);
     if (!committed) return false;
 
-    const jokerPayload = get().questDecisions?.[questIdForDecision]?.jokerPlan;
-    const updatedBugs = get().bugs.map((b) => (
-      sameBugId(b.id, bugId)
-        ? normalizeBug({
-          ...b,
-          solved: true,
-          chosenPlan: JOKER_PLAN_ID,
-        })
-        : b
-    ));
-
-    const quest = get().quests.find((q) => q.id === targetBug.sourceQuestId);
-    const feedback = buildJokerResolutionFeedback({
-      jokerPlan: jokerPayload,
-      affectedGroups: targetBug.affectedGroups,
-      questComment: quest?.comment ?? targetBug.comment,
-    });
-
-    set({
-      bugs: updatedBugs,
-      activeBug: null,
-      isReturning: true,
-      narrativeFeedback: feedback,
-      quests: targetBug.sourceQuestId ? markQuestResolved(get().quests, targetBug.sourceQuestId, targetBug.id) : get().quests,
-      postStats: appendPostEvent(get().postStats, buildResolveEvent({
-        t: Date.now(),
-        questId: questIdForDecision,
-        bugId: targetBug.id,
-        chosenPlan: JOKER_PLAN_ID,
-      })),
-    });
-
+    get().startDIY?.(bugId, JOKER_PLAN_ID);
     return true;
   },
 

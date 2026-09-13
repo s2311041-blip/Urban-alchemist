@@ -141,7 +141,7 @@ export function ArPinCard({ annotation, onClose, authorId, onEdit, initialPhase 
               gap: 8,
             }}
           >
-            記録の詳細・視点置換を見る
+            記録の詳細・その人の見え方を見る
             <ChevronUp size={20} />
           </button>
         </div>
@@ -243,7 +243,7 @@ export function ArPinCard({ annotation, onClose, authorId, onEdit, initialPhase 
         }}
         >
           <div style={{ fontSize: 11, color: AR_THEME.accent, fontWeight: 'bold', marginBottom: 8 }}>
-            視点置換 · {frame}
+            その人の見え方 · {frame}
           </div>
           {narrative}
         </div>
