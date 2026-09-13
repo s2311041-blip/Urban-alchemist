@@ -25,8 +25,8 @@ export function ArRecordChooseScreen({ onChoose, onBack }) {
             <ChevronLeft size={20} />
             ホーム
           </button>
-          <h1 style={styles.title}>どう記録しますか？</h1>
-          <p style={styles.lead}>お題に沿っても、自由に気づきを残してもOKです</p>
+          <h1 style={styles.title}>記録のテーマを選ぶ</h1>
+          <p style={styles.lead}>今月のお題で、または自由に投稿できます</p>
         </header>
 
         <button

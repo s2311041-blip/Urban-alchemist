@@ -300,16 +300,16 @@ export function ArGeoArView({
         {isBrowse && (
           <>
             <div style={{ textAlign: 'center', flex: 1 }}>
-              <div style={{ fontSize: 12, color: AR_THEME.accent }}>かざして見る</div>
+              <div style={{ fontSize: 12, color: AR_THEME.accent }}>カメラをかざして探す</div>
               <div style={{ fontSize: 15, fontWeight: 'bold' }}>
-                {mode === 'place' ? '場所を決める' : '近くのみんなの投稿'}
+                {mode === 'place' ? '場所を決める' : '近くのピンを探す'}
               </div>
-          {mode === 'view' && compassActive && geoUsable && (
+          {mode === 'view' && (
             <div style={{ fontSize: 10, color: AR_THEME.muted, marginTop: 2 }}>
-              約
+              今いる場所から約
               {MAX_AR_VIEW_DISTANCE_M}
-              m以内 · 端末を向けて探す
-              {geoAccuracyM != null && geoAccuracyM <= 28 && (
+              m以内の投稿が見えます
+              {compassActive && geoUsable && geoAccuracyM != null && geoAccuracyM <= 28 && (
                 <span> · GPS ±{geoAccuracyM}m</span>
               )}
             </div>

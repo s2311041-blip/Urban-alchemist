@@ -3,13 +3,15 @@ import {
   Calendar,
   Camera,
   ChevronRight,
-  Eye,
   HelpCircle,
+  Megaphone,
+  Smartphone,
   Sparkles,
 } from 'lucide-react';
 import { AR_HOME } from '../constants/arTheme';
 import { PPS_GROUP_META } from '../constants/promptSpecs';
 import {
+  getActiveSpecialPrompts,
   getPpsGroupLabel,
   getStandingPrompt,
 } from '../utils/promptRotation';
@@ -23,8 +25,11 @@ export function ArHomeScreen({
 }) {
   const now = useMemo(() => new Date(), []);
   const standingPrompt = useMemo(() => getStandingPrompt(now), [now]);
+  const specialPrompts = useMemo(() => getActiveSpecialPrompts(now), [now]);
+  const featuredPrompt = specialPrompts[0] ?? standingPrompt;
+  const isSpecialFeatured = specialPrompts.length > 0;
   const monthLabel = MONTH_LABELS[now.getMonth()];
-  const ppsMeta = standingPrompt.ppsGroup ? PPS_GROUP_META[standingPrompt.ppsGroup] : null;
+  const ppsMeta = featuredPrompt.ppsGroup ? PPS_GROUP_META[featuredPrompt.ppsGroup] : null;
 
   return (
     <div style={styles.page}>
@@ -37,7 +42,7 @@ export function ArHomeScreen({
             </div>
             <h1 style={styles.title}>AR街記録</h1>
             <p style={styles.lead}>
-              現地で残し、みんなの声を見る
+              街の気づきを記録し、みんなの声を見る
             </p>
           </div>
           <button type="button" onClick={onHelp} aria-label="使い方" style={styles.helpBtn}>
@@ -47,12 +52,20 @@ export function ArHomeScreen({
 
         <section style={styles.section} aria-labelledby="standing-heading">
           <div style={styles.sectionHead}>
-            <Calendar size={18} color={AR_HOME.standing} />
-            <h2 id="standing-heading" style={styles.sectionTitle}>今月のお題</h2>
-            <span style={styles.monthChip}>{monthLabel}</span>
+            {isSpecialFeatured
+              ? <Megaphone size={18} color={AR_HOME.special} />
+              : <Calendar size={18} color={AR_HOME.standing} />}
+            <h2 id="standing-heading" style={styles.sectionTitle}>
+              {isSpecialFeatured ? '今日のお題（特設）' : '今月のお題'}
+            </h2>
+            {!isSpecialFeatured && <span style={styles.monthChip}>{monthLabel}</span>}
           </div>
 
-          <article style={styles.standingCard}>
+          <article style={{
+            ...styles.standingCard,
+            ...(isSpecialFeatured ? styles.specialCard : {}),
+          }}
+          >
             {ppsMeta && (
               <span style={{
                 ...styles.ppsBadge,
@@ -63,17 +76,17 @@ export function ArHomeScreen({
               >
                 {ppsMeta.emoji}
                 {' '}
-                {getPpsGroupLabel(standingPrompt.ppsGroup)}
+                {getPpsGroupLabel(featuredPrompt.ppsGroup)}
               </span>
             )}
-            <h3 style={styles.promptTitle}>{standingPrompt.title}</h3>
-            <p style={styles.promptQuestion}>{standingPrompt.question}</p>
-            {standingPrompt.subtitle && (
-              <p style={styles.promptSub}>{standingPrompt.subtitle}</p>
+            <h3 style={styles.promptTitle}>{featuredPrompt.title}</h3>
+            <p style={styles.promptQuestion}>{featuredPrompt.question}</p>
+            {featuredPrompt.subtitle && (
+              <p style={styles.promptSub}>{featuredPrompt.subtitle}</p>
             )}
-            {standingPrompt.exampleHints?.length > 0 && (
+            {featuredPrompt.exampleHints?.length > 0 && (
               <div style={styles.hintRow}>
-                {standingPrompt.exampleHints.map((h) => (
+                {featuredPrompt.exampleHints.map((h) => (
                   <span key={h} style={styles.hintChip}>{h}</span>
                 ))}
               </div>
@@ -87,13 +100,14 @@ export function ArHomeScreen({
             記録する
             <ChevronRight size={20} />
           </button>
-          <p style={styles.recordHint}>場所 → 撮影 → 質問に答える</p>
+          <p style={styles.recordHint}>撮影 → 印 → 質問</p>
 
           <button type="button" onClick={onView} style={styles.viewBtn}>
-            <Eye size={22} />
-            投稿を見る
+            <Smartphone size={22} />
+            スマホをかざして近くの投稿を見る
             <ChevronRight size={20} />
           </button>
+          <p style={styles.viewHint}>地図や一覧でも見られます</p>
         </div>
       </div>
     </div>
@@ -190,6 +204,9 @@ const styles = {
     boxShadow: AR_HOME.shadowLg,
     borderTop: `4px solid ${AR_HOME.standing}`,
   },
+  specialCard: {
+    borderTop: `4px solid ${AR_HOME.special}`,
+  },
   ppsBadge: {
     display: 'inline-block',
     fontSize: 12,
@@ -265,13 +282,22 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    padding: '16px 20px',
+    padding: '16px 16px',
     borderRadius: 16,
     border: `2px solid ${AR_HOME.primary}`,
     background: AR_HOME.surface,
     color: AR_HOME.primary,
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: 800,
     cursor: 'pointer',
+    textAlign: 'center',
+    lineHeight: 1.35,
+  },
+  viewHint: {
+    margin: '8px 0 0',
+    fontSize: 14,
+    fontWeight: 600,
+    color: AR_HOME.textSecondary,
+    textAlign: 'center',
   },
 };

@@ -11,6 +11,7 @@ import {
   getTimeTagLabel,
   inferPlaceArchetypeFromText,
   PLACE_INPUT_HINTS,
+  PLACE_INPUT_HINTS_GOOD,
   WHO_INPUT_HINTS,
 } from '../utils/classifyMetaFields';
 import { TIME_TAG_OPTIONS, SEVERITY_OPTIONS } from '../../constants/barrierData';
@@ -324,7 +325,7 @@ function ConfirmCard({
     }}
     >
       <div style={{ fontSize: 13, color: AR_THEME.accent, fontWeight: 'bold', marginBottom: 10 }}>
-        確認 — この内容でピンを置きますか？
+        この内容で記録しますか？
       </div>
 
       {draft.photo && (
@@ -426,48 +427,32 @@ function ConfirmCard({
         </p>
       )}
 
-      {isEdit && (
-        <div style={{ marginBottom: 12 }}>
-          <div style={{ fontSize: 12, color: AR_THEME.muted, marginBottom: 6 }}>記録した位置（ピン）</div>
-          {draft.worldPin ? (
-            <p style={{ margin: '0 0 8px', fontSize: 13, color: AR_THEME.text }}>
-              {draft.placementMode === 'map' ? '地図で指定' : '現在地'}
-              {' · '}
-              {draft.worldPin.lat.toFixed(5)}
-              ,
-              {' '}
-              {draft.worldPin.lng.toFixed(5)}
-            </p>
-          ) : (
-            <p style={{ margin: '0 0 8px', fontSize: 13, color: AR_THEME.accentWarm }}>
-              位置情報がありません。地図で指定してください。
-            </p>
-          )}
-          {onEditLocation && (
-            <button
-              type="button"
-              onClick={onEditLocation}
-              style={{
-                width: '100%',
-                padding: 12,
-                borderRadius: 12,
-                border: `1px solid ${AR_THEME.accent}`,
-                background: 'rgba(79,195,247,0.12)',
-                color: AR_THEME.text,
-                fontWeight: 600,
-                fontSize: 14,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 8,
-              }}
-            >
-              <MapPin size={18} color={AR_THEME.accent} />
-              地図で位置を修正
-            </button>
-          )}
-        </div>
+      {onEditLocation && (
+        <button
+          type="button"
+          onClick={onEditLocation}
+          style={{
+            width: '100%',
+            marginBottom: 12,
+            padding: '10px 12px',
+            borderRadius: 12,
+            border: '1px solid rgba(255,255,255,0.16)',
+            background: 'rgba(255,255,255,0.06)',
+            color: AR_THEME.text,
+            textAlign: 'left',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: 8,
+          }}
+        >
+          <MapPin size={16} color={AR_THEME.accent} style={{ marginTop: 2, flexShrink: 0 }} />
+          <span style={{ fontSize: 12, lineHeight: 1.45 }}>
+            {draft.worldPin
+              ? `📍 取得した位置: ${draft.worldPin.lat.toFixed(5)}, ${draft.worldPin.lng.toFixed(5)}（タップして地図で微調整）`
+              : '📍 位置を取得中…（タップして地図で指定）'}
+          </span>
+        </button>
       )}
 
       <button
@@ -486,7 +471,7 @@ function ConfirmCard({
           cursor: canPost ? 'pointer' : 'not-allowed',
         }}
       >
-        {isEdit ? 'この内容で保存' : 'この内容でピンを置く'}
+        {isEdit ? 'この内容で保存' : '送信する'}
       </button>
       {isBad && !needTypeConfirmed && (
         <p style={{ margin: '8px 0 0', fontSize: 12, color: AR_THEME.muted, textAlign: 'center' }}>
@@ -533,26 +518,26 @@ export function ArPostChat({
     const good = kind === 'good';
     switch (id) {
       case 'kind':
-        appendBot('記録の種類を選んでください。困りごとですか？それとも良い場所ですか？');
+        appendBot('困りごとですか？ 良い場所ですか？');
         break;
       case 'story':
         appendBot(
           good
-            ? 'なぜ良い場所だと感じましたか？\n（短くても大丈夫です）'
-            : 'どんなことが困っていますか？\n（短くてもOK — 段差・暗さ・案内など書ける範囲で）',
+            ? 'どんなところが良いと感じましたか？'
+            : 'どんなことに困っていますか？',
         );
         break;
       case 'place':
-        appendBot('どんな場所ですか？\n（自由記述 — 例の言葉をタップしてもOK）');
+        appendBot('ここはどんな場所ですか？');
         break;
       case 'who':
-        appendBot('誰にとって困りますか？\n（自由記述 — 任意・スキップ可）');
+        appendBot('誰にとって困りそうですか？（スキップ可）');
         break;
       case 'when':
-        appendBot('いつ困りますか？\n（タップして選んでください — 任意・スキップ可）');
+        appendBot('いつ困ることが多いですか？（スキップ可）');
         break;
       case 'severity':
-        appendBot('どのくらい困りますか？\n（タップして選んでください — 任意・スキップ可）');
+        appendBot('困りごとの度合いはどのくらいですか？（スキップ可）');
         break;
       default:
         break;
@@ -586,10 +571,10 @@ export function ArPostChat({
       } else {
         onChange(meta);
       }
-      appendBot('内容を整理しました。この分類で合っていますか？');
+      appendBot('この内容で記録しますか？');
     } catch (err) {
       console.error('[goConfirm] classification failed', err);
-      appendBot('分類に失敗したため、自動判定で確認してください。');
+      appendBot('この内容で記録しますか？');
     } finally {
       setClassifying(false);
     }
@@ -606,8 +591,8 @@ export function ArPostChat({
     if (draft.promptTitle && draft.promptKind !== 'free') {
       const kindLabel = draft.promptKind === 'special' ? '特設のお題' : '今月のお題';
       appendBot(
-        `${kindLabel}「${draft.promptTitle}」について記録してください。\n`
-        + '困りごとでも、良い場所でも、写真と一言で構いません。',
+        `${kindLabel}：「${draft.promptTitle}」\n`
+        + '気付いたことを教えてください。写真と一言だけでもOKです。',
       );
     }
     promptForStep('kind', postKind);
@@ -639,19 +624,21 @@ export function ArPostChat({
   };
 
   const textStepHints = useMemo(() => {
-    if (stepId === 'place') return PLACE_INPUT_HINTS;
+    if (stepId === 'place') return isGood ? PLACE_INPUT_HINTS_GOOD : PLACE_INPUT_HINTS;
     if (stepId === 'who') return WHO_INPUT_HINTS;
     return [];
-  }, [stepId]);
+  }, [isGood, stepId]);
 
   const textStepPlaceholder = useMemo(() => {
     if (stepId === 'story') {
       return isGood
-        ? '例：ベンチがあって休みやすい'
-        : '例：段差が高い / 歩道が狭い / 暗くて見えない';
+        ? '例：日陰があって涼しい、ベンチが多くて休みやすい'
+        : '例：段差が高い、歩道が狭い、暗くて怖い';
     }
-    if (stepId === 'place') return '例：駅前、歩道、公園…';
-    if (stepId === 'who') return '例：女性・夜一人・車いす利用者…';
+    if (stepId === 'place') {
+      return isGood ? '例：カフェ前、広場、遊歩道' : '例：駅前、公園、歩道';
+    }
+    if (stepId === 'who') return '例：車いす、ベビーカー、夜の一人歩き';
     return '';
   }, [isGood, stepId]);
 

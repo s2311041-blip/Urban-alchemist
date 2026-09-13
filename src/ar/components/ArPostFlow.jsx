@@ -1,5 +1,5 @@
-import React, { useRef, useState } from 'react';
-import { Camera, Check, MapPin, Crosshair } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { Camera, Check } from 'lucide-react';
 import { useDevicePose } from '../hooks/useDevicePose';
 import { isValidGeoCoordinate } from '../constants/kotoArea';
 import { annotationToDraft } from '../utils/postFormSteps';
@@ -9,8 +9,6 @@ import { ArCameraShell } from './ArCameraShell';
 import { ArPostChat } from './ArPostChat';
 import { ArPinMarker } from './ArPinMarker';
 import { ArMapPinPicker } from './ArMapPinPicker';
-import { ArGpsAccuracyPanel } from './ArGpsAccuracyPanel';
-import { canPlacePinWithGps, getGpsAccuracyLevel } from '../utils/gpsAccuracy';
 import { PhotoPinSurface } from '../../components/ui/PhotoPinSurface';
 
 const INITIAL_DRAFT = {
@@ -52,25 +50,16 @@ function draftFromPostEntry(postEntry) {
   return base;
 }
 
-const PLACE_MODES = [
-  { id: 'feet', label: '現在地', icon: Crosshair },
-  { id: 'map', label: '地図', icon: MapPin },
-];
-
 const POST_STEPS = [
-  { id: 'place', label: '場所' },
   { id: 'capture', label: '撮影' },
   { id: 'annotate', label: '印' },
   { id: 'form', label: '質問' },
-  { id: 'stick', label: '完了' },
 ];
 
 function stepIndexForPhase(phase) {
-  if (phase === 'place') return 0;
-  if (phase === 'captureIntro' || phase === 'capture') return 1;
-  if (phase === 'annotate') return 2;
-  if (phase === 'form') return 3;
-  return 4;
+  if (phase === 'capture') return 0;
+  if (phase === 'annotate') return 1;
+  return 2;
 }
 
 function PostProgress({ phase }) {
@@ -120,84 +109,55 @@ export function ArPostFlow({
   onViewAfterPost,
 }) {
   const isEdit = !!editTarget?.id;
-  const [phase, setPhase] = useState(isEdit ? 'form' : 'place');
-  const [placeMode, setPlaceMode] = useState('feet');
+  const [phase, setPhase] = useState(isEdit ? 'form' : 'capture');
   const [showMapPicker, setShowMapPicker] = useState(false);
-  const [showEditMapPicker, setShowEditMapPicker] = useState(false);
-  const [placementTap, setPlacementTap] = useState(editTarget?.screenTap ?? null);
+  const [placementTap, setPlacementTap] = useState(editTarget?.screenTap ?? { nx: 0.5, ny: 0.5 });
   const [draft, setDraft] = useState(
     isEdit ? annotationToDraft(editTarget) : draftFromPostEntry(postEntry),
   );
   const [submitting, setSubmitting] = useState(false);
   const [stickDone, setStickDone] = useState(false);
-  const [gpsOverride, setGpsOverride] = useState(false);
   const captureRef = useRef(null);
 
   const { geo, headingDeg, pitchDeg } = useDevicePose({ enabled: !isEdit });
+
+  useEffect(() => {
+    if (isEdit || !geo) return;
+    setDraft((d) => {
+      if (d.placementMode === 'map' && d.worldPin) return d;
+      const anchor = computePinAtFeet({ authorGeo: geo });
+      if (!anchor) return d;
+      return {
+        ...d,
+        authorGeo: geo,
+        worldPin: anchor.worldPin,
+        distanceM: anchor.distanceM,
+        placementMode: d.placementMode ?? 'feet',
+      };
+    });
+  }, [geo, isEdit]);
 
   const patchDraft = (patch) => {
     setDraft((d) => ({ ...d, ...patch }));
   };
 
-  const applyAnchor = (anchor) => {
-    if (!anchor) return;
-    patchDraft({
+  const applyGeoIfNeeded = () => {
+    if (!geo) return draft;
+    if (draft.worldPin && isValidGeoCoordinate(draft.worldPin.lat, draft.worldPin.lng)
+      && draft.placementMode === 'map') {
+      return draft;
+    }
+    const anchor = computePinAtFeet({ authorGeo: geo });
+    if (!anchor) return draft;
+    const next = {
       authorGeo: geo,
       worldPin: anchor.worldPin,
-      capturePose: anchor.capturePose,
-      screenTap: anchor.screenTap,
+      screenTap: draft.screenTap ?? anchor.screenTap,
       distanceM: anchor.distanceM,
-      placementMode: anchor.placementMode,
-    });
-  };
-
-  const goCaptureIntro = () => {
-    setPlacementTap({ nx: 0.5, ny: 0.5 });
-    setPhase('captureIntro');
-  };
-
-  const confirmFeetPlacement = () => {
-    if (!geo) {
-      alert('位置情報を取得中です。屋外で数秒お待ちください。');
-      return;
-    }
-    const level = getGpsAccuracyLevel(geo.accuracy);
-    if (!canPlacePinWithGps(level, { allowOverride: gpsOverride })) {
-      return;
-    }
-    applyAnchor(computePinAtFeet({ authorGeo: geo }));
-    goCaptureIntro();
-  };
-
-  const confirmMapPlacement = (worldPin) => {
-    const anchor = computePinFromMap({ worldPin, authorGeo: geo });
-    if (!anchor) return;
-    patchDraft({
-      authorGeo: geo ?? { lat: worldPin.lat, lng: worldPin.lng },
-      worldPin: anchor.worldPin,
-      capturePose: anchor.capturePose,
-      screenTap: anchor.screenTap,
-      distanceM: anchor.distanceM,
-      placementMode: anchor.placementMode,
-    });
-    setShowMapPicker(false);
-    setPlaceMode('feet');
-    goCaptureIntro();
-  };
-
-  const confirmEditMapPlacement = (worldPin) => {
-    const anchor = computePinFromMap({
-      worldPin,
-      authorGeo: draft.authorGeo ?? geo,
-    });
-    if (!anchor) return;
-    patchDraft({
-      authorGeo: anchor.authorGeo ?? draft.authorGeo,
-      worldPin: anchor.worldPin,
-      distanceM: anchor.distanceM,
-      placementMode: anchor.placementMode,
-    });
-    setShowEditMapPicker(false);
+      placementMode: draft.placementMode === 'map' ? 'map' : 'feet',
+    };
+    patchDraft(next);
+    return { ...draft, ...next };
   };
 
   const takePhoto = () => {
@@ -205,39 +165,63 @@ export function ArPostFlow({
     if (!photo) return;
 
     const tap = { nx: 0.5, ny: 0.5 };
-    const worldPin = draft.worldPin;
     const authorGeo = geo ?? draft.authorGeo;
-    if (!worldPin || !authorGeo) {
-      alert('位置情報またはピン位置がありません。');
-      return;
-    }
+    const current = applyGeoIfNeeded();
+    const worldPin = current.worldPin ?? authorGeo ?? null;
 
-    const shot = buildCapturePoseAtPhoto({
-      authorGeo,
-      worldPin,
-      headingDeg,
-      pitchDeg,
-      screenTap: tap,
-      placementMode: draft.placementMode ?? 'feet',
-    });
+    const shot = authorGeo && worldPin
+      ? buildCapturePoseAtPhoto({
+        authorGeo,
+        worldPin,
+        headingDeg,
+        pitchDeg,
+        screenTap: tap,
+        placementMode: current.placementMode ?? 'feet',
+      })
+      : null;
 
     patchDraft({
       photo,
-      photoPins: [],
-      authorGeo: shot.authorGeo ?? geo,
-      capturePose: shot.capturePose,
-      distanceM: shot.distanceM,
-      screenTap: shot.screenTap,
+      photoPins: [{ id: 'center', nx: 0.5, ny: 0.5 }],
+      authorGeo: shot?.authorGeo ?? authorGeo ?? geo,
+      worldPin: shot?.worldPin ?? worldPin,
+      capturePose: shot?.capturePose ?? null,
+      distanceM: shot?.distanceM ?? 0,
+      screenTap: tap,
+      placementMode: current.placementMode ?? 'feet',
     });
+    setPlacementTap(tap);
     setPhase('annotate');
   };
 
+  const confirmMapPlacement = (worldPin) => {
+    const authorGeo = draft.authorGeo ?? geo ?? worldPin;
+    const anchor = computePinFromMap({ worldPin, authorGeo });
+    if (!anchor) return;
+    patchDraft({
+      authorGeo,
+      worldPin: anchor.worldPin,
+      distanceM: anchor.distanceM,
+      placementMode: 'map',
+    });
+    setShowMapPicker(false);
+  };
+
   const handleSubmit = async (draftOverride) => {
-    const payload = draftOverride ?? draft;
+    const payload = { ...(draftOverride ?? draft) };
     if (!isEdit && (!payload.worldPin || !isValidGeoCoordinate(payload.worldPin.lat, payload.worldPin.lng))) {
-      alert('位置情報が不正です。場所を決め直してください。');
-      setPhase('place');
-      return;
+      const fallbackGeo = geo ?? payload.authorGeo;
+      if (fallbackGeo && isValidGeoCoordinate(fallbackGeo.lat, fallbackGeo.lng)) {
+        const anchor = computePinAtFeet({ authorGeo: fallbackGeo });
+        payload.authorGeo = fallbackGeo;
+        payload.worldPin = anchor.worldPin;
+        payload.placementMode = payload.placementMode ?? 'feet';
+      } else {
+        alert('位置情報を取得できませんでした。下の位置をタップして地図で指定してください。');
+        setPhase('form');
+        setShowMapPicker(true);
+        return;
+      }
     }
     setSubmitting(true);
     if (!isEdit) setPhase('stick');
@@ -257,221 +241,14 @@ export function ArPostFlow({
     }
   };
 
-  const gpsLevel = getGpsAccuracyLevel(geo?.accuracy);
-  const feetReady = geo && canPlacePinWithGps(gpsLevel, { allowOverride: gpsOverride });
-
-  if (phase === 'place') {
-    const placeHint = placeMode === 'feet'
-      ? '困っている場所に立ち、位置が安定したらピンを置いてください。屋外なら10秒ほどお待ちください。'
-      : '地図で正確な位置を指定します';
-
-    return (
-      <>
-        {showMapPicker && (
-          <ArMapPinPicker
-            userGeo={geo}
-            onConfirm={confirmMapPlacement}
-            onCancel={() => {
-              setShowMapPicker(false);
-              setPlaceMode('feet');
-            }}
-          />
-        )}
-
-        {!showMapPicker && placeMode === 'feet' && (
-          <div style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 10,
-            background: AR_THEME.bg,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'flex-start',
-            padding: 'calc(10vh + env(safe-area-inset-top, 0px)) 24px 45vh',
-            color: AR_THEME.text,
-            boxSizing: 'border-box',
-          }}
-          >
-            <Crosshair size={56} color={AR_THEME.accent} style={{ opacity: 0.85, marginBottom: 14 }} />
-            <div style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 8 }}>現在地で場所を決める</div>
-            <p style={{ margin: 0, fontSize: 14, color: AR_THEME.muted, textAlign: 'center', lineHeight: 1.55, maxWidth: 300 }}>
-              カメラは撮影のときだけ使います。
-              <br />
-              今は GPS で位置を記録します。
-            </p>
-          </div>
-        )}
-
-        {!showMapPicker && (
-        <div style={{
-          position: 'fixed',
-          left: 0,
-          right: 0,
-          bottom: 0,
-          zIndex: 220,
-          padding: `12px 16px ${AR_THEME.safeBottom}`,
-          background: 'linear-gradient(transparent, rgba(0,0,0,0.92) 24%)',
-          pointerEvents: 'auto',
-        }}
-        >
-          <PostProgress phase="place" />
-          <PromptContextBar draft={draft} />
-
-          <p style={{
-            margin: '0 0 10px',
-            fontSize: 14,
-            lineHeight: 1.5,
-            color: '#e3f2fd',
-          }}
-          >
-            {placeHint}
-          </p>
-
-          {placeMode === 'feet' && (
-            <ArGpsAccuracyPanel
-              geo={geo}
-              allowOverride
-              onRequestOverride={() => setGpsOverride(true)}
-            />
-          )}
-
-          <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-            {PLACE_MODES.map(({ id, label, icon: Icon }) => (
-              <button
-                key={id}
-                type="button"
-                onClick={() => {
-                  setPlaceMode(id);
-                  if (id === 'map') setShowMapPicker(true);
-                }}
-                style={{
-                  flex: 1,
-                  padding: '10px 8px',
-                  borderRadius: 12,
-                  border: placeMode === id ? `2px solid ${AR_THEME.accent}` : '1px solid rgba(255,255,255,0.2)',
-                  background: placeMode === id ? 'rgba(79,195,247,0.15)' : 'rgba(0,0,0,0.55)',
-                  color: AR_THEME.text,
-                  fontSize: 12,
-                  fontWeight: 'bold',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: 4,
-                }}
-              >
-                <Icon size={18} />
-                {label}
-              </button>
-            ))}
-          </div>
-
-          <div style={{ display: 'flex', gap: 10 }}>
-            <button type="button" onClick={onCancel} style={bottomBtnStyle(false)}>キャンセル</button>
-            {placeMode === 'feet' && (
-              <button
-                type="button"
-                disabled={!feetReady}
-                onClick={confirmFeetPlacement}
-                style={bottomBtnStyle(feetReady)}
-              >
-                ここにピンを置く
-              </button>
-            )}
-            {placeMode === 'map' && (
-              <button
-                type="button"
-                onClick={() => setShowMapPicker(true)}
-                style={bottomBtnStyle(true)}
-              >
-                地図で指定
-              </button>
-            )}
-          </div>
-        </div>
-        )}
-      </>
-    );
-  }
-
-  if (phase === 'captureIntro') {
-    return (
-      <div style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 300,
-        background: 'rgba(0,0,0,0.88)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 24,
-        color: AR_THEME.text,
-      }}
-      >
-        <div style={{
-          maxWidth: 360,
-          width: '100%',
-          padding: '24px 22px',
-          borderRadius: 16,
-          background: 'rgba(12,20,32,0.98)',
-          border: `1px solid ${AR_THEME.accent}`,
-          lineHeight: 1.6,
-        }}
-        >
-          <PostProgress phase="captureIntro" />
-          <div style={{ fontSize: 11, color: AR_THEME.accent, marginBottom: 6 }}>② 撮影の準備</div>
-          <strong style={{ fontSize: 18 }}>十字の中心に合わせて撮影します</strong>
-          <ul style={{ margin: '16px 0', paddingLeft: 20, fontSize: 14, color: AR_THEME.muted }}>
-            <li>画面中央の十字を、気になる場所に合わせる</li>
-            <li>撮影した瞬間の向きが保存されます</li>
-            <li>枠で切り取りません</li>
-          </ul>
-          <button
-            type="button"
-            onClick={() => setPhase('capture')}
-            style={{
-              width: '100%',
-              padding: 14,
-              borderRadius: 12,
-              border: 'none',
-              background: AR_THEME.accent,
-              color: '#0d1b2a',
-              fontWeight: 'bold',
-              fontSize: 16,
-              cursor: 'pointer',
-            }}
-          >
-            📷 撮影画面へ
-          </button>
-          <button
-            type="button"
-            onClick={() => setPhase('place')}
-            style={{
-              width: '100%',
-              marginTop: 10,
-              padding: 10,
-              border: 'none',
-              background: 'transparent',
-              color: AR_THEME.muted,
-              cursor: 'pointer',
-            }}
-          >
-            場所の指定に戻る
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   if (phase === 'capture') {
     return (
       <ArCameraShell
-        title="② 撮影（2/5）"
-        onClose={() => setPhase('captureIntro')}
+        banner={<PromptBanner draft={draft} compact />}
+        onClose={onCancel}
         captureRef={captureRef}
+        showFlip
         showReticle
-        reticleHint=""
       >
         <div style={{
           position: 'fixed',
@@ -480,19 +257,43 @@ export function ArPostFlow({
           bottom: AR_THEME.safeBottom,
           zIndex: 15,
           padding: '0 20px',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: 14,
         }}
         >
-          <button type="button" onClick={takePhoto} style={{
-            ...bottomBtnStyle(true),
-            width: '100%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 8,
+          <div style={{
+            padding: '8px 14px',
+            borderRadius: 999,
+            background: 'rgba(0,0,0,0.55)',
+            color: '#fff',
+            fontSize: 13,
+            fontWeight: 700,
+            lineHeight: 1.35,
+            textAlign: 'center',
           }}
           >
-            <Camera size={22} />
-            📷 撮影する
+            気になる対象を中央に合わせて撮影
+          </div>
+          <button
+            type="button"
+            onClick={takePhoto}
+            aria-label="撮影する"
+            style={{
+              width: 76,
+              height: 76,
+              margin: '0 auto 12px',
+              display: 'grid',
+              placeItems: 'center',
+              borderRadius: '50%',
+              border: '4px solid #fff',
+              background: 'rgba(255,255,255,0.18)',
+              color: '#fff',
+              cursor: 'pointer',
+            }}
+          >
+            <Camera size={28} />
           </button>
         </div>
       </ArCameraShell>
@@ -517,19 +318,25 @@ export function ArPostFlow({
         }}
         >
           <PostProgress phase="annotate" />
-          <div style={{ fontSize: 12, color: AR_THEME.accent }}>③ 任意 — 写真に印をつける</div>
-          <div style={{ fontWeight: 'bold', fontSize: 18 }}>写真にピンを追加</div>
-          <p style={{ margin: '8px 0 0', fontSize: 13, color: AR_THEME.muted, lineHeight: 1.45 }}>
-            困りごとの位置をタップできます。不要なら「スキップしてOK」を押してください。
-          </p>
+          <div style={{ fontSize: 12, color: AR_THEME.accent }}>2/3 写真に対象ピン</div>
+          <div style={{ fontWeight: 'bold', fontSize: 18 }}>ピンをドラッグして位置を合わせてください</div>
         </header>
 
         <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
           <PhotoPinSurface
             imageUrl={draft.photo}
             pins={draft.photoPins ?? []}
-            onChange={(pins) => patchDraft({ photoPins: pins })}
+            onChange={(pins) => {
+              const nextPins = pins.length > 0 ? pins : [{ id: 'center', nx: 0.5, ny: 0.5 }];
+              const last = nextPins[0];
+              patchDraft({
+                photoPins: nextPins,
+                screenTap: last ? { nx: last.nx, ny: last.ny } : { nx: 0.5, ny: 0.5 },
+              });
+              if (last) setPlacementTap({ nx: last.nx, ny: last.ny });
+            }}
             editable
+            dragOnly
             backgroundFit="contain"
             height="100%"
             minHeight={240}
@@ -546,17 +353,17 @@ export function ArPostFlow({
         >
           <button
             type="button"
-            onClick={() => setPhase('form')}
+            onClick={() => setPhase('capture')}
             style={{ ...bottomBtnStyle(true), flex: 1, background: 'rgba(255,255,255,0.12)', color: AR_THEME.text }}
           >
-            スキップしてOK
+            撮り直す
           </button>
           <button
             type="button"
             onClick={() => setPhase('form')}
             style={{ ...bottomBtnStyle(true), flex: 2 }}
           >
-            {(draft.photoPins?.length ?? 0) > 0 ? '次へ' : 'このまま次へ'}
+            次へ
           </button>
         </div>
       </div>
@@ -566,12 +373,12 @@ export function ArPostFlow({
   if (phase === 'form') {
     return (
       <>
-        {showEditMapPicker && (
+        {showMapPicker && (
           <ArMapPinPicker
             userGeo={draft.authorGeo ?? geo}
             initialPin={draft.worldPin}
-            onConfirm={confirmEditMapPlacement}
-            onCancel={() => setShowEditMapPicker(false)}
+            onConfirm={confirmMapPlacement}
+            onCancel={() => setShowMapPicker(false)}
           />
         )}
 
@@ -585,7 +392,7 @@ export function ArPostFlow({
             else setPhase('annotate');
           }}
           onSubmit={(finalDraft) => handleSubmit(finalDraft)}
-          onEditLocation={isEdit ? () => setShowEditMapPicker(true) : undefined}
+          onEditLocation={() => setShowMapPicker(true)}
         />
       </>
     );
@@ -619,7 +426,7 @@ export function ArPostFlow({
           {stickDone ? (
             <>
               <Check size={48} color={AR_THEME.positive} />
-              <div style={{ fontSize: 22, fontWeight: 'bold', marginTop: 12 }}>ピンを置きました！</div>
+              <div style={{ fontSize: 22, fontWeight: 'bold', marginTop: 12 }}>記録しました</div>
               <p style={{
                 margin: '12px auto 0',
                 maxWidth: 320,
@@ -628,7 +435,7 @@ export function ArPostFlow({
                 color: AR_THEME.muted,
               }}
               >
-                現地で投稿を見ると、他の人も目の前にピンとして見られます。位置はおおよそです。
+                現地でカメラをかざすと、他の人もこの投稿を見られます。
               </p>
               <button
                 type="button"
@@ -639,7 +446,7 @@ export function ArPostFlow({
                   marginTop: 16,
                 }}
               >
-                投稿を見る
+                近くの投稿を見る
               </button>
               <button
                 type="button"
@@ -659,7 +466,7 @@ export function ArPostFlow({
               </button>
             </>
           ) : (
-            <div style={{ fontSize: 18 }}>保存中…</div>
+            <div style={{ fontSize: 18 }}>{submitting ? '保存中…' : '保存中…'}</div>
           )}
         </div>
       </div>
@@ -669,22 +476,29 @@ export function ArPostFlow({
   return null;
 }
 
-function PromptContextBar({ draft }) {
+function PromptBanner({ draft, compact = false }) {
   if (!draft?.promptTitle || draft.promptKind === 'free') return null;
   const isSpecial = draft.promptKind === 'special';
   return (
     <div style={{
-      marginBottom: 10,
-      padding: '10px 12px',
+      padding: compact ? '6px 10px' : '10px 12px',
       borderRadius: 12,
-      background: isSpecial ? 'rgba(124,58,237,0.25)' : 'rgba(37,99,235,0.25)',
+      background: isSpecial ? 'rgba(124,58,237,0.35)' : 'rgba(37,99,235,0.4)',
       border: `1px solid ${isSpecial ? 'rgba(167,139,250,0.5)' : 'rgba(96,165,250,0.5)'}`,
     }}
     >
-      <div style={{ fontSize: 11, fontWeight: 700, color: isSpecial ? '#c4b5fd' : '#93c5fd', marginBottom: 4 }}>
+      <div style={{ fontSize: 10, fontWeight: 700, color: isSpecial ? '#c4b5fd' : '#93c5fd' }}>
         {isSpecial ? '特設のお題' : '今月のお題'}
       </div>
-      <div style={{ fontSize: 13, color: '#f1f5f9', lineHeight: 1.4 }}>{draft.promptTitle}</div>
+      <div style={{
+        fontSize: compact ? 13 : 14,
+        color: '#f1f5f9',
+        lineHeight: 1.35,
+        fontWeight: 700,
+      }}
+      >
+        {draft.promptTitle}
+      </div>
     </div>
   );
 }

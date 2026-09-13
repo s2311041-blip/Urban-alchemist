@@ -2,7 +2,8 @@ import { KOTO_PLACE_OPTIONS } from '../constants/kotoArea';
 import { inferPlaceFromText, normalizeClassifyText } from './classifyDraft';
 
 /** 入力欄下に表示する例（タップで追記 — 固定属性への変換はしない） */
-export const PLACE_INPUT_HINTS = ['駅', '駅前', '広場', '歩道', '公園', '商店街', 'バス停', '路地', '水辺'];
+export const PLACE_INPUT_HINTS = ['駅', '広場', '歩道', '公園', '商店街', 'バス停', '路地'];
+export const PLACE_INPUT_HINTS_GOOD = ['駅', '広場', '歩道', '公園', '商店街', 'ベンチ', '水辺'];
 export const WHO_INPUT_HINTS = ['みんな', '高齢者', '女性', '車いす', '夜一人'];
 export const CONTEXT_INPUT_HINTS = ['常時', '夜', '夕方', '軽い', '中くらい', '深刻'];
 

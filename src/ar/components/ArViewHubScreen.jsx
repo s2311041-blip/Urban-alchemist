@@ -3,7 +3,6 @@ import {
   BookOpen,
   ChevronLeft,
   ChevronRight,
-  Eye,
   Heart,
   Map,
   Smartphone,
@@ -12,7 +11,6 @@ import { AR_HOME } from '../constants/arTheme';
 
 export function ArViewHubScreen({
   pinCount = 0,
-  totalPoints = 0,
   availablePoints = 0,
   onBrowse,
   onMap,
@@ -26,8 +24,8 @@ export function ArViewHubScreen({
           <ChevronLeft size={20} />
           ホーム
         </button>
-        <h1 style={styles.title}>投稿を見る</h1>
-        <p style={styles.lead}>近くにいるとき、みんなの写真と声を読めます</p>
+        <h1 style={styles.title}>みんなの声を見る</h1>
+        <p style={styles.lead}>街に残された、みんなの写真や声を見ることができます</p>
 
         <div style={styles.statsRow}>
           <div style={styles.statPill}>
@@ -55,8 +53,8 @@ export function ArViewHubScreen({
             <Smartphone size={26} color={AR_HOME.primary} />
           </div>
           <div style={{ flex: 1, textAlign: 'left' }}>
-            <div style={styles.primaryTitle}>スマホをかざして近くのみんなの投稿を見る</div>
-            <div style={styles.primaryDesc}>目の前にピンが見えます。位置はおおよそです</div>
+            <div style={styles.primaryTitle}>カメラをかざして探す</div>
+            <div style={styles.primaryDesc}>周りの景色にスマートフォンを向けて、近くのピンを探します</div>
           </div>
           <ChevronRight size={20} color={AR_HOME.primary} />
         </button>
@@ -66,8 +64,8 @@ export function ArViewHubScreen({
             <Map size={22} color={AR_HOME.primary} />
           </div>
           <div style={{ flex: 1, textAlign: 'left' }}>
-            <div style={styles.secondaryTitle}>みんなのピンを地図で見る</div>
-            <div style={styles.secondaryDesc}>地図上のピンをタップすると記録を読めます</div>
+            <div style={styles.secondaryTitle}>地図から探す</div>
+            <div style={styles.secondaryDesc}>マップ上で場所を確認しながら、投稿を見ることができます</div>
           </div>
           <ChevronRight size={18} color={AR_HOME.textSecondary} />
         </button>
@@ -77,24 +75,12 @@ export function ArViewHubScreen({
             <BookOpen size={22} color={AR_HOME.primary} />
           </div>
           <div style={{ flex: 1, textAlign: 'left' }}>
-            <div style={styles.secondaryTitle}>記録一覧</div>
-            <div style={styles.secondaryDesc}>
-              みんな / 自分で絞り込み。共感に使える
-              {' '}
-              {availablePoints}
-              pt（合計
-              {' '}
-              {totalPoints}
-              pt）
-            </div>
+            <div style={styles.secondaryTitle}>一覧リストで見る</div>
+            <div style={styles.secondaryDesc}>投稿されたすべての写真と声をリストで確認します</div>
           </div>
           <ChevronRight size={18} color={AR_HOME.textSecondary} />
         </button>
 
-        <div style={styles.note}>
-          <Eye size={16} color={AR_HOME.primary} />
-          <span>かざして見るのは、今いる場所から約50m以内の投稿です。</span>
-        </div>
       </div>
     </div>
   );
@@ -244,19 +230,5 @@ const styles = {
     color: AR_HOME.textSecondary,
     marginTop: 2,
     lineHeight: 1.4,
-  },
-  note: {
-    display: 'flex',
-    alignItems: 'flex-start',
-    gap: 8,
-    marginTop: 8,
-    padding: '12px 14px',
-    borderRadius: 12,
-    background: AR_HOME.surfaceMuted,
-    border: `1px solid ${AR_HOME.border}`,
-    fontSize: 13,
-    fontWeight: 600,
-    color: AR_HOME.textSecondary,
-    lineHeight: 1.45,
   },
 };

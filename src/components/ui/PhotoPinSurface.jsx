@@ -2,16 +2,18 @@ import React, { useRef } from 'react';
 import { MapPin, X } from 'lucide-react';
 
 const MAX_PINS = 5;
+const clampNorm = (value) => Math.min(0.96, Math.max(0.04, value));
 
 /**
  * 写真上の空間注釈ピン（正規化座標 0–1）
- * editable=true のときタップで追加・ピンクリックで削除
+ * dragOnly=true のとき中央ピンをドラッグで微調整。通常はタップ追加・タップ削除。
  */
 export const PhotoPinSurface = ({
   imageUrl,
   pins = [],
   onChange,
   editable = false,
+  dragOnly = false,
   height = '100%',
   minHeight,
   backgroundFit = 'cover',
@@ -21,20 +23,35 @@ export const PhotoPinSurface = ({
   children,
 }) => {
   const containerRef = useRef(null);
+  const dragIdRef = useRef(null);
   const useContainLayout = backgroundFit === 'contain' && !!imageUrl;
 
+  const pointToNorm = (clientX, clientY) => {
+    if (!containerRef.current) return null;
+    const rect = containerRef.current.getBoundingClientRect();
+    if (!rect.width || !rect.height) return null;
+    return {
+      nx: clampNorm((clientX - rect.left) / rect.width),
+      ny: clampNorm((clientY - rect.top) / rect.height),
+    };
+  };
+
   const handleSurfaceClick = (event) => {
-    if (!editable || !onChange || !containerRef.current) return;
+    if (!editable || dragOnly || !onChange || !containerRef.current) return;
     if (event.target.closest('[data-photo-pin]')) return;
     if (pins.length >= MAX_PINS) return;
-    const rect = containerRef.current.getBoundingClientRect();
-    if (!rect.width || !rect.height) return;
-    const nx = Math.min(0.96, Math.max(0.04, (event.clientX - rect.left) / rect.width));
-    const ny = Math.min(0.96, Math.max(0.04, (event.clientY - rect.top) / rect.height));
+    const next = pointToNorm(event.clientX, event.clientY);
+    if (!next) return;
     onChange([
       ...pins,
-      { id: `pin_${Date.now()}_${Math.random().toString(36).slice(2, 5)}`, nx, ny },
+      { id: `pin_${Date.now()}_${Math.random().toString(36).slice(2, 5)}`, ...next },
     ]);
+  };
+
+  const movePin = (pinId, clientX, clientY) => {
+    const next = pointToNorm(clientX, clientY);
+    if (!next || !onChange) return;
+    onChange(pins.map((pin) => (pin.id === pinId ? { ...pin, ...next } : pin)));
   };
 
   const markerSize = pinSize ?? (editable ? 28 : 32);
@@ -46,9 +63,24 @@ export const PhotoPinSurface = ({
       data-photo-pin
       onClick={(event) => {
         event.stopPropagation();
+        if (dragOnly) return;
         if (editable && onChange) onChange(pins.filter((item) => item.id !== pin.id));
       }}
-      title={editable ? 'タップで削除' : `注目点 ${index + 1}`}
+      onPointerDown={(event) => {
+        if (!editable || !dragOnly) return;
+        event.preventDefault();
+        event.stopPropagation();
+        dragIdRef.current = pin.id;
+        event.currentTarget.setPointerCapture?.(event.pointerId);
+      }}
+      onPointerMove={(event) => {
+        if (dragIdRef.current !== pin.id) return;
+        movePin(pin.id, event.clientX, event.clientY);
+      }}
+      onPointerUp={() => {
+        dragIdRef.current = null;
+      }}
+      title={dragOnly ? 'ドラッグして位置を調整' : editable ? 'タップで削除' : `注目点 ${index + 1}`}
       style={{
         position: 'absolute',
         left: `${(pin.nx ?? 0.5) * 100}%`,
@@ -57,29 +89,32 @@ export const PhotoPinSurface = ({
         border: 'none',
         background: 'transparent',
         padding: 0,
-        cursor: editable ? 'pointer' : 'default',
+        cursor: editable ? (dragOnly ? 'grab' : 'pointer') : 'default',
+        touchAction: dragOnly ? 'none' : undefined,
         filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.55))',
         zIndex: 2,
       }}
     >
       <MapPin size={markerSize} color="#ff5252" fill="#ff5252" strokeWidth={1.5} />
-      <span
-        style={{
-          position: 'absolute',
-          left: '50%',
-          top: 6,
-          transform: 'translateX(-50%)',
-          background: 'rgba(0,0,0,0.72)',
-          color: '#fff',
-          fontSize: 11,
-          fontWeight: 700,
-          borderRadius: 8,
-          padding: '2px 6px',
-          whiteSpace: 'nowrap',
-        }}
-      >
-        {index + 1}
-      </span>
+      {!dragOnly && (
+        <span
+          style={{
+            position: 'absolute',
+            left: '50%',
+            top: 6,
+            transform: 'translateX(-50%)',
+            background: 'rgba(0,0,0,0.72)',
+            color: '#fff',
+            fontSize: 11,
+            fontWeight: 700,
+            borderRadius: 8,
+            padding: '2px 6px',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {index + 1}
+        </span>
+      )}
     </button>
   ));
 
@@ -106,7 +141,7 @@ export const PhotoPinSurface = ({
             lineHeight: 0,
             maxWidth: '100%',
             maxHeight: '100%',
-            cursor: editable ? 'crosshair' : 'default',
+            cursor: editable ? (dragOnly ? 'default' : 'crosshair') : 'default',
           }}
         >
           <img
@@ -154,7 +189,7 @@ export const PhotoPinSurface = ({
         backgroundPosition: 'center',
         backgroundColor: '#263238',
         overflow: 'hidden',
-        cursor: editable ? 'crosshair' : 'default',
+        cursor: editable ? (dragOnly ? 'default' : 'crosshair') : 'default',
       }}
     >
       {pinButtons}
@@ -174,7 +209,9 @@ export const PhotoPinSurface = ({
             lineHeight: 1.4,
           }}
         >
-          気になる場所をタップしてピン（最大{MAX_PINS}個）。ピンをタップで削除。
+          {dragOnly
+            ? 'ピンをドラッグして、気になる位置へ動かしてください。'
+            : `気になる場所をタップしてピン（最大${MAX_PINS}個）。ピンをタップで削除。`}
         </div>
       )}
       {overlayBottom}

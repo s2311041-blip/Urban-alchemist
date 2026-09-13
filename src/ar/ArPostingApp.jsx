@@ -154,7 +154,6 @@ export function ArPostingApp() {
     return (
       <ArViewHubScreen
         pinCount={myCount}
-        totalPoints={totalPoints}
         availablePoints={getAvailablePoints()}
         onBrowse={() => setScreen('browse')}
         onMap={() => setScreen('map')}

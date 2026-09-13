@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { getInsecureContextHint } from '../utils/secureContext';
 
-export function useCameraStream({ enabled = true } = {}) {
+export function useCameraStream({ enabled = true, facingMode = 'environment' } = {}) {
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const [ready, setReady] = useState(false);
@@ -32,7 +32,7 @@ export function useCameraStream({ enabled = true } = {}) {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
           video: {
-            facingMode: { ideal: 'environment' },
+            facingMode: { ideal: facingMode },
             width: { ideal: 1920, min: 1280 },
             height: { ideal: 1080, min: 720 },
           },
@@ -74,7 +74,7 @@ export function useCameraStream({ enabled = true } = {}) {
       }
       setReady(false);
     };
-  }, [enabled]);
+  }, [enabled, facingMode]);
 
   const capturePhoto = () => {
     const video = videoRef.current;

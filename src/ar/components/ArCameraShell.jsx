@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { ChevronLeft } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { ChevronLeft, SwitchCamera } from 'lucide-react';
 import { useCameraStream } from '../hooks/useCameraStream';
 import { AR_THEME } from '../constants/arTheme';
 import { ArCaptureReticle } from './ArCaptureReticle';
@@ -10,13 +10,16 @@ import { ArCaptureReticle } from './ArCaptureReticle';
 export function ArCameraShell({
   title = '撮影',
   subtitle,
+  banner,
   onClose,
   captureRef,
   showReticle = false,
   reticleHint,
+  showFlip = false,
   children,
 }) {
-  const { videoRef, ready, error, capturePhoto } = useCameraStream({ enabled: true });
+  const [facingMode, setFacingMode] = useState('environment');
+  const { videoRef, ready, error, capturePhoto } = useCameraStream({ enabled: true, facingMode });
 
   useEffect(() => {
     if (captureRef) captureRef.current = capturePhoto;
@@ -84,13 +87,27 @@ export function ArCameraShell({
             <ChevronLeft size={24} />
           </button>
         )}
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 11, color: AR_THEME.accent }}>投稿</div>
-          <div style={{ fontSize: 16, fontWeight: 'bold' }}>{title}</div>
-          {subtitle && (
-            <div style={{ fontSize: 11, color: AR_THEME.muted, marginTop: 2 }}>{subtitle}</div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {banner || (
+            <>
+              <div style={{ fontSize: 11, color: AR_THEME.accent }}>投稿</div>
+              <div style={{ fontSize: 16, fontWeight: 'bold' }}>{title}</div>
+              {subtitle && (
+                <div style={{ fontSize: 11, color: AR_THEME.muted, marginTop: 2 }}>{subtitle}</div>
+              )}
+            </>
           )}
         </div>
+        {showFlip && (
+          <button
+            type="button"
+            onClick={() => setFacingMode((mode) => (mode === 'environment' ? 'user' : 'environment'))}
+            style={headerBtnStyle}
+            aria-label="カメラを切り替える"
+          >
+            <SwitchCamera size={22} />
+          </button>
+        )}
       </div>
 
       {children}

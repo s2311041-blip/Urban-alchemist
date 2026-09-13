@@ -2,9 +2,9 @@ import React from 'react';
 import { AR_THEME } from '../constants/arTheme';
 
 /**
- * 撮影時の照準（十字のみ — 枠なしで自然な構図を保つ）
+ * 撮影時の照準（十字のみ）
  */
-export function ArCaptureReticle({ hint = '困りごとの方向を十字に合わせてください', showHint = true }) {
+export function ArCaptureReticle({ hint, showHint = false }) {
   return (
     <div
       style={{
