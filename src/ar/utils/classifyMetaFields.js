@@ -1,11 +1,27 @@
+import { TIME_TAG_OPTIONS, SEVERITY_OPTIONS } from '../../constants/barrierData';
 import { KOTO_PLACE_OPTIONS } from '../constants/kotoArea';
 import { inferPlaceFromText, normalizeClassifyText } from './classifyDraft';
 
-/** 入力欄下に表示する例（タップで追記 — 固定属性への変換はしない） */
-export const PLACE_INPUT_HINTS = ['駅', '広場', '歩道', '公園', '商店街', 'バス停', '路地'];
-export const PLACE_INPUT_HINTS_GOOD = ['駅', '広場', '歩道', '公園', '商店街', 'ベンチ', '水辺'];
-export const WHO_INPUT_HINTS = ['みんな', '高齢者', '女性', '車いす', '夜一人'];
-export const CONTEXT_INPUT_HINTS = ['常時', '夜', '夕方', '軽い', '中くらい', '深刻'];
+/** 入力欄下に表示する例（場所はタップで確定、誰はタップで追記） */
+export const PLACE_INPUT_HINTS = ['歩道', '公園・広場', '駅前', '商店街', 'バス停', '路地'];
+export const PLACE_INPUT_HINTS_GOOD = ['広場', '公園', 'ベンチ・休憩所', '歩道', 'カフェ・店舗', '水辺'];
+export const WHO_INPUT_HINTS = ['みんな', '車いす・ベビーカー', '高齢者', '子ども・親子', '夜の一人歩き'];
+export const CONTEXT_INPUT_HINTS = ['いつでも', '夜', '夕方', 'すこし', '中くらい', 'かなり深刻'];
+
+/** ヒントタグをそのまま選んだときの場所型（自由記述は語彙推定に任せる） */
+export const PLACE_HINT_TO_ARCHETYPE = {
+  歩道: 'road',
+  '公園・広場': 'park',
+  駅前: 'plaza',
+  商店街: 'commerce',
+  バス停: 'bus_stop',
+  路地: 'lane',
+  広場: 'plaza',
+  公園: 'park',
+  'ベンチ・休憩所': 'park',
+  'カフェ・店舗': 'commerce',
+  水辺: 'waterfront',
+};
 
 const TIME_LEXICON = {
   morning: ['朝', '早朝', '午前', 'morning'],
@@ -16,9 +32,9 @@ const TIME_LEXICON = {
 };
 
 const SEVERITY_LEXICON = {
-  low: ['軽い', '少し', '軽度', '軽微', 'low'],
+  low: ['軽い', '少し', 'すこし', '軽度', '軽微', 'low'],
   mid: ['中', '中くらい', '普通', 'mid'],
-  high: ['深刻', 'ひどい', '大変', '危ない', '危険', 'high'],
+  high: ['深刻', 'かなり深刻', 'ひどい', '大変', '危ない', '危険', 'high'],
 };
 
 function matchLexicon(text, lexicon) {
@@ -47,6 +63,11 @@ export function inferSeverityFromText(text = '') {
 }
 
 export function inferPlaceArchetypeFromText(text = '') {
+  const hintArchetype = PLACE_HINT_TO_ARCHETYPE[text.trim()];
+  if (hintArchetype) {
+    return { placeArchetype: hintArchetype, placeSource: 'hint' };
+  }
+
   const fromLexicon = inferPlaceFromText(text);
   if (fromLexicon.placeArchetype) {
     return { placeArchetype: fromLexicon.placeArchetype, placeSource: 'keyword' };
@@ -110,11 +131,9 @@ export function buildClassificationContext(draft = {}) {
 }
 
 export function getTimeTagLabel(timeTagId) {
-  const labels = { morning: '朝', day: '昼', evening: '夕方', night: '夜', always: '常時' };
-  return labels[timeTagId] ?? '常時';
+  return TIME_TAG_OPTIONS.find((opt) => opt.id === timeTagId)?.label ?? 'いつでも';
 }
 
 export function getSeverityLabel(severityId) {
-  const labels = { low: '軽い', mid: '中くらい', high: '深刻' };
-  return labels[severityId] ?? '中くらい';
+  return SEVERITY_OPTIONS.find((opt) => opt.id === severityId)?.label ?? '中くらい';
 }

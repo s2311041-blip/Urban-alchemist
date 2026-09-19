@@ -9,6 +9,7 @@ const LABEL_TO_TIME_TAG_ID = {
   夕方: 'evening',
   夜: 'night',
   常時: 'always',
+  いつでも: 'always',
 };
 
 /** 編集用：既存アノテーション → フォーム draft */

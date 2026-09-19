@@ -63,7 +63,7 @@ export const ARPostingMode = ({
   const [placeArchetype, setPlaceArchetype] = useState(null);
   const [currentStep, setCurrentStep] = useState(1);
   const [affectedGroups, setAffectedGroups] = useState([]);
-  const [timeTag, setTimeTag] = useState('常時');
+  const [timeTag, setTimeTag] = useState('いつでも');
   const [severity, setSeverity] = useState('mid');
   const [photoPins, setPhotoPins] = useState([]);
   const [geoPosition, setGeoPosition] = useState(null);
@@ -98,7 +98,7 @@ export const ARPostingMode = ({
       setNeedType(source.needType ?? 'P');
       setPlaceArchetype(source.placeArchetype ?? null);
       setAffectedGroups(Array.isArray(source.affectedGroups) ? source.affectedGroups : []);
-      setTimeTag(source.timeTag ?? '常時');
+      setTimeTag(source.timeTag === '常時' ? 'いつでも' : (source.timeTag ?? 'いつでも'));
       setSeverity(source.severity ?? 'mid');
     }
     setPhase('form');
@@ -172,7 +172,7 @@ export const ARPostingMode = ({
       setCurrentStep(1);
       setPhotoPins([]);
       setAffectedGroups([]);
-      setTimeTag('常時');
+      setTimeTag('いつでも');
       setSeverity('mid');
       setPlaceArchetype(null);
       if (captureMode === 'onsite') captureGeoPosition();
@@ -193,7 +193,7 @@ export const ARPostingMode = ({
       setCurrentStep(1);
       setPhotoPins([]);
       setAffectedGroups([]);
-      setTimeTag('常時');
+      setTimeTag('いつでも');
       setSeverity('mid');
       setPlaceArchetype(null);
       stopCamera();

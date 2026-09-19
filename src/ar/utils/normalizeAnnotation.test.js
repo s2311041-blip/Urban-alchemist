@@ -19,7 +19,7 @@ describe('buildAnnotationFromDraft', () => {
     expect(record.needType).toBe('P');
     expect(record.placeArchetype).toBe('station');
     expect(record.affectedGroups).toEqual(['車いす']);
-    expect(record.timeTag).toBe('常時');
+    expect(record.timeTag).toBe('いつでも');
     expect(record.type).toBe('danger');
   });
 

@@ -1,5 +1,6 @@
 import { NEED_CATEGORY_OPTIONS } from '../../constants/barrierData';
 import { KOTO_PLACE_OPTIONS } from '../constants/kotoArea';
+import { getSeverityLabel } from './classifyMetaFields';
 
 /** 図鑑・検索用タグをアノテーションから抽出 */
 export function getAnnotationTags(annotation) {
@@ -30,7 +31,7 @@ export function getAnnotationTags(annotation) {
 
   if (annotation.timeTag) tags.push({ id: `when:${annotation.timeTag}`, label: annotation.timeTag, group: 'when' });
   if (annotation.severity) {
-    const sev = { low: '軽い', mid: '中くらい', high: '深刻' }[annotation.severity] ?? annotation.severity;
+    const sev = getSeverityLabel(annotation.severity);
     tags.push({ id: `sev:${annotation.severity}`, label: sev, group: 'severity' });
   }
 

@@ -331,15 +331,15 @@ export const NEED_TYPE_CODES = ['P', 'V', 'I', 'M', 'R', 'S', 'L', 'C', 'O'];
  * AR投稿向け: 初学者に分かりやすい「困り方」ジャンル（needType 8種 + その他）
  */
 export const NEED_CATEGORY_OPTIONS = [
-  { needType: 'P', iconSrc: GENRE_PICTOGRAMS.P, label: '歩きにくい', hint: '段差・狭さなど、ここを歩くのがつらい' },
-  { needType: 'L', iconSrc: GENRE_PICTOGRAMS.L, label: '行き来しにくい', hint: 'AからBへ移動・接続がつながらない' },
-  { needType: 'I', iconSrc: GENRE_PICTOGRAMS.I, label: '分かりにくい', hint: '行き方・案内が足りない' },
-  { needType: 'V', iconSrc: GENRE_PICTOGRAMS.V, label: '見えにくい', hint: '暗さ・死角など、目で見えない' },
-  { needType: 'M', iconSrc: GENRE_PICTOGRAMS.M, label: '汚れ・荒れ', hint: '清掃・維持が追いついていない' },
-  { needType: 'R', iconSrc: GENRE_PICTOGRAMS.R, label: '休めない', hint: '座る・待つ場所が足りない' },
-  { needType: 'S', iconSrc: GENRE_PICTOGRAMS.S, label: '不安・怖い', hint: '人・雰囲気などで安心できない' },
-  { needType: 'C', iconSrc: GENRE_PICTOGRAMS.C, label: '頼れない', hint: '困ったとき助けを求めにくい・見守りの場所がない' },
-  { needType: 'O', iconSrc: null, label: 'その他', hint: '上記8つに当てはまらない' },
+  { needType: 'P', iconSrc: GENRE_PICTOGRAMS.P, label: '歩きにくい・通りにくい', hint: '段差、傾斜、道幅の狭さなど' },
+  { needType: 'L', iconSrc: GENRE_PICTOGRAMS.L, label: '遠回り・道がつながっていない', hint: '通り抜けできない、目的地への移動が不便' },
+  { needType: 'I', iconSrc: GENRE_PICTOGRAMS.I, label: '道や場所が分かりにくい', hint: '案内看板がない、出口や行き先が不明' },
+  { needType: 'V', iconSrc: GENRE_PICTOGRAMS.V, label: '暗い・見通しが悪い', hint: '街灯が暗い、曲がり角の死角で見えない' },
+  { needType: 'M', iconSrc: GENRE_PICTOGRAMS.M, label: 'ゴミ・設備の荒れ', hint: '清掃されていない、雑草や放置物、落書き' },
+  { needType: 'R', iconSrc: GENRE_PICTOGRAMS.R, label: '休む・待つ場所がない', hint: 'ベンチや日陰、雨宿りできる場所が不足' },
+  { needType: 'S', iconSrc: GENRE_PICTOGRAMS.S, label: '危険・不安を感じる', hint: '交通量が多くて危険、夜間の治安が不安' },
+  { needType: 'C', iconSrc: GENRE_PICTOGRAMS.C, label: '困ったときに相談・避難できない', hint: '交番や案内所がない、緊急時に頼れる場所がない' },
+  { needType: 'O', iconSrc: null, label: 'その他', hint: '上記のどれにも当てはまらない' },
 ];
 
 /**
@@ -372,21 +372,24 @@ export const TIME_TAG_OPTIONS = [
   { id: 'day', label: '昼', iconSrc: WHEN_PICTOGRAMS.day },
   { id: 'evening', label: '夕方', iconSrc: WHEN_PICTOGRAMS.evening },
   { id: 'night', label: '夜', iconSrc: WHEN_PICTOGRAMS.night },
-  { id: 'always', label: '常時', iconSrc: WHEN_PICTOGRAMS.always },
+  { id: 'always', label: 'いつでも', iconSrc: WHEN_PICTOGRAMS.always },
 ];
 
 export const SEVERITY_OPTIONS = [
-  { id: 'low', label: '軽い', iconSrc: DEGREE_PICTOGRAMS.low },
+  { id: 'low', label: 'すこし', iconSrc: DEGREE_PICTOGRAMS.low },
   { id: 'mid', label: '中くらい', iconSrc: DEGREE_PICTOGRAMS.mid },
-  { id: 'high', label: '深刻', iconSrc: DEGREE_PICTOGRAMS.high },
+  { id: 'high', label: 'かなり深刻', iconSrc: DEGREE_PICTOGRAMS.high },
 ];
 
 export const TARGET_GROUP_ICON_BY_LABEL = Object.fromEntries(
   TARGET_GROUP_OPTIONS.map((opt) => [opt.label, opt.iconSrc]),
 );
-export const TIME_TAG_ICON_BY_LABEL = Object.fromEntries(
-  TIME_TAG_OPTIONS.map((opt) => [opt.label, opt.iconSrc]),
-);
+export const TIME_TAG_ICON_BY_LABEL = {
+  ...Object.fromEntries(
+    TIME_TAG_OPTIONS.map((opt) => [opt.label, opt.iconSrc]),
+  ),
+  常時: WHEN_PICTOGRAMS.always,
+};
 export const SEVERITY_ICON_BY_ID = Object.fromEntries(
   SEVERITY_OPTIONS.map((opt) => [opt.id, opt.iconSrc]),
 );

@@ -1,5 +1,6 @@
 import React, { useRef } from 'react';
 import { MapPin, X } from 'lucide-react';
+import { AimCrosshair } from './AimCrosshair';
 
 const MAX_PINS = 5;
 const clampNorm = (value) => Math.min(0.96, Math.max(0.04, value));
@@ -85,17 +86,19 @@ export const PhotoPinSurface = ({
         position: 'absolute',
         left: `${(pin.nx ?? 0.5) * 100}%`,
         top: `${(pin.ny ?? 0.5) * 100}%`,
-        transform: 'translate(-50%, -100%)',
+        transform: dragOnly ? 'translate(-50%, -50%)' : 'translate(-50%, -100%)',
         border: 'none',
         background: 'transparent',
         padding: 0,
         cursor: editable ? (dragOnly ? 'grab' : 'pointer') : 'default',
         touchAction: dragOnly ? 'none' : undefined,
-        filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.55))',
+        filter: dragOnly ? undefined : 'drop-shadow(0 2px 4px rgba(0,0,0,0.55))',
         zIndex: 2,
       }}
     >
-      <MapPin size={markerSize} color="#ff5252" fill="#ff5252" strokeWidth={1.5} />
+      {dragOnly
+        ? <AimCrosshair size={48} />
+        : <MapPin size={markerSize} color="#ff5252" fill="#ff5252" strokeWidth={1.5} />}
       {!dragOnly && (
         <span
           style={{

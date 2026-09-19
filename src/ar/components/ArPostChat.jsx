@@ -1,12 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronLeft, Loader2, MapPin, Send, SkipForward } from 'lucide-react';
-import { KOTO_PLACE_OPTIONS } from '../constants/kotoArea';
+import { ChevronLeft, ChevronRight, Loader2, MapPin, Send, SkipForward, Tag } from 'lucide-react';
 import { AR_THEME, chipStyle } from '../constants/arTheme';
 import { classifyAnnotation } from '../api/classifyAnnotation';
-import { getPlaceLabel } from '../utils/classifyDraft';
 import {
   classifyMetaFromDraft,
-  getPlaceDisplayLabel,
   getSeverityLabel,
   getTimeTagLabel,
   inferPlaceArchetypeFromText,
@@ -19,7 +16,7 @@ import { Pictogram } from '../../components/ui/Pictogram';
 import { getNeedTypeOption } from '../constants/needTypeGroups';
 import { ArNeedTypePicker, NeedTypeChoiceButton } from './ArNeedTypePicker';
 
-const BAD_STEPS = ['kind', 'story', 'place', 'who', 'when', 'severity'];
+const BAD_STEPS = ['kind', 'place', 'story', 'who', 'when', 'severity'];
 const GOOD_STEPS = ['kind', 'place', 'story'];
 const TEXT_INPUT_STEPS = new Set(['story', 'place', 'who']);
 
@@ -95,7 +92,7 @@ function ChipOptionButton({ active, onClick, children, accent = AR_THEME.accent 
   );
 }
 
-function HintChips({ hints, onPick }) {
+function HintChips({ hints, onPick, prominent = false }) {
   return (
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
       {hints.map((hint) => (
@@ -104,12 +101,14 @@ function HintChips({ hints, onPick }) {
           type="button"
           onClick={() => onPick(hint)}
           style={{
-            padding: '6px 10px',
+            padding: prominent ? '10px 14px' : '6px 10px',
+            minHeight: prominent ? 44 : undefined,
             borderRadius: 999,
-            border: '1px solid rgba(255,255,255,0.18)',
-            background: 'rgba(255,255,255,0.06)',
-            color: AR_THEME.muted,
-            fontSize: 12,
+            border: prominent ? `1px solid ${AR_THEME.accent}66` : '1px solid rgba(255,255,255,0.18)',
+            background: prominent ? 'rgba(79,195,247,0.12)' : 'rgba(255,255,255,0.06)',
+            color: prominent ? AR_THEME.text : AR_THEME.muted,
+            fontSize: prominent ? 14 : 12,
+            fontWeight: prominent ? 600 : 400,
             cursor: 'pointer',
           }}
         >
@@ -120,41 +119,12 @@ function HintChips({ hints, onPick }) {
   );
 }
 
-const confirmBtnRowStyle = {
-  display: 'grid',
-  gridTemplateColumns: '1fr 1fr',
-  gap: 8,
-  marginBottom: 12,
-};
-
-function ProposedNeedTypeCard({ needOpt }) {
-  if (!needOpt) return null;
-  return (
-    <div style={{
-      padding: 12,
-      borderRadius: 12,
-      border: `1px solid ${AR_THEME.accent}55`,
-      background: 'rgba(79,195,247,0.08)',
-      marginBottom: 10,
-    }}
-    >
-      <div style={{ fontSize: 16, fontWeight: 'bold', color: AR_THEME.text, marginBottom: 4 }}>
-        {needOpt.label}
-      </div>
-      <div style={{ fontSize: 13, color: AR_THEME.muted, lineHeight: 1.45 }}>
-        {needOpt.hint}
-      </div>
-    </div>
-  );
-}
-
 function NeedTypeConfirmSection({
   draft,
   classification,
   onChange,
-  onConfirmed,
 }) {
-  const [mode, setMode] = useState('ask');
+  const [mode, setMode] = useState('badge');
   const needOpt = getNeedTypeOption(draft.needType);
   const rivalOpt = classification?.rivalType ? getNeedTypeOption(classification.rivalType) : null;
 
@@ -168,14 +138,22 @@ function NeedTypeConfirmSection({
         suggestedNeedType: draft.classification?.suggestedNeedType ?? classification?.suggestedNeedType ?? needType,
       },
     });
-    if (edited) onConfirmed();
+    if (edited) setMode('badge');
+  };
+
+  const openChange = () => {
+    if (classification?.ambiguous && classification?.rivalType && rivalOpt) {
+      setMode('rival');
+    } else {
+      setMode('pick');
+    }
   };
 
   if (mode === 'pick') {
     return (
       <div style={{ marginBottom: 12 }}>
         <div style={{ fontSize: 13, color: AR_THEME.text, marginBottom: 8, lineHeight: 1.45 }}>
-          当てはまる型を1つ選んでください
+          当てはまるものを1つ選んでください
         </div>
         <ArNeedTypePicker
           value={draft.needType}
@@ -183,7 +161,7 @@ function NeedTypeConfirmSection({
         />
         <button
           type="button"
-          onClick={() => setMode('ask')}
+          onClick={() => setMode('badge')}
           style={{
             ...chipStyle(false, AR_THEME.muted),
             width: '100%',
@@ -191,7 +169,7 @@ function NeedTypeConfirmSection({
             padding: 10,
           }}
         >
-          提案に戻る
+          もどる
         </button>
       </div>
     );
@@ -201,7 +179,7 @@ function NeedTypeConfirmSection({
     return (
       <div style={{ marginBottom: 12 }}>
         <div style={{ fontSize: 13, color: AR_THEME.text, marginBottom: 8, lineHeight: 1.45 }}>
-          どちらに近いですか？ 具体例も読んで選んでください。
+          どちらに近いですか？
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 8 }}>
           <NeedTypeChoiceButton
@@ -231,44 +209,48 @@ function NeedTypeConfirmSection({
     );
   }
 
+  if (!needOpt) return null;
+
   return (
     <div style={{ marginBottom: 12 }}>
       <div style={{ fontSize: 12, color: AR_THEME.muted, marginBottom: 6 }}>
-        困りの型
+        課題のタイプ（自動で判定しました）
       </div>
-      <ProposedNeedTypeCard needOpt={needOpt} />
-      <p style={{ margin: '0 0 10px', fontSize: 14, color: AR_THEME.text, lineHeight: 1.45 }}>
-        この分類で合っていますか？
-      </p>
-      <div style={confirmBtnRowStyle}>
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 10,
+        padding: '12px 12px',
+        borderRadius: 12,
+        border: `1px solid ${AR_THEME.accent}55`,
+        background: 'rgba(79,195,247,0.08)',
+      }}
+      >
+        <Tag size={18} color={AR_THEME.accent} style={{ flexShrink: 0 }} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 15, fontWeight: 'bold', color: AR_THEME.text, lineHeight: 1.35 }}>
+            {needOpt.label}
+          </div>
+        </div>
         <button
           type="button"
-          onClick={onConfirmed}
+          onClick={openChange}
           style={{
-            ...chipStyle(true, AR_THEME.accentWarm),
-            padding: 12,
-            fontWeight: 'bold',
-            color: '#0d1b2a',
-          }}
-        >
-          はい
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            if (classification?.ambiguous && classification?.rivalType && rivalOpt) {
-              setMode('rival');
-            } else {
-              setMode('pick');
-            }
-          }}
-          style={{
-            ...chipStyle(false, AR_THEME.muted),
-            padding: 12,
+            flexShrink: 0,
+            border: 'none',
+            background: 'transparent',
+            color: AR_THEME.accent,
+            fontSize: 13,
             fontWeight: 600,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 2,
+            padding: '4px 0',
           }}
         >
-          違う
+          変更する
+          <ChevronRight size={16} />
         </button>
       </div>
     </div>
@@ -284,15 +266,8 @@ function ConfirmCard({
   isEdit,
   classifying = false,
 }) {
-  const needOpt = getNeedTypeOption(draft.needType);
-  const [needTypeConfirmed, setNeedTypeConfirmed] = useState(isEdit);
   const isBad = draft.postKind === 'bad';
-  const canPost = !isBad || needTypeConfirmed;
-
-  useEffect(() => {
-    if (isEdit) return;
-    setNeedTypeConfirmed(false);
-  }, [draft.needType, classification?.suggestedNeedType, classification?.source, isEdit]);
+  const canPost = !isBad || Boolean(draft.needType);
 
   if (classifying) {
     return (
@@ -325,7 +300,7 @@ function ConfirmCard({
     }}
     >
       <div style={{ fontSize: 13, color: AR_THEME.accent, fontWeight: 'bold', marginBottom: 10 }}>
-        この内容で記録しますか？
+        投稿内容の確認
       </div>
 
       {draft.photo && (
@@ -342,89 +317,37 @@ function ConfirmCard({
         />
       )}
 
-      <p style={{ margin: '0 0 8px', fontSize: 14, lineHeight: 1.5, color: AR_THEME.muted }}>
-        {draft.comment}
-      </p>
-
-      {(draft.placeText || (isBad && draft.whoText)) && (
-        <div style={{
-          margin: '0 0 12px',
-          padding: 10,
-          borderRadius: 10,
-          background: 'rgba(255,255,255,0.04)',
-          fontSize: 13,
-          lineHeight: 1.5,
-          color: AR_THEME.muted,
-        }}
-        >
-          {draft.placeText && <div>場所: {draft.placeText}</div>}
-          {isBad && draft.whoText && <div>誰にとって: {draft.whoText}</div>}
+      <div style={{
+        margin: '0 0 12px',
+        padding: 10,
+        borderRadius: 10,
+        background: 'rgba(255,255,255,0.04)',
+        fontSize: 14,
+        lineHeight: 1.55,
+        color: AR_THEME.text,
+      }}
+      >
+        {draft.placeText && <div>場所：{draft.placeText}</div>}
+        <div>
+          {isBad ? '困りごと' : '良いところ'}
+          ：
+          {draft.comment}
         </div>
-      )}
-
-      {isBad && (
-        <div style={{
-          margin: '0 0 12px',
-          padding: 10,
-          borderRadius: 10,
-          background: 'rgba(255,255,255,0.04)',
-          fontSize: 13,
-          lineHeight: 1.5,
-          color: AR_THEME.muted,
-        }}
-        >
-          <div>いつ: {getTimeTagLabel(draft.timeTag ?? 'always')}</div>
-          <div>程度: {getSeverityLabel(draft.severity ?? 'mid')}</div>
-        </div>
-      )}
+        {isBad && draft.whoText && <div>誰にとって：{draft.whoText}</div>}
+        {isBad && draft.timeTag && draft.timeTag !== 'always' && (
+          <div>いつ：{getTimeTagLabel(draft.timeTag)}</div>
+        )}
+        {isBad && draft.severity && draft.severity !== 'mid' && (
+          <div>度合い：{getSeverityLabel(draft.severity)}</div>
+        )}
+      </div>
 
       {isBad && (
         <NeedTypeConfirmSection
           draft={draft}
           classification={classification}
           onChange={onChange}
-          onConfirmed={() => setNeedTypeConfirmed(true)}
         />
-      )}
-
-      <div style={{ fontSize: 12, color: AR_THEME.muted, marginBottom: 6 }}>場所（入力）</div>
-      <p style={{ margin: '0 0 8px', fontSize: 14, color: AR_THEME.text }}>
-        {getPlaceDisplayLabel(draft.placeArchetype, draft.placeText)}
-        {draft.placeArchetype && draft.placeArchetype !== 'none' && (
-          <span style={{ color: AR_THEME.muted, fontSize: 12 }}>
-            {' '}
-            →
-            {getPlaceLabel(draft.placeArchetype)}
-          </span>
-        )}
-      </p>
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-        gap: 6,
-        marginBottom: 12,
-      }}
-      >
-        {KOTO_PLACE_OPTIONS.filter((o) => o.id !== 'none').map((opt) => (
-          <button
-            key={opt.id}
-            type="button"
-            onClick={() => onChange({ placeArchetype: opt.id, placeText: opt.label })}
-            style={chipStyle(draft.placeArchetype === opt.id, AR_THEME.accentWarm)}
-          >
-            {opt.label}
-          </button>
-        ))}
-      </div>
-
-      {isBad && needTypeConfirmed && needOpt && (
-        <p style={{ margin: '0 0 12px', fontSize: 12, color: AR_THEME.accent }}>
-          ✓
-          {' '}
-          {needOpt.label}
-          {' '}
-          で投稿します
-        </p>
       )}
 
       {onEditLocation && (
@@ -471,13 +394,8 @@ function ConfirmCard({
           cursor: canPost ? 'pointer' : 'not-allowed',
         }}
       >
-        {isEdit ? 'この内容で保存' : '送信する'}
+        {isEdit ? 'この内容で保存' : 'この内容で投稿する'}
       </button>
-      {isBad && !needTypeConfirmed && (
-        <p style={{ margin: '8px 0 0', fontSize: 12, color: AR_THEME.muted, textAlign: 'center' }}>
-          困りの型を確認してから投稿できます
-        </p>
-      )}
     </div>
   );
 }
@@ -531,13 +449,13 @@ export function ArPostChat({
         appendBot('ここはどんな場所ですか？');
         break;
       case 'who':
-        appendBot('誰にとって困りそうですか？（スキップ可）');
+        appendBot('誰にとって困りそうですか？');
         break;
       case 'when':
-        appendBot('いつ困ることが多いですか？（スキップ可）');
+        appendBot('いつ困ることが多いですか？');
         break;
       case 'severity':
-        appendBot('困りごとの度合いはどのくらいですか？（スキップ可）');
+        appendBot('困りごとの度合いはどのくらいですか？');
         break;
       default:
         break;
@@ -571,10 +489,10 @@ export function ArPostChat({
       } else {
         onChange(meta);
       }
-      appendBot('この内容で記録しますか？');
+      appendBot('投稿内容の確認');
     } catch (err) {
       console.error('[goConfirm] classification failed', err);
-      appendBot('この内容で記録しますか？');
+      appendBot('投稿内容の確認');
     } finally {
       setClassifying(false);
     }
@@ -633,10 +551,10 @@ export function ArPostChat({
     if (stepId === 'story') {
       return isGood
         ? '例：日陰があって涼しい、ベンチが多くて休みやすい'
-        : '例：段差が高い、歩道が狭い、暗くて怖い';
+        : '（短くてもOK）例：段差が高い、道が狭い、暗くて怖い';
     }
     if (stepId === 'place') {
-      return isGood ? '例：カフェ前、広場、遊歩道' : '例：駅前、公園、歩道';
+      return isGood ? '例：カフェ前、広場、遊歩道' : '例：歩道、公園、駅前';
     }
     if (stepId === 'who') return '例：車いす、ベビーカー、夜の一人歩き';
     return '';
@@ -703,7 +621,7 @@ export function ArPostChat({
   const handleWhenConfirm = (skipped = false) => {
     const timeTag = draft.timeTag ?? 'always';
     onChange({ timeTag });
-    appendUser(skipped ? '（スキップ — 常時）' : getTimeTagLabel(timeTag));
+    appendUser(skipped ? '（スキップ — いつでも）' : getTimeTagLabel(timeTag));
     advanceToStep(stepIndex + 1, postKind);
   };
 
@@ -798,7 +716,7 @@ export function ArPostChat({
             {isEdit ? ' · 編集' : ''}
           </div>
           <div style={{ fontWeight: 'bold', fontSize: 18 }}>
-            {phase === 'confirm' ? '内容の確認' : 'ピンの内容を決める'}
+            {phase === 'confirm' ? '投稿内容の確認' : 'ピンの内容を決める'}
           </div>
         </div>
         {canGoBack && (
@@ -991,7 +909,11 @@ export function ArPostChat({
         }}
         >
           {textStepHints.length > 0 && (
-            <HintChips hints={textStepHints} onPick={appendHint} />
+            <HintChips
+              hints={textStepHints}
+              prominent={stepId === 'place'}
+              onPick={stepId === 'place' ? handleTextStepSubmit : appendHint}
+            />
           )}
           <textarea
             value={inputText}

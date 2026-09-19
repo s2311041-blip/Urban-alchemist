@@ -27,6 +27,11 @@ export function ArRecordChooseScreen({ onChoose, onBack }) {
           </button>
           <h1 style={styles.title}>記録のテーマを選ぶ</h1>
           <p style={styles.lead}>今月のお題で、または自由に投稿できます</p>
+          <div style={styles.howto}>
+            <div>① 気になるところを中心に合わせて撮影</div>
+            <div>② 簡単な質問に答えて完了</div>
+            <div style={styles.howtoNote}>※場所は現在地（GPS）、または地図から指定できます</div>
+          </div>
         </header>
 
         <button
@@ -164,6 +169,22 @@ const styles = {
     lineHeight: 1.5,
     color: AR_HOME.textSecondary,
     fontWeight: 600,
+  },
+  howto: {
+    margin: '12px 0 0',
+    padding: '12px 14px',
+    borderRadius: 12,
+    background: AR_HOME.primarySoft,
+    color: AR_HOME.text,
+    fontSize: 14,
+    lineHeight: 1.55,
+    fontWeight: 600,
+  },
+  howtoNote: {
+    marginTop: 6,
+    fontSize: 13,
+    fontWeight: 600,
+    color: AR_HOME.textSecondary,
   },
   standingCard: {
     width: '100%',

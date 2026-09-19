@@ -27,6 +27,7 @@ export function getAnnotationStoryRows(annotation) {
   const place = KOTO_PLACE_OPTIONS.find((o) => o.id === annotation.placeArchetype);
   const whenId = annotation.timeTagId
     ?? TIME_TAG_OPTIONS.find((o) => o.label === annotation.timeTag)?.id
+    ?? (annotation.timeTag === '常時' ? 'always' : null)
     ?? 'always';
   const when = TIME_TAG_OPTIONS.find((o) => o.id === whenId);
   const severity = SEVERITY_OPTIONS.find((o) => o.id === (annotation.severity ?? 'mid'));

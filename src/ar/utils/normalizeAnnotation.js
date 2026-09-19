@@ -7,7 +7,7 @@ const TIME_TAG_ID_TO_LABEL = {
   day: '昼',
   evening: '夕方',
   night: '夜',
-  always: '常時',
+  always: 'いつでも',
 };
 
 /**
@@ -42,7 +42,7 @@ export function buildAnnotationFromDraft(draft, { authorId, profileTags = [], ex
     contextText: draft.contextText?.trim() || null,
     affectedGroups: Array.isArray(draft.affectedGroups) ? [...draft.affectedGroups] : [],
     affectedOther: draft.affectedOther?.trim() || null,
-    timeTag: TIME_TAG_ID_TO_LABEL[timeTagId] ?? '常時',
+    timeTag: TIME_TAG_ID_TO_LABEL[timeTagId] ?? 'いつでも',
     timeTagId,
     severity: draft.severity ?? 'mid',
     profileTags: [...profileTags],

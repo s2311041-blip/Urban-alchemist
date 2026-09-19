@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   classifyMetaFromDraft,
+  getSeverityLabel,
+  getTimeTagLabel,
   inferPlaceArchetypeFromText,
   inferSeverityFromText,
   inferTimeTagFromText,
@@ -15,6 +17,13 @@ describe('inferPlaceArchetypeFromText', () => {
     expect(inferPlaceArchetypeFromText('歩道').placeArchetype).toBe('road');
   });
 
+  it('maps exact place hint chips', () => {
+    expect(inferPlaceArchetypeFromText('駅前').placeArchetype).toBe('plaza');
+    expect(inferPlaceArchetypeFromText('公園・広場').placeArchetype).toBe('park');
+    expect(inferPlaceArchetypeFromText('ベンチ・休憩所').placeArchetype).toBe('park');
+    expect(inferPlaceArchetypeFromText('カフェ・店舗').placeArchetype).toBe('commerce');
+  });
+
   it('returns none for unknown text', () => {
     expect(inferPlaceArchetypeFromText('なんか変な場所').placeArchetype).toBe('none');
   });
@@ -27,6 +36,14 @@ describe('inferTimeTagFromText', () => {
 
   it('defaults to always', () => {
     expect(inferTimeTagFromText('')).toBe('always');
+  });
+});
+
+describe('display labels', () => {
+  it('uses everyday language for time and severity', () => {
+    expect(getTimeTagLabel('always')).toBe('いつでも');
+    expect(getSeverityLabel('low')).toBe('すこし');
+    expect(getSeverityLabel('high')).toBe('かなり深刻');
   });
 });
 

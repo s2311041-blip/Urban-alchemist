@@ -100,7 +100,7 @@ export function ArHomeScreen({
             記録する
             <ChevronRight size={20} />
           </button>
-          <p style={styles.recordHint}>撮影 → 印 → 質問</p>
+          <p style={styles.recordHint}>撮影 → 質問に答える</p>
 
           <button type="button" onClick={onView} style={styles.viewBtn}>
             <Smartphone size={22} />

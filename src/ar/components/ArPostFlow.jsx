@@ -52,7 +52,7 @@ function draftFromPostEntry(postEntry) {
 
 const POST_STEPS = [
   { id: 'capture', label: '撮影' },
-  { id: 'annotate', label: '印' },
+  { id: 'annotate', label: '写真' },
   { id: 'form', label: '質問' },
 ];
 
@@ -318,8 +318,7 @@ export function ArPostFlow({
         }}
         >
           <PostProgress phase="annotate" />
-          <div style={{ fontSize: 12, color: AR_THEME.accent }}>2/3 写真に対象ピン</div>
-          <div style={{ fontWeight: 'bold', fontSize: 18 }}>ピンをドラッグして位置を合わせてください</div>
+          <div style={{ fontWeight: 'bold', fontSize: 18 }}>ずれるときは、ピンを動かして合わせてください</div>
         </header>
 
         <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
