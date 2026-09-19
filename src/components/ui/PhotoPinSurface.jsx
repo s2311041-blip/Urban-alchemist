@@ -1,6 +1,5 @@
-import React, { useRef } from 'react';
+import React, { useCallback, useLayoutEffect, useRef, useState } from 'react';
 import { MapPin, X } from 'lucide-react';
-import { AimCrosshair } from './AimCrosshair';
 
 const MAX_PINS = 5;
 const clampNorm = (value) => Math.min(0.96, Math.max(0.04, value));
@@ -24,12 +23,42 @@ export const PhotoPinSurface = ({
   children,
 }) => {
   const containerRef = useRef(null);
+  const imageRef = useRef(null);
   const dragIdRef = useRef(null);
+  const [imageBox, setImageBox] = useState(null);
   const useContainLayout = backgroundFit === 'contain' && !!imageUrl;
 
+  const syncImageBox = useCallback(() => {
+    const frame = containerRef.current;
+    const image = imageRef.current;
+    if (!frame || !image) return;
+    const frameRect = frame.getBoundingClientRect();
+    const imageRect = image.getBoundingClientRect();
+    if (!imageRect.width || !imageRect.height) return;
+    setImageBox({
+      left: imageRect.left - frameRect.left,
+      top: imageRect.top - frameRect.top,
+      width: imageRect.width,
+      height: imageRect.height,
+    });
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!useContainLayout) return undefined;
+    syncImageBox();
+    const frame = containerRef.current;
+    const image = imageRef.current;
+    if (!frame || !image || typeof ResizeObserver === 'undefined') return undefined;
+    const observer = new ResizeObserver(syncImageBox);
+    observer.observe(frame);
+    observer.observe(image);
+    return () => observer.disconnect();
+  }, [syncImageBox, useContainLayout, imageUrl]);
+
   const pointToNorm = (clientX, clientY) => {
-    if (!containerRef.current) return null;
-    const rect = containerRef.current.getBoundingClientRect();
+    const target = useContainLayout ? imageRef.current : containerRef.current;
+    if (!target) return null;
+    const rect = target.getBoundingClientRect();
     if (!rect.width || !rect.height) return null;
     return {
       nx: clampNorm((clientX - rect.left) / rect.width),
@@ -86,19 +115,32 @@ export const PhotoPinSurface = ({
         position: 'absolute',
         left: `${(pin.nx ?? 0.5) * 100}%`,
         top: `${(pin.ny ?? 0.5) * 100}%`,
-        transform: dragOnly ? 'translate(-50%, -50%)' : 'translate(-50%, -100%)',
+        transform: 'translate(-50%, -100%)',
         border: 'none',
         background: 'transparent',
         padding: 0,
         cursor: editable ? (dragOnly ? 'grab' : 'pointer') : 'default',
         touchAction: dragOnly ? 'none' : undefined,
-        filter: dragOnly ? undefined : 'drop-shadow(0 2px 4px rgba(0,0,0,0.55))',
+        filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.55))',
         zIndex: 2,
       }}
     >
-      {dragOnly
-        ? <AimCrosshair size={48} />
-        : <MapPin size={markerSize} color="#ff5252" fill="#ff5252" strokeWidth={1.5} />}
+      <MapPin size={markerSize} color="#ff5252" fill="#ff5252" strokeWidth={1.5} />
+      <span
+        aria-hidden
+        style={{
+          position: 'absolute',
+          left: '50%',
+          bottom: 0,
+          width: 8,
+          height: 8,
+          borderRadius: '50%',
+          background: '#ff5252',
+          border: '2px solid #fff',
+          transform: 'translate(-50%, 50%)',
+          boxSizing: 'border-box',
+        }}
+      />
       {!dragOnly && (
         <span
           style={{
@@ -124,43 +166,48 @@ export const PhotoPinSurface = ({
   if (useContainLayout) {
     return (
       <div
+        ref={containerRef}
+        onClick={handleSurfaceClick}
         style={{
           position: 'relative',
           width: '100%',
           height,
           minHeight,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
           background: '#000',
           overflow: 'hidden',
+          cursor: editable ? (dragOnly ? 'default' : 'crosshair') : 'default',
         }}
       >
-        <div
-          ref={containerRef}
-          onClick={handleSurfaceClick}
+        <img
+          ref={imageRef}
+          src={imageUrl}
+          alt=""
+          onLoad={syncImageBox}
           style={{
-            position: 'relative',
-            lineHeight: 0,
-            maxWidth: '100%',
-            maxHeight: '100%',
-            cursor: editable ? (dragOnly ? 'default' : 'crosshair') : 'default',
+            position: 'absolute',
+            inset: 0,
+            width: '100%',
+            height: '100%',
+            objectFit: 'contain',
+            objectPosition: 'center',
           }}
-        >
-          <img
-            src={imageUrl}
-            alt=""
+        />
+        {imageBox && (
+          <div
             style={{
-              display: 'block',
-              maxWidth: '100vw',
-              maxHeight: '100vh',
-              width: 'auto',
-              height: 'auto',
-              objectFit: 'contain',
+              position: 'absolute',
+              left: imageBox.left,
+              top: imageBox.top,
+              width: imageBox.width,
+              height: imageBox.height,
+              pointerEvents: 'none',
             }}
-          />
-          {pinButtons}
-        </div>
+          >
+            <div style={{ position: 'absolute', inset: 0, pointerEvents: 'auto' }}>
+              {pinButtons}
+            </div>
+          </div>
+        )}
         {overlayBottom}
         {children && (
           <div

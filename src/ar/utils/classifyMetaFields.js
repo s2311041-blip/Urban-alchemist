@@ -2,26 +2,21 @@ import { TIME_TAG_OPTIONS, SEVERITY_OPTIONS } from '../../constants/barrierData'
 import { KOTO_PLACE_OPTIONS } from '../constants/kotoArea';
 import { inferPlaceFromText, normalizeClassifyText } from './classifyDraft';
 
-/** 入力欄下に表示する例（場所はタップで確定、誰はタップで追記） */
-export const PLACE_INPUT_HINTS = ['歩道', '公園・広場', '駅前', '商店街', 'バス停', '路地'];
-export const PLACE_INPUT_HINTS_GOOD = ['広場', '公園', 'ベンチ・休憩所', '歩道', 'カフェ・店舗', '水辺'];
+export const PLACE_OTHER_LABEL = 'その他';
+
+/** 困りごと／良い場所で共通。確認画面・ゲームの場所型と同じ文言 */
+export const PLACE_INPUT_HINTS = [
+  ...KOTO_PLACE_OPTIONS.filter((opt) => opt.id !== 'none').map((opt) => opt.label),
+  PLACE_OTHER_LABEL,
+];
+export const PLACE_INPUT_HINTS_GOOD = PLACE_INPUT_HINTS;
 export const WHO_INPUT_HINTS = ['みんな', '車いす・ベビーカー', '高齢者', '子ども・親子', '夜の一人歩き'];
 export const CONTEXT_INPUT_HINTS = ['いつでも', '夜', '夕方', 'すこし', '中くらい', 'かなり深刻'];
 
-/** ヒントタグをそのまま選んだときの場所型（自由記述は語彙推定に任せる） */
-export const PLACE_HINT_TO_ARCHETYPE = {
-  歩道: 'road',
-  '公園・広場': 'park',
-  駅前: 'plaza',
-  商店街: 'commerce',
-  バス停: 'bus_stop',
-  路地: 'lane',
-  広場: 'plaza',
-  公園: 'park',
-  'ベンチ・休憩所': 'park',
-  'カフェ・店舗': 'commerce',
-  水辺: 'waterfront',
-};
+/** 定型チップ → 場所型。その他・自由記述は語彙推定、なければ none */
+export const PLACE_HINT_TO_ARCHETYPE = Object.fromEntries(
+  KOTO_PLACE_OPTIONS.filter((opt) => opt.id !== 'none').map((opt) => [opt.label, opt.id]),
+);
 
 const TIME_LEXICON = {
   morning: ['朝', '早朝', '午前', 'morning'],
@@ -63,7 +58,12 @@ export function inferSeverityFromText(text = '') {
 }
 
 export function inferPlaceArchetypeFromText(text = '') {
-  const hintArchetype = PLACE_HINT_TO_ARCHETYPE[text.trim()];
+  const trimmed = text.trim();
+  if (trimmed === PLACE_OTHER_LABEL) {
+    return { placeArchetype: 'none', placeSource: 'other' };
+  }
+
+  const hintArchetype = PLACE_HINT_TO_ARCHETYPE[trimmed];
   if (hintArchetype) {
     return { placeArchetype: hintArchetype, placeSource: 'hint' };
   }

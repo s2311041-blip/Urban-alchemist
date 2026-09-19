@@ -8,7 +8,7 @@ import {
   getTimeTagLabel,
   inferPlaceArchetypeFromText,
   PLACE_INPUT_HINTS,
-  PLACE_INPUT_HINTS_GOOD,
+  PLACE_OTHER_LABEL,
   WHO_INPUT_HINTS,
 } from '../utils/classifyMetaFields';
 import { TIME_TAG_OPTIONS, SEVERITY_OPTIONS } from '../../constants/barrierData';
@@ -542,7 +542,7 @@ export function ArPostChat({
   };
 
   const textStepHints = useMemo(() => {
-    if (stepId === 'place') return isGood ? PLACE_INPUT_HINTS_GOOD : PLACE_INPUT_HINTS;
+    if (stepId === 'place') return PLACE_INPUT_HINTS;
     if (stepId === 'who') return WHO_INPUT_HINTS;
     return [];
   }, [isGood, stepId]);
@@ -554,7 +554,7 @@ export function ArPostChat({
         : '（短くてもOK）例：段差が高い、道が狭い、暗くて怖い';
     }
     if (stepId === 'place') {
-      return isGood ? '例：カフェ前、広場、遊歩道' : '例：歩道、公園、駅前';
+      return '例：歩道、公園、駅前。当てはまらなければその他に記入';
     }
     if (stepId === 'who') return '例：車いす、ベビーカー、夜の一人歩き';
     return '';
@@ -912,7 +912,15 @@ export function ArPostChat({
             <HintChips
               hints={textStepHints}
               prominent={stepId === 'place'}
-              onPick={stepId === 'place' ? handleTextStepSubmit : appendHint}
+              onPick={stepId === 'place'
+                ? (hint) => {
+                  if (hint === PLACE_OTHER_LABEL) {
+                    setInputText('');
+                    return;
+                  }
+                  handleTextStepSubmit(hint);
+                }
+                : appendHint}
             />
           )}
           <textarea

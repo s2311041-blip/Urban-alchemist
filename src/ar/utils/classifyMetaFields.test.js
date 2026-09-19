@@ -18,14 +18,15 @@ describe('inferPlaceArchetypeFromText', () => {
   });
 
   it('maps exact place hint chips', () => {
-    expect(inferPlaceArchetypeFromText('駅前').placeArchetype).toBe('plaza');
+    expect(inferPlaceArchetypeFromText('駅前・広場').placeArchetype).toBe('plaza');
     expect(inferPlaceArchetypeFromText('公園・広場').placeArchetype).toBe('park');
-    expect(inferPlaceArchetypeFromText('ベンチ・休憩所').placeArchetype).toBe('park');
-    expect(inferPlaceArchetypeFromText('カフェ・店舗').placeArchetype).toBe('commerce');
+    expect(inferPlaceArchetypeFromText('商業施設・店舗街').placeArchetype).toBe('commerce');
+    expect(inferPlaceArchetypeFromText('水辺・運河沿い').placeArchetype).toBe('waterfront');
   });
 
-  it('returns none for unknown text', () => {
-    expect(inferPlaceArchetypeFromText('なんか変な場所').placeArchetype).toBe('none');
+  it('stores free-text other as none', () => {
+    expect(inferPlaceArchetypeFromText('その他').placeArchetype).toBe('none');
+    expect(inferPlaceArchetypeFromText('駐輪場の脇').placeArchetype).toBe('none');
   });
 });
 

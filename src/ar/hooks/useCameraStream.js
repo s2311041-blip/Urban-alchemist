@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { getInsecureContextHint } from '../utils/secureContext';
+import { captureVideoCoverFrame } from '../utils/videoCoverCrop';
 
 export function useCameraStream({ enabled = true, facingMode = 'environment' } = {}) {
   const videoRef = useRef(null);
@@ -76,19 +77,7 @@ export function useCameraStream({ enabled = true, facingMode = 'environment' } =
     };
   }, [enabled, facingMode]);
 
-  const capturePhoto = () => {
-    const video = videoRef.current;
-    if (!video || video.readyState < 2) return null;
-    const w = video.videoWidth;
-    const h = video.videoHeight;
-    if (!w || !h) return null;
-    const canvas = document.createElement('canvas');
-    canvas.width = w;
-    canvas.height = h;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(video, 0, 0, w, h);
-    return canvas.toDataURL('image/jpeg', 0.92);
-  };
+  const capturePhoto = () => captureVideoCoverFrame(videoRef.current);
 
   return { videoRef, ready, error, capturePhoto };
 }
