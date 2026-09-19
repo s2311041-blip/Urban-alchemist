@@ -92,29 +92,36 @@ function ChipOptionButton({ active, onClick, children, accent = AR_THEME.accent 
   );
 }
 
-function HintChips({ hints, onPick, prominent = false }) {
+function HintChips({ hints, onPick, prominent = false, activeHint = null }) {
   return (
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
-      {hints.map((hint) => (
-        <button
-          key={hint}
-          type="button"
-          onClick={() => onPick(hint)}
-          style={{
-            padding: prominent ? '10px 14px' : '6px 10px',
-            minHeight: prominent ? 44 : undefined,
-            borderRadius: 999,
-            border: prominent ? `1px solid ${AR_THEME.accent}66` : '1px solid rgba(255,255,255,0.18)',
-            background: prominent ? 'rgba(79,195,247,0.12)' : 'rgba(255,255,255,0.06)',
-            color: prominent ? AR_THEME.text : AR_THEME.muted,
-            fontSize: prominent ? 14 : 12,
-            fontWeight: prominent ? 600 : 400,
-            cursor: 'pointer',
-          }}
-        >
-          {hint}
-        </button>
-      ))}
+      {hints.map((hint) => {
+        const active = hint === activeHint;
+        return (
+          <button
+            key={hint}
+            type="button"
+            onClick={() => onPick(hint)}
+            style={{
+              padding: prominent ? '10px 14px' : '6px 10px',
+              minHeight: prominent ? 44 : undefined,
+              borderRadius: 999,
+              border: active
+                ? `2px solid ${AR_THEME.accentWarm}`
+                : prominent ? `1px solid ${AR_THEME.accent}66` : '1px solid rgba(255,255,255,0.18)',
+              background: active
+                ? 'rgba(255,183,77,0.22)'
+                : prominent ? 'rgba(79,195,247,0.12)' : 'rgba(255,255,255,0.06)',
+              color: AR_THEME.text,
+              fontSize: prominent ? 14 : 12,
+              fontWeight: active || prominent ? 600 : 400,
+              cursor: 'pointer',
+            }}
+          >
+            {hint}
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -418,7 +425,9 @@ export function ArPostChat({
   const [inputText, setInputText] = useState('');
   const [messages, setMessages] = useState([]);
   const [classifying, setClassifying] = useState(false);
+  const [placeOtherOpen, setPlaceOtherOpen] = useState(false);
   const scrollRef = useRef(null);
+  const inputRef = useRef(null);
   const bootedRef = useRef(false);
 
   const stepId = stepIds[stepIndex] ?? 'confirm';
@@ -523,9 +532,25 @@ export function ArPostChat({
   useEffect(() => {
     if (phase !== 'chat' || !TEXT_INPUT_STEPS.has(stepId)) return;
     if (stepId === 'story') setInputText(draft.comment ?? '');
-    if (stepId === 'place') setInputText(draft.placeText ?? '');
+    if (stepId === 'place') {
+      const existing = draft.placeText ?? '';
+      setInputText(existing);
+      const isPreset = PLACE_INPUT_HINTS.includes(existing);
+      setPlaceOtherOpen(Boolean(existing) && !isPreset);
+    } else {
+      setPlaceOtherOpen(false);
+    }
     if (stepId === 'who') setInputText(draft.whoText ?? '');
   }, [phase, stepId, draft.comment, draft.placeText, draft.whoText]);
+
+  useEffect(() => {
+    if (!placeOtherOpen) return undefined;
+    const frame = requestAnimationFrame(() => {
+      inputRef.current?.focus({ preventScroll: false });
+      inputRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [placeOtherOpen]);
 
   const canSendText = useMemo(() => {
     if (stepId === 'who') return true;
@@ -554,11 +579,13 @@ export function ArPostChat({
         : '（短くてもOK）例：段差が高い、道が狭い、暗くて怖い';
     }
     if (stepId === 'place') {
-      return '例：歩道、公園、駅前。当てはまらなければその他に記入';
+      return placeOtherOpen
+        ? '例：駐輪場、地下道、歩道橋'
+        : '例：歩道、公園、駅前';
     }
     if (stepId === 'who') return '例：車いす、ベビーカー、夜の一人歩き';
     return '';
-  }, [isGood, stepId]);
+  }, [isGood, placeOtherOpen, stepId]);
 
   const handleKindSelect = (kind) => {
     onChange({ postKind: kind });
@@ -903,6 +930,7 @@ export function ArPostChat({
       {phase === 'chat' && TEXT_INPUT_STEPS.has(stepId) && (
         <div style={{
           flexShrink: 0,
+          position: 'relative',
           padding: `10px 16px ${AR_THEME.safeBottom}`,
           borderTop: '1px solid rgba(255,255,255,0.08)',
           background: 'rgba(10,22,40,0.98)',
@@ -912,30 +940,58 @@ export function ArPostChat({
             <HintChips
               hints={textStepHints}
               prominent={stepId === 'place'}
+              activeHint={stepId === 'place' && placeOtherOpen ? PLACE_OTHER_LABEL : null}
               onPick={stepId === 'place'
                 ? (hint) => {
                   if (hint === PLACE_OTHER_LABEL) {
-                    setInputText('');
+                    setPlaceOtherOpen(true);
+                    inputRef.current?.focus();
                     return;
                   }
+                  setPlaceOtherOpen(false);
                   handleTextStepSubmit(hint);
                 }
                 : appendHint}
             />
           )}
+          {placeOtherOpen && (
+            <p style={{
+              margin: '0 0 8px',
+              fontSize: 13,
+              lineHeight: 1.45,
+              color: AR_THEME.text,
+              fontWeight: 600,
+            }}
+            >
+              当てはまるものがなければ、場所の名前を書いてください
+            </p>
+          )}
           <textarea
+            ref={inputRef}
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             placeholder={textStepPlaceholder}
             rows={stepId === 'story' ? 3 : 2}
+            aria-hidden={stepId === 'place' && !placeOtherOpen}
             style={{
               ...inputStyle,
               minHeight: stepId === 'story' ? 80 : 56,
               resize: 'none',
-              marginBottom: 8,
+              marginBottom: stepId === 'place' && !placeOtherOpen ? 0 : 8,
               marginTop: 0,
+              border: placeOtherOpen ? `1px solid ${AR_THEME.accentWarm}` : inputStyle.border,
+              ...(stepId === 'place' && !placeOtherOpen
+                ? {
+                  position: 'absolute',
+                  width: 1,
+                  height: 1,
+                  opacity: 0,
+                  pointerEvents: 'none',
+                }
+                : {}),
             }}
           />
+          {(stepId !== 'place' || placeOtherOpen) && (
           <div style={{ display: 'flex', gap: 8 }}>
             {stepId === 'who' && (
               <button
@@ -969,6 +1025,7 @@ export function ArPostChat({
               <Send size={18} />
             </button>
           </div>
+          )}
         </div>
       )}
     </div>

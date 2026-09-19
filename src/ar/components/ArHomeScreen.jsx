@@ -45,7 +45,7 @@ export function ArHomeScreen({
               街の気づきを記録し、みんなの声を見る
             </p>
           </div>
-          <button type="button" onClick={onHelp} aria-label="使い方" style={styles.helpBtn}>
+          <button type="button" onClick={onHelp} aria-label="アプリの使い方" style={styles.helpBtn}>
             <HelpCircle size={22} color={AR_HOME.textSecondary} />
           </button>
         </header>
