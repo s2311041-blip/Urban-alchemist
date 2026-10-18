@@ -318,7 +318,7 @@ export function ArPostFlow({
         }}
         >
           <PostProgress phase="annotate" />
-          <div style={{ fontWeight: 'bold', fontSize: 18 }}>ずれるときは、ピンを動かして合わせてください</div>
+          <div style={{ fontWeight: 'bold', fontSize: 18 }}>気になるところをタップして、ピンを合わせてください</div>
         </header>
 
         <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>

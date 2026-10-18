@@ -6,7 +6,7 @@ const clampNorm = (value) => Math.min(0.96, Math.max(0.04, value));
 
 /**
  * 写真上の空間注釈ピン（正規化座標 0–1）
- * dragOnly=true のとき中央ピンをドラッグで微調整。通常はタップ追加・タップ削除。
+ * dragOnly=true のとき、写真のタップまたはドラッグで中央ピンを動かす。通常はタップ追加・タップ削除。
  */
 export const PhotoPinSurface = ({
   imageUrl,
@@ -24,6 +24,7 @@ export const PhotoPinSurface = ({
 }) => {
   const containerRef = useRef(null);
   const imageRef = useRef(null);
+  const imageBoxRef = useRef(null);
   const dragIdRef = useRef(null);
   const [imageBox, setImageBox] = useState(null);
   const useContainLayout = backgroundFit === 'contain' && !!imageUrl;
@@ -33,14 +34,26 @@ export const PhotoPinSurface = ({
     const image = imageRef.current;
     if (!frame || !image) return;
     const frameRect = frame.getBoundingClientRect();
-    const imageRect = image.getBoundingClientRect();
-    if (!imageRect.width || !imageRect.height) return;
-    setImageBox({
-      left: imageRect.left - frameRect.left,
-      top: imageRect.top - frameRect.top,
-      width: imageRect.width,
-      height: imageRect.height,
-    });
+    const nw = image.naturalWidth;
+    const nh = image.naturalHeight;
+    if (!frameRect.width || !frameRect.height || !nw || !nh) return;
+    const frameRatio = frameRect.width / frameRect.height;
+    const imageRatio = nw / nh;
+    const box = imageRatio > frameRatio
+      ? {
+        left: 0,
+        top: (frameRect.height - frameRect.width / imageRatio) / 2,
+        width: frameRect.width,
+        height: frameRect.width / imageRatio,
+      }
+      : {
+        left: (frameRect.width - frameRect.height * imageRatio) / 2,
+        top: 0,
+        width: frameRect.height * imageRatio,
+        height: frameRect.height,
+      };
+    imageBoxRef.current = box;
+    setImageBox(box);
   }, []);
 
   useLayoutEffect(() => {
@@ -56,7 +69,16 @@ export const PhotoPinSurface = ({
   }, [syncImageBox, useContainLayout, imageUrl]);
 
   const pointToNorm = (clientX, clientY) => {
-    const target = useContainLayout ? imageRef.current : containerRef.current;
+    if (useContainLayout && imageBoxRef.current && containerRef.current) {
+      const frame = containerRef.current.getBoundingClientRect();
+      const box = imageBoxRef.current;
+      if (!box.width || !box.height) return null;
+      return {
+        nx: clampNorm((clientX - frame.left - box.left) / box.width),
+        ny: clampNorm((clientY - frame.top - box.top) / box.height),
+      };
+    }
+    const target = containerRef.current;
     if (!target) return null;
     const rect = target.getBoundingClientRect();
     if (!rect.width || !rect.height) return null;
@@ -67,11 +89,16 @@ export const PhotoPinSurface = ({
   };
 
   const handleSurfaceClick = (event) => {
-    if (!editable || dragOnly || !onChange || !containerRef.current) return;
+    if (!editable || !onChange) return;
     if (event.target.closest('[data-photo-pin]')) return;
-    if (pins.length >= MAX_PINS) return;
     const next = pointToNorm(event.clientX, event.clientY);
     if (!next) return;
+    if (dragOnly) {
+      const current = pins[0] ?? { id: 'center', nx: 0.5, ny: 0.5 };
+      onChange([{ ...current, nx: next.nx, ny: next.ny }]);
+      return;
+    }
+    if (pins.length >= MAX_PINS) return;
     onChange([
       ...pins,
       { id: `pin_${Date.now()}_${Math.random().toString(36).slice(2, 5)}`, ...next },
@@ -203,7 +230,13 @@ export const PhotoPinSurface = ({
               pointerEvents: 'none',
             }}
           >
-            <div style={{ position: 'absolute', inset: 0, pointerEvents: 'auto' }}>
+            <div
+              style={{ position: 'absolute', inset: 0, pointerEvents: 'auto' }}
+              onClick={(event) => {
+                handleSurfaceClick(event);
+                event.stopPropagation();
+              }}
+            >
               {pinButtons}
             </div>
           </div>
@@ -260,7 +293,7 @@ export const PhotoPinSurface = ({
           }}
         >
           {dragOnly
-            ? 'ピンをドラッグして、気になる位置へ動かしてください。'
+            ? '写真をタップすると、ピンがその位置に動きます。'
             : `気になる場所をタップしてピン（最大${MAX_PINS}個）。ピンをタップで削除。`}
         </div>
       )}

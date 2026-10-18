@@ -1,15 +1,50 @@
-import React, { useState } from 'react';
-import { MapContainer, TileLayer, Marker } from 'react-leaflet';
+import React, { useMemo, useState } from 'react';
+import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from 'react-leaflet';
 import { Camera, ChevronLeft, Map as MapIcon } from 'lucide-react';
 import {
   KOTO_CENTER,
   KOTO_MAP_ZOOM,
 } from '../constants/kotoArea';
 import { AR_THEME } from '../constants/arTheme';
-import { createArMapPinIcon } from '../utils/arMapPinIcon';
+import { createArMapClusterIcon, createArMapPinIcon } from '../utils/arMapPinIcon';
+import { CLUSTER_MAX_ZOOM, clusterAnnotations } from '../utils/mapClusters';
 import { ArPinCard } from './ArPinCard';
 import { ArLiveView } from './ArLiveView';
 import { BoundsLock } from './ArMapBoundsLock';
+
+function ClusteredMarkers({ pins, onSelect }) {
+  const map = useMap();
+  const [zoom, setZoom] = useState(() => map.getZoom());
+  useMapEvents({
+    zoomend() {
+      setZoom(map.getZoom());
+    },
+  });
+  const groups = useMemo(() => clusterAnnotations(pins, zoom), [pins, zoom]);
+
+  return groups.map((group) => {
+    const clustered = group.items.length > 1;
+    return (
+      <Marker
+        key={group.id}
+        position={[group.lat, group.lng]}
+        icon={clustered
+          ? createArMapClusterIcon(group.items.length)
+          : createArMapPinIcon(group.items[0].kind)}
+        eventHandlers={{
+          click: () => {
+            if (!clustered) {
+              onSelect(group.items[0]);
+              return;
+            }
+            const nextZoom = Math.min(18, Math.max(zoom + 2, CLUSTER_MAX_ZOOM + 1));
+            map.flyTo([group.lat, group.lng], nextZoom);
+          },
+        }}
+      />
+    );
+  });
+}
 
 /**
  * 地図ハブ：ピン位置の確認 + タップで詳細 + かざして見る
@@ -81,7 +116,7 @@ export function ArMapView({
       }}
       >
         <MapIcon size={12} style={{ verticalAlign: 'middle', marginRight: 4 }} />
-        地図上のピンをタップすると記録を読めます。現地では「かざして見る」がおすすめです。
+        近くの投稿は数字の丸にまとまります。丸をタップすると拡大し、ピンをタップすると記録を読めます。
       </p>
 
       <div style={{ flex: 1, minHeight: 0 }}>
@@ -95,16 +130,7 @@ export function ArMapView({
             attribution='&copy; OpenStreetMap'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
-          {pins.map((a) => (
-            <Marker
-              key={a.id}
-              position={[a.worldPin.lat, a.worldPin.lng]}
-              icon={createArMapPinIcon(a.kind)}
-              eventHandlers={{
-                click: () => setCardPin(a),
-              }}
-            />
-          ))}
+          <ClusteredMarkers pins={pins} onSelect={setCardPin} />
         </MapContainer>
       </div>
 

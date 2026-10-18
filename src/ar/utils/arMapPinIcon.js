@@ -23,6 +23,27 @@ export function createArMapPinIcon(kind = 'barrier') {
   });
 }
 
+/** 近くの投稿をまとめた丸（中の数字が件数） */
+export function createArMapClusterIcon(count) {
+  const size = count >= 10 ? 44 : 36;
+  return L.divIcon({
+    className: 'ar-map-cluster-icon',
+    html: `
+      <div style="
+        width:${size}px;height:${size}px;border-radius:50%;
+        background:#ef5350;color:#fff;
+        display:grid;place-items:center;
+        font-weight:800;font-size:${count >= 10 ? 15 : 16}px;
+        border:3px solid #fff;
+        box-shadow:0 2px 8px rgba(0,0,0,0.35);
+        font-family:inherit;
+      ">${count}</div>
+    `,
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+  });
+}
+
 /** 現在地（青点） */
 export function createArMapUserIcon() {
   return L.divIcon({

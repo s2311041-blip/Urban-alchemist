@@ -10,7 +10,7 @@ export const PLACE_INPUT_HINTS = [
   PLACE_OTHER_LABEL,
 ];
 export const PLACE_INPUT_HINTS_GOOD = PLACE_INPUT_HINTS;
-export const WHO_INPUT_HINTS = ['みんな', '車いす・ベビーカー', '高齢者', '子ども・親子', '夜の一人歩き'];
+export const WHO_INPUT_HINTS = ['みんな', '車いす・ベビーカー', '高齢者', '子ども'];
 export const CONTEXT_INPUT_HINTS = ['いつでも', '夜', '夕方', 'すこし', '中くらい', 'かなり深刻'];
 
 /** 定型チップ → 場所型。その他・自由記述は語彙推定、なければ none */
