@@ -39,7 +39,7 @@ export async function fetchAnnotations({ geo } = {}) {
   const center = geo ?? KOTO_CENTER;
 
   if (isSupabaseConfigured()) {
-    return fetchAnnotationsSupabase({ geo: center });
+    return fetchAnnotationsSupabase();
   }
 
   if (!API_URL) {

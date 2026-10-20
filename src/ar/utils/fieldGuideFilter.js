@@ -11,8 +11,13 @@ export function getAnnotationTags(annotation) {
   const need = NEED_CATEGORY_OPTIONS.find((o) => o.needType === annotation.needType);
   if (need) tags.push({ id: `need:${need.needType}`, label: need.label, group: 'need' });
 
-  const place = KOTO_PLACE_OPTIONS.find((o) => o.id === annotation.placeArchetype);
-  if (place) tags.push({ id: `place:${place.id}`, label: place.label, group: 'place' });
+  const writtenPlace = annotation.placeText?.trim();
+  if (writtenPlace) {
+    tags.push({ id: `place:text:${writtenPlace}`, label: writtenPlace, group: 'place' });
+  } else {
+    const place = KOTO_PLACE_OPTIONS.find((o) => o.id === annotation.placeArchetype);
+    if (place && place.id !== 'none') tags.push({ id: `place:${place.id}`, label: place.label, group: 'place' });
+  }
 
   if (annotation.whoText?.trim()) {
     tags.push({
@@ -51,6 +56,7 @@ export function filterAnnotations(annotations, { query = '', activeTagIds = [], 
     const hay = [
       a.comment,
       a.whoText,
+      a.placeText,
       a.needType,
       a.placeArchetype,
       a.timeTag,

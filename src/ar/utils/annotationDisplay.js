@@ -24,7 +24,9 @@ export function getPerspectiveFrame(annotation) {
 export function getAnnotationStoryRows(annotation) {
   const isGood = annotation.kind === 'positive';
   const need = NEED_CATEGORY_OPTIONS.find((o) => o.needType === annotation.needType);
+  const writtenPlace = annotation.placeText?.trim();
   const place = KOTO_PLACE_OPTIONS.find((o) => o.id === annotation.placeArchetype);
+  const placeValue = writtenPlace || (place && place.id !== 'none' ? place.label : null);
   const whenId = annotation.timeTagId
     ?? TIME_TAG_OPTIONS.find((o) => o.label === annotation.timeTag)?.id
     ?? (annotation.timeTag === '常時' ? 'always' : null)
@@ -44,8 +46,8 @@ export function getAnnotationStoryRows(annotation) {
     rows.push({ key: 'need', label: 'どんな困りごと？', value: need.label, hint: need.hint });
   }
 
-  if (place) {
-    rows.push({ key: 'place', label: 'どんな場所？', value: place.label });
+  if (placeValue) {
+    rows.push({ key: 'place', label: 'どんな場所？', value: placeValue });
   }
 
   if (!isGood && (annotation.whoText?.trim() || annotation.affectedGroups?.length || annotation.affectedOther)) {

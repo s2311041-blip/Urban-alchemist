@@ -1,5 +1,3 @@
-import { haversineDistanceM } from '../utils/geoMath';
-import { MAX_AR_VIEW_DISTANCE_M } from '../constants/kotoArea';
 import { getSupabase } from './supabaseClient';
 import { deleteAnnotationPhoto, uploadAnnotationPhoto } from './photoStorage';
 
@@ -52,7 +50,7 @@ export async function ensureSupabaseAuth() {
   return data.user;
 }
 
-export async function fetchAnnotationsSupabase({ geo } = {}) {
+export async function fetchAnnotationsSupabase() {
   const supabase = getSupabase();
   if (!supabase) return [];
 
@@ -64,16 +62,7 @@ export async function fetchAnnotationsSupabase({ geo } = {}) {
 
   if (error) throw error;
 
-  let list = (data ?? []).map(rowToAnnotation);
-
-  if (geo) {
-    list = list.filter((a) => {
-      if (!a.worldPin) return false;
-      return haversineDistanceM(geo, a.worldPin) <= MAX_AR_VIEW_DISTANCE_M * 4;
-    });
-  }
-
-  return list;
+  return (data ?? []).map(rowToAnnotation);
 }
 
 export async function postAnnotationSupabase(annotation) {

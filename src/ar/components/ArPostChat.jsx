@@ -267,6 +267,75 @@ function NeedTypeConfirmSection({
   );
 }
 
+const confirmChangeStyle = {
+  flexShrink: 0,
+  border: 'none',
+  background: 'transparent',
+  color: AR_THEME.accent,
+  fontSize: 13,
+  fontWeight: 600,
+  cursor: 'pointer',
+  display: 'flex',
+  alignItems: 'center',
+  gap: 2,
+  padding: '4px 0',
+};
+
+function ConfirmSummaryRow({ label, value, editing, onEdit }) {
+  return (
+    <div style={{
+      display: 'flex',
+      alignItems: 'flex-start',
+      gap: 10,
+      padding: '8px 0',
+      borderBottom: '1px solid rgba(255,255,255,0.06)',
+    }}
+    >
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 11, color: AR_THEME.muted, marginBottom: 2 }}>{label}</div>
+        <div style={{ fontSize: 14, lineHeight: 1.45, whiteSpace: 'pre-wrap', color: AR_THEME.text }}>
+          {value || '（未記入）'}
+        </div>
+      </div>
+      <button type="button" onClick={onEdit} style={confirmChangeStyle}>
+        {editing ? '閉じる' : '変更する'}
+        <ChevronRight size={16} />
+      </button>
+    </div>
+  );
+}
+
+function ConfirmTextEditor({
+  value,
+  onChange,
+  placeholder,
+  rows = 2,
+  inputRef = null,
+}) {
+  return (
+    <textarea
+      ref={inputRef}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      rows={rows}
+      style={{
+        width: '100%',
+        marginTop: 8,
+        padding: '12px 14px',
+        borderRadius: 12,
+        border: '1px solid rgba(255,255,255,0.15)',
+        background: 'rgba(255,255,255,0.05)',
+        color: AR_THEME.text,
+        fontSize: 16,
+        lineHeight: 1.45,
+        boxSizing: 'border-box',
+        resize: 'none',
+      }}
+    />
+  );
+}
+
 function ConfirmCard({
   draft,
   classification,
@@ -277,7 +346,41 @@ function ConfirmCard({
   classifying = false,
 }) {
   const isBad = draft.postKind === 'bad';
-  const canPost = !isBad || Boolean(draft.needType);
+  const canPost = Boolean(draft.comment?.trim()) && (!isBad || Boolean(draft.needType));
+  const [editing, setEditing] = useState(null);
+  const editInputRef = useRef(null);
+
+  const toggleEdit = (id) => {
+    setEditing((current) => (current === id ? null : id));
+  };
+
+  useEffect(() => {
+    if (!editing || !['place', 'story', 'who'].includes(editing)) return undefined;
+    const frame = requestAnimationFrame(() => {
+      editInputRef.current?.focus({ preventScroll: false });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [editing]);
+
+  useEffect(() => {
+    if (!isBad && ['who', 'when', 'severity'].includes(editing)) setEditing(null);
+  }, [editing, isBad]);
+
+  const applyPlaceText = (text) => {
+    const trimmed = text.trim();
+    if (!trimmed) {
+      onChange({ placeText: text, placeArchetype: 'none' });
+      return;
+    }
+    const placeMeta = inferPlaceArchetypeFromText(trimmed);
+    onChange({ placeText: text, placeArchetype: placeMeta.placeArchetype });
+  };
+
+  const placeChipActive = (() => {
+    const current = draft.placeText?.trim() ?? '';
+    if (PLACE_INPUT_HINTS.includes(current) && current !== PLACE_OTHER_LABEL) return current;
+    return current ? PLACE_OTHER_LABEL : null;
+  })();
 
   if (classifying) {
     return (
@@ -329,26 +432,172 @@ function ConfirmCard({
 
       <div style={{
         margin: '0 0 12px',
-        padding: 10,
+        padding: '4px 10px 8px',
         borderRadius: 10,
         background: 'rgba(255,255,255,0.04)',
-        fontSize: 14,
-        lineHeight: 1.55,
-        color: AR_THEME.text,
       }}
       >
-        {draft.placeText && <div>場所：{draft.placeText}</div>}
-        <div>
-          {isBad ? '困りごと' : '良いところ'}
-          ：
-          {draft.comment}
-        </div>
-        {isBad && draft.whoText && <div>誰にとって：{draft.whoText}</div>}
-        {isBad && draft.timeTag && draft.timeTag !== 'always' && (
-          <div>いつ：{getTimeTagLabel(draft.timeTag)}</div>
+        <ConfirmSummaryRow
+          label="記録の種類"
+          value={isBad ? '困りごと' : '良い場所'}
+          editing={editing === 'kind'}
+          onEdit={() => toggleEdit('kind')}
+        />
+        {editing === 'kind' && (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 8 }}>
+            <button
+              type="button"
+              onClick={() => { onChange({ postKind: 'bad' }); setEditing(null); }}
+              style={chipStyle(isBad, AR_THEME.barrier)}
+            >
+              😣 困りごと
+            </button>
+            <button
+              type="button"
+              onClick={() => { onChange({ postKind: 'good' }); setEditing(null); }}
+              style={chipStyle(!isBad, AR_THEME.positive)}
+            >
+              ✨ 良い場所
+            </button>
+          </div>
         )}
-        {isBad && draft.severity && draft.severity !== 'mid' && (
-          <div>度合い：{getSeverityLabel(draft.severity)}</div>
+
+        <ConfirmSummaryRow
+          label="どんな場所？"
+          value={draft.placeText}
+          editing={editing === 'place'}
+          onEdit={() => toggleEdit('place')}
+        />
+        {editing === 'place' && (
+          <div style={{ marginTop: 8 }}>
+            <HintChips
+              hints={PLACE_INPUT_HINTS}
+              prominent
+              activeHint={placeChipActive}
+              onPick={(hint) => {
+                if (hint === PLACE_OTHER_LABEL) {
+                  const current = draft.placeText?.trim() ?? '';
+                  const isPreset = PLACE_INPUT_HINTS.includes(current) && current !== PLACE_OTHER_LABEL;
+                  if (isPreset) applyPlaceText('');
+                  editInputRef.current?.focus();
+                  return;
+                }
+                applyPlaceText(hint);
+                setEditing(null);
+              }}
+            />
+            <p style={{ margin: '0 0 4px', fontSize: 13, lineHeight: 1.45, color: AR_THEME.text, fontWeight: 600 }}>
+              上から選ぶか、ここに場所の名前を書いてください
+            </p>
+            <ConfirmTextEditor
+              inputRef={editInputRef}
+              value={draft.placeText ?? ''}
+              onChange={applyPlaceText}
+              placeholder="例：駐輪場、地下道、歩道橋"
+            />
+          </div>
+        )}
+
+        <ConfirmSummaryRow
+          label={isBad ? 'どんなことに困っていますか？' : 'どんなところが良いですか？'}
+          value={draft.comment}
+          editing={editing === 'story'}
+          onEdit={() => toggleEdit('story')}
+        />
+        {editing === 'story' && (
+          <ConfirmTextEditor
+            inputRef={editInputRef}
+            value={draft.comment ?? ''}
+            onChange={(text) => onChange({ comment: text })}
+            placeholder={isBad
+              ? '（短くてもOK）例：段差が高い、道が狭い、暗くて怖い'
+              : '例：日陰があって涼しい、ベンチが多くて休みやすい'}
+            rows={3}
+          />
+        )}
+
+        {isBad && (
+          <>
+            <ConfirmSummaryRow
+              label="誰にとって？"
+              value={draft.whoText}
+              editing={editing === 'who'}
+              onEdit={() => toggleEdit('who')}
+            />
+            {editing === 'who' && (
+              <div style={{ marginTop: 8 }}>
+                <HintChips
+                  hints={WHO_INPUT_HINTS}
+                  lead="例："
+                  onPick={(hint) => {
+                    onChange({ whoText: hint });
+                    setEditing(null);
+                  }}
+                />
+                <ConfirmTextEditor
+                  inputRef={editInputRef}
+                  value={draft.whoText ?? ''}
+                  onChange={(text) => onChange({ whoText: text })}
+                  placeholder="観光客、妊婦"
+                />
+              </div>
+            )}
+
+            <ConfirmSummaryRow
+              label="いつ？"
+              value={getTimeTagLabel(draft.timeTag ?? 'always')}
+              editing={editing === 'when'}
+              onEdit={() => toggleEdit('when')}
+            />
+            {editing === 'when' && (
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                gap: 8,
+                marginTop: 8,
+              }}
+              >
+                {TIME_TAG_OPTIONS.map((opt) => (
+                  <ChipOptionButton
+                    key={opt.id}
+                    active={(draft.timeTag ?? 'always') === opt.id}
+                    onClick={() => { onChange({ timeTag: opt.id }); setEditing(null); }}
+                  >
+                    <Pictogram src={opt.iconSrc} size={28} alt={opt.label} />
+                    <span>{opt.label}</span>
+                  </ChipOptionButton>
+                ))}
+              </div>
+            )}
+
+            <ConfirmSummaryRow
+              label="度合い"
+              value={getSeverityLabel(draft.severity ?? 'mid')}
+              editing={editing === 'severity'}
+              onEdit={() => toggleEdit('severity')}
+            />
+            {editing === 'severity' && (
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+                gap: 8,
+                marginTop: 8,
+              }}
+              >
+                {SEVERITY_OPTIONS.map((opt) => (
+                  <ChipOptionButton
+                    key={opt.id}
+                    active={(draft.severity ?? 'mid') === opt.id}
+                    accent={AR_THEME.accentWarm}
+                    onClick={() => { onChange({ severity: opt.id }); setEditing(null); }}
+                  >
+                    <Pictogram src={opt.iconSrc} size={28} alt={opt.label} />
+                    <span>{opt.label}</span>
+                  </ChipOptionButton>
+                ))}
+              </div>
+            )}
+          </>
         )}
       </div>
 
