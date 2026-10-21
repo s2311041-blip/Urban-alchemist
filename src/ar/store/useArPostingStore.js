@@ -55,9 +55,18 @@ export const useArPostingStore = create(
       syncAnnotations: async (geo) => {
         set({ syncStatus: 'syncing' });
         try {
+          const knownIds = new Set(get().annotations.map((a) => a.id));
           const remote = await fetchAnnotations({ geo });
+          const remoteIds = new Set(remote.map((a) => a.id));
+          const pending = get().annotations.filter((a) => (
+            a?.id && !knownIds.has(a.id) && !remoteIds.has(a.id)
+          ));
           const authorId = get().authorId;
-          const merged = mergeAnnotations(get().annotations, remote, get().deletedAnnotationIds).map((a) => ({
+          const merged = mergeAnnotations(
+            get().annotations,
+            [...remote, ...pending],
+            get().deletedAnnotationIds,
+          ).map((a) => ({
             ...a,
             isMine: a.authorId === authorId,
           }));

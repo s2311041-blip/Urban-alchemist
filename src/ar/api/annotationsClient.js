@@ -18,10 +18,7 @@ function mergeById(local = [], remote = [], deletedIds = []) {
   local.forEach((item) => {
     if (!item?.id || deleted.has(item.id)) return;
     const remoteItem = map.get(item.id);
-    if (!remoteItem) {
-      map.set(item.id, item);
-      return;
-    }
+    if (!remoteItem) return;
     const merged = { ...item, ...remoteItem };
     if (!merged.photo && item.photo) merged.photo = item.photo;
     if (!merged.photoStoragePath && item.photoStoragePath) {
