@@ -7,12 +7,8 @@ import { withWorkshopDaytime } from '../../constants/workshopMode'
 import { DEFAULT_FARMING_PROGRESS } from '../../constants/farmingProgressData'
 import { DEFAULT_ECONOMY, normalizePostStats } from '../../constants/economyData'
 import { syncFerryRoutesForBlocks } from '../helpers/syncFerryRoutes'
+import { createWorkshopIslandState } from '../helpers/workshopIslandSeed'
 import {
-  createDefaultBugs,
-  createDefaultQuests,
-} from '../helpers/bugFactory'
-import {
-  createDefaultIslandChunks,
   loadFavorites,
 } from '../helpers/saveSchema'
 import { createDefaultPlacedBlocks } from '../../utils/placePresets'
@@ -20,7 +16,8 @@ import { normalizeCompetition } from '../../constants/competitionData'
 import { DEFAULT_ISLAND_SATISFACTION } from '../../constants/satisfactionAttributes'
 
 export const createInitialState = (savedData) => {
-  const islandChunks = savedData?.islandChunks || createDefaultIslandChunks();
+  const workshopSeed = createWorkshopIslandState();
+  const islandChunks = savedData?.islandChunks || workshopSeed.islandChunks;
   let placedBlocks = savedData?.placedBlocks || [];
   if (Array.isArray(placedBlocks) && placedBlocks.length > 0) {
     const existingArchetypes = new Set(placedBlocks.map(b => b.presetArchetype).filter(Boolean));
@@ -30,7 +27,7 @@ export const createInitialState = (savedData) => {
       placedBlocks = [...placedBlocks, ...missingDefaults];
     }
   } else {
-    placedBlocks = createDefaultPlacedBlocks(islandChunks);
+    placedBlocks = workshopSeed.placedBlocks;
   }
   const ferryRoutes = savedData?.ferryRoutes?.length
     ? savedData.ferryRoutes
@@ -38,8 +35,8 @@ export const createInitialState = (savedData) => {
 
   return {
   // --- 状態変数 ---
-  bugs: savedData?.bugs || createDefaultBugs(),
-  quests: savedData?.quests || createDefaultQuests(),
+    bugs: savedData?.bugs || workshopSeed.bugs,
+    quests: savedData?.quests || workshopSeed.quests,
   islandChunks,
   activeBug: null,
   isReturning: false,

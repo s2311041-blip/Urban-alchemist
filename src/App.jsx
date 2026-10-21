@@ -51,14 +51,6 @@ export default function App() {
     goodSpots: state.goodSpots,
     startPlacingQuest: state.startPlacingQuest,
     focusQuestOnIsland: state.focusQuestOnIsland,
-    importArAnnotations: state.importArAnnotations,
-    exportResearchLog: state.exportResearchLog,
-    postStats: state.postStats,
-    competition: state.competition,
-    voteCompetitionEntry: state.voteCompetitionEntry,
-    resetCompetition: state.resetCompetition,
-    setCompetitionTopic: state.setCompetitionTopic,
-    submitCompetitionEntry: state.submitCompetitionEntry,
     setActiveBug: state.setActiveBug,
     setIsReturning: state.setIsReturning,
     removeBug: state.removeBug,
@@ -159,13 +151,6 @@ export default function App() {
           quests={store.quests}
           startPlacingQuest={store.startPlacingQuest}
           focusQuestOnIsland={store.focusQuestOnIsland}
-          importArAnnotations={store.importArAnnotations}
-          exportResearchLog={store.exportResearchLog}
-          postStats={store.postStats}
-          competition={store.competition}
-          voteCompetitionEntry={store.voteCompetitionEntry}
-          resetCompetition={store.resetCompetition}
-          setCompetitionTopic={store.setCompetitionTopic}
         />
 
         <QuestTutorialOverlay quests={store.quests} />

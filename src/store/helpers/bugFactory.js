@@ -84,20 +84,6 @@ export const normalizeGoodSpot = (spot) => {
   };
 };
 
-export const createDefaultBugs = () => ([
-  {
-    id: 1,
-    type: 'empty',
-    factor: 'hard',
-    needType: 'P',
-    tagLabel: '#殺風景',
-    pos: [0, 0.5, 0], // approximately center
-    comment: '駅前なのに何もない。殺風景で寂しい。',
-    severity: 'high',
-    allowedPlans: ['plant_tree', 'build_bench'],
-  }
-]);
-
 export const normalizeQuest = (quest) => {
   if (!quest || typeof quest !== 'object' || !quest.id) return null;
   return {
@@ -108,62 +94,3 @@ export const normalizeQuest = (quest) => {
     photoPins: normalizePhotoPins(quest.photoPins),
   };
 };
-
-export const createDefaultQuests = () => ([
-  {
-    id: 102,
-    type: 'danger',
-    isMine: true,
-    demographic: 'あなた',
-    photo: 'https://images.unsplash.com/photo-1517646287270-a5a9ca602e5c?auto=format&fit=crop&q=80&w=800',
-    comment: 'この段差、自転車だといつもガタンってなって転びそうになる。',
-  },
-  {
-    id: 103,
-    type: 'dirty',
-    isMine: false,
-    demographic: '60代・男性',
-    photo: 'https://images.unsplash.com/photo-1530587191325-3db32d826c18?auto=format&fit=crop&q=80&w=800',
-    comment: '公園 of ベンチの周りにいつもゴミが散乱していて座れない。',
-  },
-  {
-    id: 104,
-    type: 'lonely',
-    isMine: false,
-    demographic: '70代・女性',
-    photo: 'https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?auto=format&fit=crop&q=80&w=800',
-    comment: 'この辺りは声をかけ合える場所がなくて、夜は特に不安になる。',
-  },
-  {
-    id: 105,
-    type: 'line_sign_confusion',
-    isMine: false,
-    demographic: '観光客',
-    photo: 'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?auto=format&fit=crop&q=80&w=800',
-    comment: '分かれ道に案内が少なくて、駅までの道で毎回迷ってしまう。',
-  },
-  {
-    id: 106,
-    type: 'area_maintenance_gap',
-    isMine: false,
-    demographic: '子育て中',
-    photo: 'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?auto=format&fit=crop&q=80&w=800',
-    comment: '公園周辺に休める場所が少なく、子ども連れだと移動がきつい。',
-  },
-  {
-    id: 107,
-    type: 'line_step_gap',
-    isMine: false,
-    demographic: '車いす利用者',
-    photo: 'https://images.unsplash.com/photo-1521747116042-5a810fda9664?auto=format&fit=crop&q=80&w=800',
-    comment: 'この通りは段差が続いていて、遠回りしないと進めない。',
-  },
-  {
-    id: 108,
-    type: 'area_isolation',
-    isMine: false,
-    demographic: '高齢者',
-    photo: 'https://images.unsplash.com/photo-1529694157871-1ea5d5e2558a?auto=format&fit=crop&q=80&w=800',
-    comment: 'この周辺には頼れる場所が少なく、困った時に不安です。',
-  },
-].map((quest) => normalizeQuest(quest)).filter(Boolean));

@@ -14,9 +14,8 @@ import { applyCoinEarn, computePostReward } from '../../utils/economyActions'
 import { advanceAgriBlocksForPassedDays } from '../../utils/farmingActions'
 import { sameBugId } from '../../utils/bugIds'
 import { syncFerryRoutesForBlocks } from '../helpers/syncFerryRoutes'
+import { createWorkshopIslandState } from '../helpers/workshopIslandSeed'
 import {
-  createDefaultBugs,
-  createDefaultQuests,
   normalizeBug,
   normalizeGoodSpot,
   normalizePhotoPins,
@@ -24,11 +23,9 @@ import {
 } from '../helpers/bugFactory'
 import {
   createDefaultFavorites,
-  createDefaultIslandChunks,
   FAV_KEY,
   SAVE_KEY,
 } from '../helpers/saveSchema'
-import { createDefaultPlacedBlocks } from '../../utils/placePresets'
 import { DEFAULT_ISLAND_SATISFACTION } from '../../constants/satisfactionAttributes'
 
 
@@ -239,10 +236,11 @@ export const createSetterSlice = (set, get) => ({
   },
   resetGameData: () => {
     const defaultFavorites = createDefaultFavorites();
+    const workshopSeed = createWorkshopIslandState();
     const defaultState = {
-      bugs: createDefaultBugs(),
-      quests: createDefaultQuests(),
-      islandChunks: createDefaultIslandChunks(),
+      bugs: workshopSeed.bugs,
+      quests: workshopSeed.quests,
+      islandChunks: workshopSeed.islandChunks,
       activeBug: null,
       isReturning: false,
       expandingLevel: 0,
@@ -269,7 +267,7 @@ export const createSetterSlice = (set, get) => ({
       selectedAgriColors: { ...DEFAULT_AGRI_COLORS },
       selectedTerrainColors: { ...DEFAULT_TERRAIN_COLORS },
       selectedHoverboardColor: DEFAULT_HOVERBOARD_COLOR,
-      placedBlocks: createDefaultPlacedBlocks(createDefaultIslandChunks()),
+      placedBlocks: workshopSeed.placedBlocks,
       hoverPosition: null,
       isHoverboarding: false,
       currentHoverboardStationId: null,

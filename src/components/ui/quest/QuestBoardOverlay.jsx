@@ -14,13 +14,12 @@ import {
   getQuestActionButtonStyle,
   getQuestStatusMeta,
 } from '../../../constants/ui/questBoardOverlay';
-import { QuestImportPanel } from './QuestImportPanel';
-import { CompetitionPanel } from './CompetitionPanel';
-import { ResearchToolsPanel } from './ResearchToolsPanel';
 
-const getPlaceArchetypeLabel = (placeArchetype) => {
-  if (placeArchetype === 'none') return 'どれにも当てはまらない（オーブのみ）';
-  return PLACE_ARCHETYPE_LABELS[placeArchetype] ?? null;
+const getPlaceLabel = (quest) => {
+  const written = quest?.placeText?.trim();
+  if (written) return written;
+  if (quest?.placeArchetype === 'none') return 'どれにも当てはまらない（オーブのみ）';
+  return PLACE_ARCHETYPE_LABELS[quest?.placeArchetype] ?? null;
 };
 
 export const QuestBoardOverlay = ({
@@ -29,14 +28,7 @@ export const QuestBoardOverlay = ({
   quests = [],
   startPlacingQuest,
   focusQuestOnIsland,
-  importArAnnotations,
   openAREditQuest,
-  competition,
-  voteCompetitionEntry,
-  resetCompetition,
-  setCompetitionTopic,
-  exportResearchLog,
-  postStats,
 }) => {
   const [ownerFilter, setOwnerFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -64,23 +56,6 @@ export const QuestBoardOverlay = ({
           <button onClick={() => setIsQuestBoardOpen(false)} style={QUEST_BOARD_STYLE.closeButton}><X size={24} color="white" /></button>
         </div>
         <div style={QUEST_BOARD_STYLE.content}>
-          {importArAnnotations && (
-            <QuestImportPanel importArAnnotations={importArAnnotations} />
-          )}
-          {exportResearchLog && (
-            <ResearchToolsPanel
-              exportResearchLog={exportResearchLog}
-              postStats={postStats}
-            />
-          )}
-          {competition && voteCompetitionEntry && (
-            <CompetitionPanel
-              competition={competition}
-              voteCompetitionEntry={voteCompetitionEntry}
-              resetCompetition={resetCompetition}
-              setCompetitionTopic={setCompetitionTopic}
-            />
-          )}
           <div style={QUEST_BOARD_STYLE.filterRow}>
             {QUEST_OWNER_FILTER_OPTIONS.map((opt) => (
               <button
@@ -122,9 +97,9 @@ export const QuestBoardOverlay = ({
                     <span style={{ ...QUEST_BOARD_STYLE.statusBadge, background: statusMeta.bg, color: statusMeta.color }}>
                       {statusMeta.label}
                     </span>
-                    {getPlaceArchetypeLabel(quest.placeArchetype) && (
+                    {getPlaceLabel(quest) && (
                       <span style={QUEST_BOARD_STYLE.placeBadge}>
-                        {QUEST_BOARD_COPY.placeTypePrefix} {getPlaceArchetypeLabel(quest.placeArchetype)}
+                        {QUEST_BOARD_COPY.placeTypePrefix} {getPlaceLabel(quest)}
                       </span>
                     )}
                   </div>
