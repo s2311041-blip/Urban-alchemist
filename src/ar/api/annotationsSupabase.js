@@ -1,15 +1,15 @@
 import { getSupabase } from './supabaseClient';
-import { deleteAnnotationPhoto, uploadAnnotationPhoto } from './photoStorage';
+import { deleteAnnotationPhoto, publicUrlForPhotoPath, uploadAnnotationPhoto } from './photoStorage';
 
 const TABLE = 'ar_annotations';
 
-function stripPhotoFromPayload(annotation) {
-  const { photo, photoStoragePath, ...rest } = annotation;
-  return rest;
-}
-
 function rowToAnnotation(row) {
   const payload = row.payload ?? {};
+  const storedUrl = typeof payload.photoUrl === 'string' && payload.photoUrl.startsWith('http')
+    ? payload.photoUrl
+    : null;
+  const photoPath = row.photo_path
+    || (row.author_id && row.id ? `${row.author_id}/${row.id}.jpg` : null);
   return {
     ...payload,
     id: row.id,
@@ -17,13 +17,13 @@ function rowToAnnotation(row) {
     createdAt: new Date(row.created_at).getTime(),
     updatedAt: new Date(row.updated_at).getTime(),
     worldPin: { lat: row.world_pin_lat, lng: row.world_pin_lng },
-    photo: payload.photoUrl ?? null,
-    photoStoragePath: row.photo_path ?? null,
+    photo: storedUrl || publicUrlForPhotoPath(photoPath),
+    photoStoragePath: row.photo_path ?? photoPath,
   };
 }
 
 function annotationToRow(annotation, authorId) {
-  const { photo, photoStoragePath, isMine, ...payload } = stripPhotoFromPayload(annotation);
+  const { photo, photoStoragePath, isMine, ...payload } = annotation;
   return {
     id: annotation.id,
     author_id: authorId,

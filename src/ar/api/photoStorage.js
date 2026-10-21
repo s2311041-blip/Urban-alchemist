@@ -31,6 +31,14 @@ export async function uploadAnnotationPhoto({ dataUrl, annotationId, authorId })
   return { path, publicUrl: data.publicUrl };
 }
 
+export function publicUrlForPhotoPath(path) {
+  if (!path) return null;
+  const supabase = getSupabase();
+  if (!supabase) return null;
+  const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
+  return data?.publicUrl ?? null;
+}
+
 export async function deleteAnnotationPhoto(photoPath) {
   const supabase = getSupabase();
   if (!supabase || !photoPath) return;

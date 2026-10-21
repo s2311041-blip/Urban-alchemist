@@ -12,8 +12,22 @@ const API_URL = import.meta.env.VITE_AR_API_URL ?? '';
 function mergeById(local = [], remote = [], deletedIds = []) {
   const deleted = new Set(deletedIds);
   const map = new Map();
-  [...remote, ...local].forEach((item) => {
+  remote.forEach((item) => {
     if (item?.id && !deleted.has(item.id)) map.set(item.id, item);
+  });
+  local.forEach((item) => {
+    if (!item?.id || deleted.has(item.id)) return;
+    const remoteItem = map.get(item.id);
+    if (!remoteItem) {
+      map.set(item.id, item);
+      return;
+    }
+    const merged = { ...item, ...remoteItem };
+    if (!merged.photo && item.photo) merged.photo = item.photo;
+    if (!merged.photoStoragePath && item.photoStoragePath) {
+      merged.photoStoragePath = item.photoStoragePath;
+    }
+    map.set(item.id, merged);
   });
   return [...map.values()].sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
 }
