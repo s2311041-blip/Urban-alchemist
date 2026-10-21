@@ -44,7 +44,7 @@ const WORKSHOP_POSTS = [
   {
     id: 'ar-1792483690461-xp641d3',
     needType: 'P',
-    placeArchetype: 'road',
+    placeArchetype: 'none',
     placeText: '歩道橋',
     demographic: '特に足腰の弱い人は危険だと思う。',
     severity: 'mid',

@@ -4,7 +4,7 @@ import { createWorkshopIslandState } from './workshopIslandSeed.js';
 
 describe('createWorkshopIslandState', () => {
   it('starts the island with the four demo complaints already placed', () => {
-    const { bugs, quests } = createWorkshopIslandState();
+    const { bugs, quests, placedBlocks } = createWorkshopIslandState();
 
     expect(quests).toHaveLength(4);
     expect(bugs).toHaveLength(4);
@@ -32,5 +32,14 @@ describe('createWorkshopIslandState', () => {
       '歩道橋',
       '駅前・広場',
     ]);
+    const bridge = bugs.find((bug) => bug.placeText === '歩道橋');
+    expect(bridge.placeArchetype).toBe('none');
+    expect(quests.find((quest) => quest.placeText === '歩道橋').placeArchetype).toBe('none');
+    const nearBridge = placedBlocks.filter((block) => {
+      const dx = (block.pos?.[0] ?? 0) - bridge.pos[0];
+      const dz = (block.pos?.[2] ?? 0) - bridge.pos[2];
+      return Math.hypot(dx, dz) < 8;
+    });
+    expect(nearBridge).toEqual([]);
   });
 });

@@ -89,6 +89,9 @@ export const BugReportOverlay = ({
   }, [bug, selectablePlans]);
   const [selectedPlan, setSelectedPlan] = useState(initialSelectedPlan);
   const [phase, setPhase] = useState('decision');
+  const [sideBySide, setSideBySide] = useState(() => (
+    typeof window !== 'undefined' && window.innerWidth >= 960
+  ));
   const remainingBudget = useGameStore((s) => s.remainingBudget);
 
   useEffect(() => {
@@ -98,6 +101,12 @@ export const BugReportOverlay = ({
   useEffect(() => {
     setPhase('decision');
   }, [activeBug]);
+
+  useEffect(() => {
+    const onResize = () => setSideBySide(window.innerWidth >= 960);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
 
   const isIgnoreSelected = selectedPlan === IGNORE_PLAN_ID;
   const isJokerSelected = selectedPlan === JOKER_PLAN_ID;
@@ -111,12 +120,16 @@ export const BugReportOverlay = ({
   const canEditPost = bug.isMine && bug.sourceQuestId && !bug.solved;
   return (
     <div style={BUG_REPORT_STYLE.overlay}>
-      <PhotoPinSurface
-        imageUrl={heroPhoto}
-        pins={bug.photoPins ?? []}
-        height="100%"
-        minHeight="100vh"
-      >
+      <div style={sideBySide ? BUG_REPORT_STYLE.stage : BUG_REPORT_STYLE.stageStacked}>
+      <div style={sideBySide ? BUG_REPORT_STYLE.photoColumn : BUG_REPORT_STYLE.photoColumnStacked}>
+        <PhotoPinSurface
+          imageUrl={heroPhoto}
+          pins={bug.photoPins ?? []}
+          height="100%"
+          backgroundFit="contain"
+        />
+      </div>
+      <div style={BUG_REPORT_STYLE.infoColumn} className="bug-report-scroll">
         <div style={BUG_REPORT_STYLE.closeRow}>
           {canEditPost && (
             <button
@@ -139,7 +152,6 @@ export const BugReportOverlay = ({
             <X size={28} color="white" />
           </button>
         </div>
-        <div style={BUG_REPORT_STYLE.contentPanel} className="bug-report-scroll">
           <div style={BUG_REPORT_STYLE.content}>
           <div style={BUG_REPORT_STYLE.chipRow}>
             {needCategory && (
@@ -374,8 +386,8 @@ export const BugReportOverlay = ({
             </button>
           </div>
           </div>
-        </div>
-      </PhotoPinSurface>
+      </div>
+      </div>
     </div>
   );
 };
