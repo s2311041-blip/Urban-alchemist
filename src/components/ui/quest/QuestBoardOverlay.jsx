@@ -36,7 +36,6 @@ export const QuestBoardOverlay = ({
   resetCompetition,
   setCompetitionTopic,
   exportResearchLog,
-  loadDemoQuestSet,
   postStats,
 }) => {
   const [ownerFilter, setOwnerFilter] = useState('all');
@@ -71,7 +70,6 @@ export const QuestBoardOverlay = ({
           {exportResearchLog && (
             <ResearchToolsPanel
               exportResearchLog={exportResearchLog}
-              loadDemoQuestSet={loadDemoQuestSet}
               postStats={postStats}
             />
           )}

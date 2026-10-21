@@ -10,6 +10,7 @@ import {
   getSeasonFromDay,
   normalizeTimeOfDay,
 } from '../../constants/worldTimeConfig';
+import { withWorkshopDaytime } from '../../constants/workshopMode';
 import { normalizeAgriState } from '../../utils/agriGrowth';
 import { getIslandTopYAt, snapTerrainPosition } from '../../utils/terrainPlacement';
 import { normalizeIslandSatisfaction } from '../../constants/satisfactionAttributes';
@@ -197,18 +198,18 @@ export const loadSavedData = () => {
 
       // 6. worldTime バリデーション
       if (!data.worldTime || typeof data.worldTime !== 'object') {
-        data.worldTime = { ...DEFAULT_WORLD_TIME };
+        data.worldTime = withWorkshopDaytime({ ...DEFAULT_WORLD_TIME });
       } else {
         const rawDay = Number.isFinite(data.worldTime.dayIndex) ? Math.max(0, Math.floor(data.worldTime.dayIndex)) : DEFAULT_WORLD_TIME.dayIndex;
         const rawSpeed = WORLD_TIME_SPEED_OPTIONS.includes(data.worldTime.speed) ? data.worldTime.speed : DEFAULT_WORLD_TIME.speed;
         const rawTime = normalizeTimeOfDay(data.worldTime.timeOfDay);
-        data.worldTime = {
+        data.worldTime = withWorkshopDaytime({
           dayIndex: rawDay,
           timeOfDay: rawTime,
           season: getSeasonFromDay(rawDay),
           paused: !!data.worldTime.paused,
           speed: rawSpeed,
-        };
+        });
       }
       data.pauseTimeInBuildMode = data.pauseTimeInBuildMode ?? true;
 

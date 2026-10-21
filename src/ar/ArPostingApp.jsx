@@ -213,7 +213,10 @@ export function ArPostingApp() {
             }
           }}
           onExport={downloadExport}
-          onDelete={removeAnnotation}
+          onDelete={(id) => {
+            if (!window.confirm('この投稿を削除しますか？')) return;
+            removeAnnotation(id);
+          }}
           onEdit={startEdit}
           onClose={goView}
         />

@@ -7,6 +7,7 @@ import {
   WORLD_TIME_SPEED_OPTIONS,
   getSeasonFromDay,
 } from '../../constants/worldTimeConfig'
+import { withWorkshopDaytime, WORKSHOP_LOCK_DAYTIME } from '../../constants/workshopMode'
 import { DEFAULT_FARMING_PROGRESS } from '../../constants/farmingProgressData'
 import { DEFAULT_ECONOMY, DEFAULT_POST_STATS } from '../../constants/economyData'
 import { applyCoinEarn, computePostReward } from '../../utils/economyActions'
@@ -302,7 +303,7 @@ export const createSetterSlice = (set, get) => ({
       clipboardBlocks: [],
       areaAction: null,
       favorites: defaultFavorites,
-      worldTime: { ...DEFAULT_WORLD_TIME },
+      worldTime: withWorkshopDaytime({ ...DEFAULT_WORLD_TIME }),
       pauseTimeInBuildMode: true,
       farmingProgress: { ...DEFAULT_FARMING_PROGRESS },
       economy: { ...DEFAULT_ECONOMY },
@@ -378,6 +379,9 @@ export const createSetterSlice = (set, get) => ({
   setPauseTimeInBuildMode: (pauseTimeInBuildMode) => set({ pauseTimeInBuildMode: !!pauseTimeInBuildMode }),
   togglePauseTimeInBuildMode: () => set((state) => ({ pauseTimeInBuildMode: !state.pauseTimeInBuildMode })),
   skipToNextMorning: () => set((state) => {
+    if (WORKSHOP_LOCK_DAYTIME) {
+      return { worldTime: withWorkshopDaytime(state.worldTime) };
+    }
     const nextDay = state.worldTime.dayIndex + 1;
     const placedBlocks = advanceAgriBlocksForPassedDays({
       placedBlocks: state.placedBlocks,
@@ -390,7 +394,7 @@ export const createSetterSlice = (set, get) => ({
       worldTime: {
         ...state.worldTime,
         dayIndex: nextDay,
-        timeOfDay: 0.25,
+        timeOfDay: withWorkshopDaytime({ timeOfDay: 0.25 }).timeOfDay,
         season: getSeasonFromDay(nextDay),
       },
       placedBlocks,

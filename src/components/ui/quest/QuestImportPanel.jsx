@@ -1,6 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { CloudDownload, FileUp, Loader2 } from 'lucide-react';
-import { isSupabaseConfigured } from '../../../ar/api/supabaseClient';
+import { FileUp, Loader2 } from 'lucide-react';
 
 const panelStyle = {
   marginBottom: 16,
@@ -26,7 +25,6 @@ export function QuestImportPanel({ importArAnnotations }) {
   const fileRef = useRef(null);
   const [loading, setLoading] = useState(false);
   const [lastResult, setLastResult] = useState(null);
-  const cloudReady = isSupabaseConfigured();
 
   const runImport = async (fn) => {
     setLoading(true);
@@ -38,8 +36,6 @@ export function QuestImportPanel({ importArAnnotations }) {
       setLoading(false);
     }
   };
-
-  const handleCloud = () => runImport(() => importArAnnotations({ fromCloud: true }));
 
   const handleFile = (event) => {
     const file = event.target.files?.[0];
@@ -58,24 +54,9 @@ export function QuestImportPanel({ importArAnnotations }) {
         AR 投稿を取り込む（ファシリ）
       </div>
       <p style={{ margin: '0 0 10px', fontSize: 12, color: '#b0bec5', lineHeight: 1.5 }}>
-        事前に /ar.html で集めた Bad 投稿を島上の不満（黒オーブ）として載せます。場所型は1回だけ、困りの演出は投稿ごとに追加されます。
+        JSON に書き出した Bad 投稿を、島上の不満として載せます。
       </p>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-        <button
-          type="button"
-          disabled={loading || !cloudReady}
-          onClick={handleCloud}
-          style={{
-            ...btnStyle,
-            background: cloudReady ? '#4fc3f7' : 'rgba(255,255,255,0.12)',
-            color: cloudReady ? '#0d1b2a' : '#78909c',
-            cursor: cloudReady && !loading ? 'pointer' : 'not-allowed',
-          }}
-          title={cloudReady ? undefined : 'VITE_SUPABASE_* を .env.local に設定'}
-        >
-          {loading ? <Loader2 size={16} /> : <CloudDownload size={16} />}
-          クラウドから取り込み
-        </button>
         <button
           type="button"
           disabled={loading}
@@ -87,7 +68,7 @@ export function QuestImportPanel({ importArAnnotations }) {
             cursor: loading ? 'not-allowed' : 'pointer',
           }}
         >
-          <FileUp size={16} />
+          {loading ? <Loader2 size={16} /> : <FileUp size={16} />}
           JSON ファイル
         </button>
         <input

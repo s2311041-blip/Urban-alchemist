@@ -5,6 +5,7 @@ import {
   getSeasonFromDay,
   normalizeTimeOfDay,
 } from '../../constants/worldTimeConfig'
+import { WORKSHOP_LOCK_DAYTIME, withWorkshopDaytime } from '../../constants/workshopMode'
 import {
   advanceAgriBlocksForPassedDays,
   computeHarvestResult,
@@ -14,6 +15,15 @@ import {
 export const createFarmingSlice = (set, get) => ({
   advanceWorldTimeSeconds: (deltaSeconds = 1) => {
     if (!Number.isFinite(deltaSeconds) || deltaSeconds <= 0) return;
+
+    if (WORKSHOP_LOCK_DAYTIME) {
+      set((state) => {
+        const wt = state.worldTime || DEFAULT_WORLD_TIME;
+        if (wt.timeOfDay === withWorkshopDaytime(wt).timeOfDay) return {};
+        return { worldTime: withWorkshopDaytime(wt) };
+      });
+      return;
+    }
 
     set((state) => {
       const wt = state.worldTime || DEFAULT_WORLD_TIME;

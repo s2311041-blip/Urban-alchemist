@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Download, FlaskConical, PlayCircle } from 'lucide-react';
+import React from 'react';
+import { Download, FlaskConical } from 'lucide-react';
 
 const panelStyle = {
   marginBottom: 16,
@@ -21,41 +21,22 @@ const btnStyle = {
   cursor: 'pointer',
 };
 
-export function ResearchToolsPanel({ exportResearchLog, loadDemoQuestSet, postStats }) {
-  const [loading, setLoading] = useState(false);
+export function ResearchToolsPanel({ exportResearchLog, postStats }) {
   const eventCount = postStats?.events?.length ?? 0;
-
-  const runDemo = async () => {
-    setLoading(true);
-    try {
-      loadDemoQuestSet?.();
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <div style={panelStyle}>
       <div style={{ fontSize: 12, color: '#ce93d8', fontWeight: 'bold', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
         <FlaskConical size={16} />
-        研究・WS ツール
+        研究ログ
       </div>
       <p style={{ margin: '0 0 10px', fontSize: 12, color: '#b0bec5', lineHeight: 1.5 }}>
-        デモ 3 件（同一駅 + 異 needType）を読み込みます。研究ログ CSV（
+        研究ログ CSV（
         {eventCount}
         {' '}
-        イベント）も出力できます。
+        イベント）を出力できます。
       </p>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-        <button
-          type="button"
-          disabled={loading}
-          style={{ ...btnStyle, background: '#7b1fa2', color: '#fff' }}
-          onClick={runDemo}
-        >
-          <PlayCircle size={14} />
-          {loading ? '読込中...' : 'WS デモ 3 件を載せる'}
-        </button>
         <button
           type="button"
           style={{ ...btnStyle, background: 'rgba(255,255,255,0.12)', color: '#e1bee7' }}

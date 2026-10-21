@@ -9,5 +9,5 @@ export const CONTROLS_GUIDE_AVATAR_HEIGHT = 148;
 /** 右下インタラクションヒントの bottom オフセット */
 export const interactionHintBottomPx = () => SIDE_PANEL_INSET;
 
-/** 島満足度 HUD の高さ（TopRightPanel のオフセット用） */
-export const ISLAND_SATISFACTION_HUD_HEIGHT = 136;
+/** 島満足度 HUD の高さ（方位パネルをその下に置く） */
+export const ISLAND_SATISFACTION_HUD_HEIGHT = 172;

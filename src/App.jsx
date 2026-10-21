@@ -53,7 +53,6 @@ export default function App() {
     focusQuestOnIsland: state.focusQuestOnIsland,
     importArAnnotations: state.importArAnnotations,
     exportResearchLog: state.exportResearchLog,
-    loadDemoQuestSet: state.loadDemoQuestSet,
     postStats: state.postStats,
     competition: state.competition,
     voteCompetitionEntry: state.voteCompetitionEntry,
@@ -162,7 +161,6 @@ export default function App() {
           focusQuestOnIsland={store.focusQuestOnIsland}
           importArAnnotations={store.importArAnnotations}
           exportResearchLog={store.exportResearchLog}
-          loadDemoQuestSet={store.loadDemoQuestSet}
           postStats={store.postStats}
           competition={store.competition}
           voteCompetitionEntry={store.voteCompetitionEntry}

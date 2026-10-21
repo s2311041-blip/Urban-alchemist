@@ -3,6 +3,7 @@ import { DEFAULT_AGRI_COLORS } from '../../constants/agriData'
 import { DEFAULT_HOVERBOARD_COLOR } from '../../constants/hoverboardData'
 import { DEFAULT_TERRAIN_COLORS } from '../../constants/terrainData'
 import { DEFAULT_WORLD_TIME } from '../../constants/worldTimeConfig'
+import { withWorkshopDaytime } from '../../constants/workshopMode'
 import { DEFAULT_FARMING_PROGRESS } from '../../constants/farmingProgressData'
 import { DEFAULT_ECONOMY, normalizePostStats } from '../../constants/economyData'
 import { syncFerryRoutesForBlocks } from '../helpers/syncFerryRoutes'
@@ -102,7 +103,7 @@ export const createInitialState = (savedData) => {
   areaAction: null,
   signTextPrompt: null,
   favorites: loadFavorites(),
-  worldTime: savedData?.worldTime || { ...DEFAULT_WORLD_TIME },
+  worldTime: withWorkshopDaytime(savedData?.worldTime || { ...DEFAULT_WORLD_TIME }),
   pauseTimeInBuildMode: savedData?.pauseTimeInBuildMode ?? true,
   farmingProgress: savedData?.farmingProgress || { ...DEFAULT_FARMING_PROGRESS },
   economy: savedData?.economy || { ...DEFAULT_ECONOMY },
