@@ -16,6 +16,16 @@ describe('createWorkshopIslandState', () => {
       '歩道を舗装して欲しい。ボロボロになっていてつまづいた。階段だから危なかった。',
       '自販機の近くというだけで飲料のゴミが捨てられている。',
     ]);
+    expect(bugs.map((bug) => [bug.pos[0], bug.pos[2]])).toEqual([
+      [-11, -11],
+      [11, -11],
+      [-11, 11],
+      [11, 11],
+    ]);
+    const gap = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
+    const corners = bugs.map((bug) => [bug.pos[0], bug.pos[2]]);
+    expect(gap(corners[0], corners[1])).toBe(gap(corners[0], corners[2]));
+    expect(gap(corners[1], corners[3])).toBe(gap(corners[2], corners[3]));
     expect(quests.map((quest) => quest.placeText)).toEqual([
       '歩道・道路',
       '歩道・道路',

@@ -1,5 +1,6 @@
 import { TYPE_TO_BARRIER_META } from '../constants/barrierData';
 import { PLACE_PRESET_TEMPLATES } from '../constants/placePresetTemplates';
+import { KOTO_PLACE_OPTIONS } from '../ar/constants/kotoArea';
 import { getIslandTopYAt, isOnIsland } from './terrainPlacement';
 import {
   EXPRESSION_NEED_TYPES,
@@ -14,16 +15,14 @@ export const PLACE_ARCHETYPE_ALIASES = {
   transit: 'station',
 };
 
+/** 表示名は AR の場所チップと同じ。campus だけゲーム側に残っている。 */
 export const PLACE_ARCHETYPE_LABELS = {
-  station: '駅',
-  bus_stop: 'バス停',
-  plaza: '広場・駅前',
-  road: '道路',
-  lane: '街区・路地',
+  ...Object.fromEntries(
+    KOTO_PLACE_OPTIONS
+      .filter((opt) => opt.id !== 'none')
+      .map((opt) => [opt.id, opt.label]),
+  ),
   campus: '学校・キャンパス',
-  park: '公園・緑',
-  waterfront: '水辺',
-  commerce: '商業施設',
 };
 export const PLACE_ARCHETYPE_OPTIONS = Object.entries(PLACE_ARCHETYPE_LABELS).map(([id, label]) => ({ id, label }));
 

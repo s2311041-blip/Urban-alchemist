@@ -1,14 +1,27 @@
 import { NEED_TYPE_TO_DEFAULT_TYPE } from '../../constants/barrierData';
-import { createDefaultPlacedBlocks } from '../../utils/placePresets';
+import { createDefaultPlacedBlocks, createPresetForQuestPlacement } from '../../utils/placePresets';
+import { getIslandTopYAt } from '../../utils/terrainPlacement';
 import { createDefaultIslandChunks } from './saveSchema';
 import { normalizeQuest } from './bugFactory';
-import { createQuestFromPost, spawnQuestOnIslandState } from './questLifecycle';
+import { createQuestFromPost, questToBug } from './questLifecycle';
+import { QUEST_STATUS } from './questState';
 
 const PHOTO_BASE = 'https://ltpgtysvikszlcwsyieb.supabase.co/storage/v1/object/public/ar-photos/07a22342-6baa-4a1f-8d44-e212e87ff75b';
 
 const photoUrl = (id) => `${PHOTO_BASE}/${id}.jpg`;
 
-/** 学会デモ用。ARに残っている4件を、最初から島に置いた状態にする。 */
+/** 島の四隅。隣り合う距離が同じになる正方形。 */
+const WORKSHOP_CORNERS = [
+  [-11, -11],
+  [11, -11],
+  [-11, 11],
+  [11, 11],
+];
+
+const cornerPosition = (islandChunks, [x, z]) => {
+  const y = Number((getIslandTopYAt(x, z, islandChunks) + 0.5).toFixed(3));
+  return [x, y, z];
+};
 const WORKSHOP_POSTS = [
   {
     id: 'ar-1792484266589-qk9i9dy',
@@ -54,7 +67,7 @@ export function createWorkshopIslandState() {
   let bugs = [];
   const quests = [];
 
-  WORKSHOP_POSTS.forEach((post) => {
+  WORKSHOP_POSTS.forEach((post, index) => {
     const quest = normalizeQuest(createQuestFromPost({
       ...post,
       sourceAnnotationId: post.id,
@@ -67,16 +80,24 @@ export function createWorkshopIslandState() {
       isMine: false,
       fromPost: true,
     }));
-    const spawned = spawnQuestOnIslandState({
+    const pos = cornerPosition(islandChunks, WORKSHOP_CORNERS[index]);
+    const preset = createPresetForQuestPlacement({
       quest,
+      basePos: pos,
       islandChunks,
-      placedBlocks,
-      bugs,
+      existingBlocks: placedBlocks,
     });
-    if (!spawned) return;
-    bugs = [...bugs, spawned.bug];
-    quests.push(spawned.updatedQuest);
-    placedBlocks = spawned.nextBlocks;
+    const bug = questToBug(quest, pos);
+    if (preset.archetype) bug.placeArchetype = preset.archetype;
+    bugs = [...bugs, bug];
+    quests.push({
+      ...quest,
+      questStatus: QUEST_STATUS.ON_ISLAND,
+      linkedBugId: bug.id,
+    });
+    if (preset.blocks.length > 0) {
+      placedBlocks = [...placedBlocks, ...preset.blocks];
+    }
   });
 
   return { islandChunks, bugs, quests, placedBlocks };

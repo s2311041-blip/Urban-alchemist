@@ -4,7 +4,6 @@ import { useGameStore } from '../../../store/useGameStore';
 import { PhotoPinSurface } from '../PhotoPinSurface';
 import {
   getPlanHint,
-  getScaleUi,
   NEED_CATEGORY_OPTIONS,
   PLAN_LABEL,
   PLAN_DESCRIPTION,
@@ -13,15 +12,11 @@ import {
   TIME_TAG_ICON_BY_LABEL,
 } from '../../../constants/barrierData';
 import {
-  FACTOR_STYLE,
   PLAN_CARD_ACCENT,
   BUG_REPORT_COPY,
   BUG_REPORT_STYLE,
   getPlaceArchetypeLabel,
-  getScaleChipStyle,
-  getFactorChipStyle,
   getNeedCategoryChipStyle,
-  getTagLabelChipStyle,
   getDemographicChipStyle,
   getTimeTagChipStyle,
   getSeverityChipStyle,
@@ -109,10 +104,8 @@ export const BugReportOverlay = ({
 
   if (!activeBug || !bug) return null;
 
-  const factorMeta = FACTOR_STYLE[bug.factor] ?? FACTOR_STYLE.hard;
-  const scaleMeta = getScaleUi(bug.scale);
   const needCategory = NEED_CATEGORY_OPTIONS.find((opt) => opt.needType === bug.needType);
-  const placeArchetypeLabel = getPlaceArchetypeLabel(bug.placeArchetype);
+  const placeLabel = bug.placeText?.trim() || getPlaceArchetypeLabel(bug.placeArchetype);
   const fallbackPhoto = 'https://images.unsplash.com/photo-1519608487953-e999c86e7455?auto=format&fit=crop&q=80&w=800';
   const heroPhoto = bug.photo || fallbackPhoto;
   const canEditPost = bug.isMine && bug.sourceQuestId && !bug.solved;
@@ -149,22 +142,17 @@ export const BugReportOverlay = ({
         <div style={BUG_REPORT_STYLE.contentPanel} className="bug-report-scroll">
           <div style={BUG_REPORT_STYLE.content}>
           <div style={BUG_REPORT_STYLE.chipRow}>
-            <span style={getScaleChipStyle(scaleMeta)}>
-              {scaleMeta.label}（{scaleMeta.subtitle}）
-            </span>
-            <span style={getFactorChipStyle(factorMeta)}>{BUG_REPORT_COPY.factorPrefix}{factorMeta.label}</span>
             {needCategory && (
               <span style={getNeedCategoryChipStyle()}>
                 <Pictogram src={needCategory.iconSrc} size={18} alt={needCategory.label} />
                 {needCategory.label}
               </span>
             )}
-            {placeArchetypeLabel && (
+            {placeLabel && (
               <span style={BUG_REPORT_STYLE.placeTypeChip}>
-                {BUG_REPORT_COPY.placeTypePrefix} {placeArchetypeLabel}
+                {BUG_REPORT_COPY.placeTypePrefix} {placeLabel}
               </span>
             )}
-            <span style={getTagLabelChipStyle(factorMeta)}>{bug.tagLabel ?? BUG_REPORT_COPY.fallbackTagLabel}</span>
             <span style={getDemographicChipStyle()}>{bug.demographic}</span>
             {bug.timeTag && (
               <span style={getTimeTagChipStyle()}>
