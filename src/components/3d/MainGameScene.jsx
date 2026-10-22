@@ -380,7 +380,9 @@ export const MainGameScene = ({
                   e.stopPropagation(); 
                   let normal = e.face ? e.face.normal.clone().applyQuaternion(e.object.quaternion) : null;
                   
+                  let isLayoutSurface = false;
                   if (isPlaceLayoutShape(block.shape) && normal && normal.y > 0.1) {
+                    isLayoutSurface = true;
                     normal.set(0, 1, 0);
                   } else if (block.shape === 'path' || block.shape === 'rail' || isAgriShape(block.shape) || isTerrainShape(block.shape)) {
                     e.point.y = block.pos[1] + 0.25;
@@ -388,7 +390,7 @@ export const MainGameScene = ({
                   } else if (normal && normal.y > 0.1 && (block.shape === 'diagonal' || block.shape === 'slope')) {
                     normal.set(0, 1, 0);
                   }
-                  handlePointerMove(e, normal); 
+                  handlePointerMove(e, normal, { onLayoutSurface: isLayoutSurface }); 
                 } : (agriActionable ? () => {
                   document.body.style.cursor = 'pointer';
                 } : undefined)} 

@@ -84,7 +84,7 @@ export function useBuildPointerPlacement() {
     }
   }, []);
 
-  const handlePointerMove = useCallback((e, normal = null) => {
+  const handlePointerMove = useCallback((e, normal = null, options = {}) => {
     const current = useGameStore.getState();
     const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
     if (now - lastPointerMoveMsRef.current < 16) return;
@@ -163,6 +163,12 @@ export function useBuildPointerPlacement() {
         const treeBottomLocal = current.selectedShape === 'canopy_tree' ? -0.27 : -0.21;
         const y = Number((topY - treeBottomLocal * sy + 0.01).toFixed(3));
         finalPos = [snapX, y, snapZ];
+      } else if (options.onLayoutSurface || (normal && normal.y > 0.5)) {
+        // レイアウト形状（プリセット）の上、または既存ブロックの上面に乗せる場合はYスナップを無効化し、表面にピッタリ沿わせる
+        // これにより、高さが半端なプリセット上でもブロックが浮かず、さらにその上に積む時も綺麗に重なる
+        // 浮動小数点誤差を防ぐため、100分の1ミリ単位で丸める
+        const bottomY = Math.round(e.point.y * 1000) / 1000;
+        finalPos = [snapX, bottomY + (0.25 * current.selectedScale[1]), snapZ];
       } else {
         const minY = (current.selectedShape === 'path' || current.selectedShape === 'rail') ? 0.01 : (0.25 * (current.selectedShape === 'eraser' || current.selectedShape === 'edit' ? 1.0 : current.selectedScale[1]));
         finalPos = [snapX, sandSeaPlaceMode ? snapY : Math.max(minY, snapY), snapZ];
@@ -180,6 +186,8 @@ export function useBuildPointerPlacement() {
       const treeBottomLocal = current.selectedShape === 'canopy_tree' ? -0.27 : -0.21;
       const y = Number((topY - treeBottomLocal * sy + 0.01).toFixed(3));
       finalPos = [point.x, y, point.z];
+    } else if (options.onLayoutSurface) {
+      finalPos = [point.x, e.point.y + (0.25 * current.selectedScale[1]), point.z];
     } else {
       const minY = (current.selectedShape === 'path' || current.selectedShape === 'rail') ? 0.01 : (0.25 * (current.selectedShape === 'eraser' || current.selectedShape === 'edit' ? 1.0 : current.selectedScale[1]));
       finalPos = [point.x, sandSeaPlaceMode ? point.y : Math.max(minY, point.y), point.z];
