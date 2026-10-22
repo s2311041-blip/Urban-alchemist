@@ -104,10 +104,10 @@ export function ArHomeScreen({
 
           <button type="button" onClick={onView} style={styles.viewBtn}>
             <Smartphone size={22} />
-            スマホをかざして近くの投稿を見る
+            近くの投稿を見る
             <ChevronRight size={20} />
           </button>
-          <p style={styles.viewHint}>地図や一覧でも見られます</p>
+          <p style={styles.viewHint}>スマホをかざしたり、地図や一覧で見られます</p>
         </div>
       </div>
     </div>

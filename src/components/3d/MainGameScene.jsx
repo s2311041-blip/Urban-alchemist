@@ -26,9 +26,11 @@ import { BUILD_ORBIT, GOD_ISO_ORBIT, TPS_ORBIT } from '../../constants/cameraCon
 import { BugOrb } from './BugOrb'
 import { PLACE_ARCHETYPE_LABELS } from '../../utils/placePresets'
 import {
+  isPlaceLayoutShape,
   isPresetExpressionResolved,
   shouldHidePresetExpressionAccent,
 } from '../../utils/placeNeedTypeStyle'
+import { getIslandTopYAt } from '../../utils/terrainPlacement'
 import { isNatureShape } from '../../constants/natureData'
 import { InstancedBlocks } from './InstancedBlocks'
 import { BuildModePreviews } from './BuildModePreviews'
@@ -379,7 +381,10 @@ export const MainGameScene = ({
                   e.stopPropagation(); 
                   let normal = e.face ? e.face.normal.clone().applyQuaternion(e.object.quaternion) : null;
                   
-                  if (block.shape === 'path' || block.shape === 'rail' || isAgriShape(block.shape) || isTerrainShape(block.shape)) {
+                  if (isPlaceLayoutShape(block.shape)) {
+                    e.point.y = getIslandTopYAt(e.point.x, e.point.z, islandChunks);
+                    normal = new THREE.Vector3(0, 1, 0);
+                  } else if (block.shape === 'path' || block.shape === 'rail' || isAgriShape(block.shape) || isTerrainShape(block.shape)) {
                     e.point.y = block.pos[1] + 0.25;
                     normal = new THREE.Vector3(0, 1, 0);
                   } else if (normal && normal.y > 0.1 && (block.shape === 'diagonal' || block.shape === 'slope')) {

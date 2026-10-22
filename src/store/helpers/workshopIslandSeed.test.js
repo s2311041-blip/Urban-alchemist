@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
+import { layoutBlockY } from '../../utils/placePresets.js';
+import { getIslandTopYAt } from '../../utils/terrainPlacement.js';
 import { QUEST_STATUS } from './questState.js';
 import { createWorkshopIslandState } from './workshopIslandSeed.js';
 
 describe('createWorkshopIslandState', () => {
   it('starts the island with the four demo complaints already placed', () => {
-    const { bugs, quests, placedBlocks } = createWorkshopIslandState();
+    const { bugs, quests, placedBlocks, islandChunks } = createWorkshopIslandState();
 
     expect(quests).toHaveLength(4);
     expect(bugs).toHaveLength(4);
@@ -41,5 +43,9 @@ describe('createWorkshopIslandState', () => {
       return Math.hypot(dx, dz) < 8;
     });
     expect(nearBridge).toEqual([]);
+    placedBlocks.filter((block) => String(block.shape).endsWith('_layout')).forEach((block) => {
+      const topY = getIslandTopYAt(block.pos[0], block.pos[2], islandChunks);
+      expect(block.pos[1]).toBe(layoutBlockY(topY));
+    });
   });
 });

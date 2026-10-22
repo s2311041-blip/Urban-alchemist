@@ -47,20 +47,21 @@ const PRESET_TEMPLATES = PLACE_PRESET_TEMPLATES;
 
 const snapToBuildGrid = (value) => Math.floor(value / GRID_STEP) * GRID_STEP + GRID_STEP / 2;
 
+/**
+ * 場所セットの歩行面を島上面に揃える。
+ * メッシュは原点から -0.24、床の上端はそこから約 +0.14 なので、
+ * ブロック中心を島上面 + 0.10 に置くと歩行面が島の地面と同じ高さになる。
+ */
+export const LAYOUT_GROUND_Y_OFFSET = 0.1;
+
+export const layoutBlockY = (islandTopY) => Number((islandTopY + LAYOUT_GROUND_Y_OFFSET).toFixed(3));
+
 const computeYForShape = (shape, topY) => {
   if (shape === 'path' || shape === 'rail') return Number((topY + 0.01).toFixed(3));
   if (shape === 'half' || shape === 'slope') return Number((topY + 0.25).toFixed(3));
   if (shape === 'ferry_dock') return Number((topY + 0.25).toFixed(3));
+  if (typeof shape === 'string' && shape.endsWith('_layout')) return layoutBlockY(topY);
   if (shape?.startsWith?.('station_')) return Number((topY + 0.25).toFixed(3));
-  if (shape === 'station_layout') return Number((topY + 0.25).toFixed(3));
-  if (shape === 'bus_stop_layout') return Number((topY + 0.25).toFixed(3));
-  if (shape === 'plaza_layout') return Number((topY + 0.25).toFixed(3));
-  if (shape === 'road_layout') return Number((topY + 0.25).toFixed(3));
-  if (shape === 'lane_layout') return Number((topY + 0.25).toFixed(3));
-  if (shape === 'park_layout') return Number((topY + 0.25).toFixed(3));
-  if (shape === 'waterfront_layout') return Number((topY + 0.25).toFixed(3));
-  if (shape === 'campus_layout') return Number((topY + 0.25).toFixed(3));
-  if (shape === 'commerce_layout') return Number((topY + 0.25).toFixed(3));
   return Number((topY + 0.5).toFixed(3));
 };
 

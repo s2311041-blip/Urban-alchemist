@@ -43,7 +43,7 @@ import {
   extendResolveEvent,
   validateFinishSession,
 } from '../../utils/improvementSession';
-import { createTradeoffBugFromResolution } from '../../utils/tradeoffSpawn';
+import { appendWorkshopEnding } from '../../constants/narrativeData';
 import { getImprovementBudgetLimit, getPlanRepairScale } from '../../constants/improvementConstraints';
 import { getAllowedPlansForQuest } from '../../constants/tradeoffMatrix';
 import { getPlanBudgetCost } from '../../utils/planSatisfaction';
@@ -234,18 +234,10 @@ export const createBugSlice = (set, get) => ({
         }
       }
 
-      const tradeoffBug = createTradeoffBugFromResolution({
-        ...targetBug,
-        chosenPlan: resolution?.planId ?? targetBug.chosenPlan,
-      });
-
       const updatedBugs = bugs.map((b) => (
         sameBugId(b.id, buildMode) ? { ...b, solved: true } : b
       ));
-      const bugsWithTradeoff = tradeoffBug ? [...updatedBugs, tradeoffBug] : updatedBugs;
-      const sideEffectToast = tradeoffBug
-        ? '通行は改善しましたが、急な勾配で新たな不満が浮上しました…'
-        : getBarrierSideEffectToast(targetBug, resolution);
+      const sideEffectToast = getBarrierSideEffectToast(targetBug, resolution);
       const solvedCount = updatedBugs.filter((b) => b.solved).length;
       const resolvedQuestPatch = targetBug.sourceQuestId
         ? {
@@ -303,6 +295,7 @@ export const createBugSlice = (set, get) => ({
             resolution?.planId ?? targetBug.chosenPlan,
           ))
         : null;
+      const narrativeFeedback = appendWorkshopEnding(resolveToast, updatedBugs);
 
       if (solvedCount > 0) {
         if (targetBug) {
@@ -320,7 +313,7 @@ export const createBugSlice = (set, get) => ({
           set({
             ...expansion.patch,
             buildSession: null,
-            narrativeFeedback: resolveToast,
+            narrativeFeedback,
             ...resolvedQuestPatch,
             ...resolveStatsPatch,
             ...(sideEffectToast ? { farmingToast: sideEffectToast } : {}),
@@ -353,8 +346,8 @@ export const createBugSlice = (set, get) => ({
             hoverPosition: null,
             placingPresetArchetype: null,
             isReturning: true,
-            bugs: bugsWithTradeoff,
-            narrativeFeedback: resolveToast,
+            bugs: updatedBugs,
+            narrativeFeedback,
             ...resolvedQuestPatch,
             ...resolveStatsPatch,
             ...(sideEffectToast ? { farmingToast: sideEffectToast } : {}),
@@ -369,7 +362,7 @@ export const createBugSlice = (set, get) => ({
           buildSession: null,
           hoverPosition: null,
           isReturning: true,
-          bugs: bugsWithTradeoff,
+          bugs: updatedBugs,
           ...resolvedQuestPatch,
           ...resolveStatsPatch,
           ...(resolveToast ? { farmingToast: resolveToast } : sideEffectToast ? { farmingToast: sideEffectToast } : {}),

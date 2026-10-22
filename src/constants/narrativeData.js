@@ -94,3 +94,32 @@ export const PLAN_FEEDBACK_NARRATIVE = {
     negative: { speaker: '副市長', text: '便利ですが、莫大な建設コストが市の財政を直撃しています…。' }
   }
 };
+
+/** 島の不満をすべて受け終えたあとの結び。専用エンディング画面は無く、対話で出す。 */
+export const WORKSHOP_ENDING_SCENARIO = [
+  {
+    speaker: '副市長',
+    role: 'システム',
+    color: '#90caf9',
+    text: '島に届いていた四つの声に、すべて手を打ちました。',
+  },
+  {
+    speaker: '副市長',
+    role: 'システム',
+    color: '#90caf9',
+    text: '一つの直しで楽になる人もいれば、別の誰かに我慢が残ることもあります。限られた予算の中で、誰の願いに応えたのか。それが、この街の決断です。',
+  },
+  {
+    speaker: '副市長',
+    role: 'システム',
+    color: '#90caf9',
+    text: '市長、本日の仕事はここまでです。街の声を、自分の手で受け止めてくださり、ありがとうございました。',
+  },
+];
+
+export function appendWorkshopEnding(feedback, bugs = []) {
+  const list = Array.isArray(bugs) ? bugs : [];
+  if (list.length === 0 || list.some((bug) => !bug?.solved)) return feedback;
+  if (Array.isArray(feedback)) return [...feedback, ...WORKSHOP_ENDING_SCENARIO];
+  return WORKSHOP_ENDING_SCENARIO;
+}

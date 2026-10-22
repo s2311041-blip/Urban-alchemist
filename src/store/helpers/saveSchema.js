@@ -13,6 +13,8 @@ import {
 import { withWorkshopDaytime } from '../../constants/workshopMode';
 import { normalizeAgriState } from '../../utils/agriGrowth';
 import { getIslandTopYAt, snapTerrainPosition } from '../../utils/terrainPlacement';
+import { layoutBlockY } from '../../utils/placePresets';
+import { isPlaceLayoutShape } from '../../utils/placeNeedTypeStyle';
 import { normalizeIslandSatisfaction } from '../../constants/satisfactionAttributes';
 import { normalizeBug, normalizeGoodSpot, normalizeQuest } from './bugFactory';
 import {
@@ -222,7 +224,17 @@ export const loadSavedData = () => {
         data.goodSpots = [];
       }
 
-      // 7. 地形ブロックのYを島上面に合わせて補正（スケールで下端が沈む問題の救済）
+      // 7. 場所セットの地面を島上面に揃える（旧データは歩行面が少し浮いている）
+      if (Array.isArray(data.placedBlocks) && Array.isArray(data.islandChunks)) {
+        data.placedBlocks = data.placedBlocks.map((b) => {
+          if (!b?.presetLocked || !isPlaceLayoutShape(b?.shape) || !Array.isArray(b.pos)) return b;
+          const y = layoutBlockY(getIslandTopYAt(b.pos[0], b.pos[2], data.islandChunks));
+          if (Math.abs((b.pos[1] ?? 0) - y) < 0.001) return b;
+          return { ...b, pos: [b.pos[0], y, b.pos[2]] };
+        });
+      }
+
+      // 7b. 地形ブロックのYを島上面に合わせて補正（スケールで下端が沈む問題の救済）
       if (Array.isArray(data.placedBlocks) && Array.isArray(data.islandChunks)) {
         data.placedBlocks = data.placedBlocks.map((b) => {
           if (!isTerrainShape(b.shape)) return b;

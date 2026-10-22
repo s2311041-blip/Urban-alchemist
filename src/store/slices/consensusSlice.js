@@ -17,6 +17,7 @@ import { appendPostEvent, markQuestResolved } from '../helpers/questLifecycle';
 import { setTimedToast } from '../helpers/uiFeedback';
 import { sameBugId } from '../../utils/bugIds';
 import { buildPlanResolutionFeedback } from '../../utils/planResolutionFeedback';
+import { appendWorkshopEnding } from '../../constants/narrativeData';
 
 function checkConsensusGameOver(set, get, nextSat) {
   const minSat = Math.min(...SATISFACTION_ATTRS.map((a) => nextSat[a.key] ?? 0));
@@ -80,7 +81,7 @@ export const createConsensusSlice = (set, get) => ({
       islandSatisfaction: nextSat,
       bugs: updatedBugs,
       quests: targetBug && targetBug.sourceQuestId ? markQuestResolved(state.quests, targetBug.sourceQuestId, targetBug.id) : state.quests,
-      narrativeFeedback: feedback,
+      narrativeFeedback: appendWorkshopEnding(feedback, updatedBugs),
       questDecisions: {
         ...state.questDecisions,
         [questId]: nextDecision,
