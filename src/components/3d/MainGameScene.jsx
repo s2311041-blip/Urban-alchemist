@@ -30,7 +30,6 @@ import {
   isPresetExpressionResolved,
   shouldHidePresetExpressionAccent,
 } from '../../utils/placeNeedTypeStyle'
-import { getIslandTopYAt } from '../../utils/terrainPlacement'
 import { isNatureShape } from '../../constants/natureData'
 import { InstancedBlocks } from './InstancedBlocks'
 import { BuildModePreviews } from './BuildModePreviews'
@@ -381,9 +380,8 @@ export const MainGameScene = ({
                   e.stopPropagation(); 
                   let normal = e.face ? e.face.normal.clone().applyQuaternion(e.object.quaternion) : null;
                   
-                  if (isPlaceLayoutShape(block.shape)) {
-                    e.point.y = getIslandTopYAt(e.point.x, e.point.z, islandChunks);
-                    normal = new THREE.Vector3(0, 1, 0);
+                  if (isPlaceLayoutShape(block.shape) && normal && normal.y > 0.1) {
+                    normal.set(0, 1, 0);
                   } else if (block.shape === 'path' || block.shape === 'rail' || isAgriShape(block.shape) || isTerrainShape(block.shape)) {
                     e.point.y = block.pos[1] + 0.25;
                     normal = new THREE.Vector3(0, 1, 0);

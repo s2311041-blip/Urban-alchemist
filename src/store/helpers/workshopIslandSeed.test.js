@@ -45,7 +45,7 @@ describe('createWorkshopIslandState', () => {
     expect(nearBridge).toEqual([]);
     placedBlocks.filter((block) => String(block.shape).endsWith('_layout')).forEach((block) => {
       const topY = getIslandTopYAt(block.pos[0], block.pos[2], islandChunks);
-      expect(block.pos[1]).toBe(layoutBlockY(topY));
+      expect(block.pos[1]).toBe(layoutBlockY(block.shape, topY));
     });
   });
 });

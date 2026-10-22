@@ -228,7 +228,7 @@ export const loadSavedData = () => {
       if (Array.isArray(data.placedBlocks) && Array.isArray(data.islandChunks)) {
         data.placedBlocks = data.placedBlocks.map((b) => {
           if (!b?.presetLocked || !isPlaceLayoutShape(b?.shape) || !Array.isArray(b.pos)) return b;
-          const y = layoutBlockY(getIslandTopYAt(b.pos[0], b.pos[2], data.islandChunks));
+          const y = layoutBlockY(b.shape, getIslandTopYAt(b.pos[0], b.pos[2], data.islandChunks));
           if (Math.abs((b.pos[1] ?? 0) - y) < 0.001) return b;
           return { ...b, pos: [b.pos[0], y, b.pos[2]] };
         });
