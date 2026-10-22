@@ -90,6 +90,7 @@ export const Block = React.memo(({
   isGhost,
   onPointerMove,
   onPointerOut,
+  onPointerDown,
   onClick,
   onDoubleClick,
   scale: rawScale = [1, 1, 1],
@@ -141,14 +142,15 @@ export const Block = React.memo(({
   const doorRef = useRef();
   const hoverboardBoardRef = useRef();
 
-  const handlersRef = useRef({ onPointerMove, onPointerOut, onClick, onDoubleClick });
+  const handlersRef = useRef({ onPointerMove, onPointerOut, onPointerDown, onClick, onDoubleClick });
   useEffect(() => {
-    handlersRef.current = { onPointerMove, onPointerOut, onClick, onDoubleClick };
+    handlersRef.current = { onPointerMove, onPointerOut, onPointerDown, onClick, onDoubleClick };
   });
 
   const stableHandlers = useMemo(() => ({
     onPointerMove: (e) => handlersRef.current.onPointerMove?.(e),
     onPointerOut: (e) => handlersRef.current.onPointerOut?.(e),
+    onPointerDown: (e) => handlersRef.current.onPointerDown?.(e),
     onClick: (e) => handlersRef.current.onClick?.(e),
     onDoubleClick: (e) => handlersRef.current.onDoubleClick?.(e),
   }), []);
@@ -396,7 +398,7 @@ export const Block = React.memo(({
     const sleepersX = all ? [-0.18, 0, 0.18] : [-0.125, 0.125];
 
     return (
-      <group position={meshPosition} onPointerMove={onPointerMove} onPointerOut={onPointerOut} onClick={handleClick} onDoubleClick={onDoubleClick}>
+      <group position={meshPosition} onPointerMove={onPointerMove} onPointerOut={onPointerOut} onPointerDown={onPointerDown} onClick={handleClick} onDoubleClick={onDoubleClick}>
         <mesh>
           <boxGeometry args={[0.5, 0.01, 0.5]} />
           <meshStandardMaterial color={mat.color} transparent opacity={isGhost ? 0.3 : 0.05} />
@@ -458,7 +460,7 @@ export const Block = React.memo(({
     const doorH = 1.5;
     const frameT = 0.1; // 枠の厚み
     return (
-      <group position={meshPosition} rotation={meshRotation} onPointerMove={onPointerMove} onPointerOut={onPointerOut} onClick={handleClick} onDoubleClick={onDoubleClick}>
+      <group position={meshPosition} rotation={meshRotation} onPointerMove={onPointerMove} onPointerOut={onPointerOut} onPointerDown={onPointerDown} onClick={handleClick} onDoubleClick={onDoubleClick}>
         {/* 左枠 */}
         <mesh position={[-doorW/2 - frameT/2, doorH/2, 0]} castShadow={!isGhost} receiveShadow={!isGhost}>
           <boxGeometry args={[frameT, doorH, 0.3]} />
@@ -486,7 +488,7 @@ export const Block = React.memo(({
   const renderBench = () => {
     const customTexture = getBlockTexture(material);
     return (
-      <group position={meshPosition} rotation={meshRotation} onPointerMove={onPointerMove} onPointerOut={onPointerOut} onClick={handleClick} onDoubleClick={onDoubleClick}>
+      <group position={meshPosition} rotation={meshRotation} onPointerMove={onPointerMove} onPointerOut={onPointerOut} onPointerDown={onPointerDown} onClick={handleClick} onDoubleClick={onDoubleClick}>
         <mesh position={[0, 0, 0]} castShadow={!isGhost} receiveShadow={!isGhost}>
           <boxGeometry args={[0.8, 0.08, 0.35]} />
           <meshStandardMaterial 
@@ -520,7 +522,7 @@ export const Block = React.memo(({
     const lampIntensity = isGhost ? 0.5 : (0.6 + nightFactor * 1.8);
     const pointLightIntensity = 0.2 + nightFactor * 2.4;
     return (
-      <group position={meshPosition} rotation={meshRotation} onPointerMove={onPointerMove} onPointerOut={onPointerOut} onClick={handleClick} onDoubleClick={onDoubleClick}>
+      <group position={meshPosition} rotation={meshRotation} onPointerMove={onPointerMove} onPointerOut={onPointerOut} onPointerDown={onPointerDown} onClick={handleClick} onDoubleClick={onDoubleClick}>
         <mesh position={[0, bottomY + 0.75 * sy, 0]} castShadow={!isGhost} receiveShadow={!isGhost}>
           <cylinderGeometry args={[0.02 * sx, 0.03 * sx, 1.5 * sy, 8]} />
           <meshStandardMaterial color="#5d4037" roughness={0.9} transparent={isGhost} opacity={isGhost ? 0.6 : 1} />
@@ -545,7 +547,7 @@ export const Block = React.memo(({
     const pedestalCenterY = -0.2;
     const boardCenterY = 0.02;
     return (
-      <group position={meshPosition} rotation={meshRotation} onPointerMove={onPointerMove} onPointerOut={onPointerOut} onClick={handleClick} onDoubleClick={onDoubleClick}>
+      <group position={meshPosition} rotation={meshRotation} onPointerMove={onPointerMove} onPointerOut={onPointerOut} onPointerDown={onPointerDown} onClick={handleClick} onDoubleClick={onDoubleClick}>
         <mesh position={[0, pedestalCenterY, 0]} castShadow={!isGhost} receiveShadow={!isGhost}>
           <cylinderGeometry args={[0.2, 0.25, 0.1, 16]} />
           <meshStandardMaterial color="#212121" metalness={0.85} roughness={0.3} transparent={isGhost} opacity={isGhost ? 0.6 : 1} />
@@ -579,7 +581,7 @@ export const Block = React.memo(({
   const renderFerryDock = () => {
     // もっと大きくし、近くに船が見えるようにする
     return (
-      <group position={meshPosition} rotation={meshRotation} onPointerMove={onPointerMove} onPointerOut={onPointerOut} onClick={handleClick} onDoubleClick={onDoubleClick}>
+      <group position={meshPosition} rotation={meshRotation} onPointerMove={onPointerMove} onPointerOut={onPointerOut} onPointerDown={onPointerDown} onClick={handleClick} onDoubleClick={onDoubleClick}>
         {/* フェリー停の土台（桟橋）大きくする */}
         <mesh position={[0, -0.16, 0]} castShadow={!isGhost} receiveShadow={!isGhost}>
           <boxGeometry args={[1.5, 0.18, 2.0]} />
@@ -668,7 +670,7 @@ export const Block = React.memo(({
     const sy = 1.5;
     const sz = 1.5;
     return (
-      <group position={meshPosition} rotation={meshRotation} onPointerMove={onPointerMove} onPointerOut={onPointerOut} onClick={handleClick} onDoubleClick={onDoubleClick}>
+      <group position={meshPosition} rotation={meshRotation} onPointerMove={onPointerMove} onPointerOut={onPointerOut} onPointerDown={onPointerDown} onClick={handleClick} onDoubleClick={onDoubleClick}>
         {/* 柱 */}
         <mesh position={[0, 0.45 * sy, 0]} castShadow={!isGhost} receiveShadow={!isGhost}>
           <boxGeometry args={[0.12 * sx, 0.9 * sy, 0.08 * sz]} />
@@ -966,6 +968,7 @@ export const Block = React.memo(({
           selectedEditBlockId={selectedEditBlockId}
           onPointerMove={stableHandlers.onPointerMove}
           onPointerOut={stableHandlers.onPointerOut}
+          onPointerDown={stableHandlers.onPointerDown}
           onClick={stableHandlers.onClick}
           onDoubleClick={stableHandlers.onDoubleClick}
           nature={nature}
@@ -992,6 +995,7 @@ export const Block = React.memo(({
           selectedEditBlockId={selectedEditBlockId}
           onPointerMove={stableHandlers.onPointerMove}
           onPointerOut={stableHandlers.onPointerOut}
+          onPointerDown={stableHandlers.onPointerDown}
           onClick={stableHandlers.onClick}
           onDoubleClick={stableHandlers.onDoubleClick}
           agri={agri}
@@ -1019,6 +1023,7 @@ export const Block = React.memo(({
           selectedEditBlockId={selectedEditBlockId}
           onPointerMove={stableHandlers.onPointerMove}
           onPointerOut={stableHandlers.onPointerOut}
+          onPointerDown={stableHandlers.onPointerDown}
           onClick={stableHandlers.onClick}
           onDoubleClick={stableHandlers.onDoubleClick}
           terrain={terrain}
@@ -1042,6 +1047,7 @@ export const Block = React.memo(({
         onPointerOver={isGhost ? undefined : (e) => { e.stopPropagation(); setHovered(true); }}
         onPointerOut={isGhost ? undefined : (e) => { e.stopPropagation(); setHovered(false); stableHandlers.onPointerOut?.(e); }}
         onPointerMove={isGhost ? undefined : stableHandlers.onPointerMove}
+        onPointerDown={isGhost ? undefined : stableHandlers.onPointerDown}
         onClick={isGhost ? undefined : stableHandlers.onClick}
         onDoubleClick={isGhost ? undefined : stableHandlers.onDoubleClick}
       >
@@ -1065,6 +1071,7 @@ export const Block = React.memo(({
                rotation={meshRotation}
               onPointerMove={isGhost ? undefined : onPointerMove}
               onPointerOut={isGhost ? undefined : onPointerOut}
+              onPointerDown={isGhost ? undefined : onPointerDown}
               onClick={isGhost ? undefined : onClick}
               onDoubleClick={isGhost ? undefined : onDoubleClick}
              >

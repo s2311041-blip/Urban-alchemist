@@ -17,6 +17,7 @@ const ghostProps = (isGhost, opacity = 1) => ({
 const interactionProps = (handlers) => ({
   onPointerMove: handlers.onPointerMove,
   onPointerOut: handlers.onPointerOut,
+  onPointerDown: handlers.onPointerDown,
   onClick: handlers.onClick,
   onDoubleClick: handlers.onDoubleClick,
 });

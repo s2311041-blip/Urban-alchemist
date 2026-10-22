@@ -186,8 +186,9 @@ export function useBuildPointerPlacement() {
       const treeBottomLocal = current.selectedShape === 'canopy_tree' ? -0.27 : -0.21;
       const y = Number((topY - treeBottomLocal * sy + 0.01).toFixed(3));
       finalPos = [point.x, y, point.z];
-    } else if (options.onLayoutSurface) {
-      finalPos = [point.x, e.point.y + (0.25 * current.selectedScale[1]), point.z];
+    } else if (options.onLayoutSurface || (normal && normal.y > 0.5)) {
+      const bottomY = Math.round(e.point.y * 1000) / 1000;
+      finalPos = [point.x, bottomY + (0.25 * current.selectedScale[1]), point.z];
     } else {
       const minY = (current.selectedShape === 'path' || current.selectedShape === 'rail') ? 0.01 : (0.25 * (current.selectedShape === 'eraser' || current.selectedShape === 'edit' ? 1.0 : current.selectedScale[1]));
       finalPos = [point.x, sandSeaPlaceMode ? point.y : Math.max(minY, point.y), point.z];
