@@ -14,6 +14,7 @@ const saveToLocalStorage = () => {
     pendingSave = null;
     const state = useGameStore.getState();
     localStorage.setItem(SAVE_KEY, JSON.stringify({
+      workshopSeedVersion: state.workshopSeedVersion,
       bugs: state.bugs,
       quests: state.quests,
       islandChunks: state.islandChunks,

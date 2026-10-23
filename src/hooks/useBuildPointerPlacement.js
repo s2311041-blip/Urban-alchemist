@@ -87,7 +87,7 @@ export function useBuildPointerPlacement() {
   const handlePointerMove = useCallback((e, normal = null, options = {}) => {
     const current = useGameStore.getState();
     const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
-    if (now - lastPointerMoveMsRef.current < 16) return;
+    if (!options.force && now - lastPointerMoveMsRef.current < 16) return;
     lastPointerMoveMsRef.current = now;
 
     if (current.isTransforming) return;

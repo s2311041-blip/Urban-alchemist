@@ -6,6 +6,15 @@ export const MergedLayout = ({ children, disable = false }) => {
   const groupRef = useRef();
   const [mergedMeshes, setMergedMeshes] = useState([]);
   const [hasMerged, setHasMerged] = useState(false);
+  // 結合後の mesh は元のレイアウト group の兄弟になるため、イベントは
+  // 自動では引き継がれない。見えている結合 mesh 自体に同じイベントを渡す。
+  const interactionProps = {
+    onPointerMove: children?.props?.onPointerMove,
+    onPointerOut: children?.props?.onPointerOut,
+    onPointerDown: children?.props?.onPointerDown,
+    onClick: children?.props?.onClick,
+    onDoubleClick: children?.props?.onDoubleClick,
+  };
 
   // children が変わったら再マージを促すため hasMerged をリセット
   useEffect(() => {
@@ -90,6 +99,7 @@ export const MergedLayout = ({ children, disable = false }) => {
 
         try {
           const mergedGeo = BufferGeometryUtils.mergeGeometries(geometries, false);
+          mergedGeo.computeBoundingSphere();
           const material = materialsByKey[key];
           
           newMergedMeshes.push({
@@ -114,17 +124,15 @@ export const MergedLayout = ({ children, disable = false }) => {
     };
   }, [children, hasMerged]);
 
-  // 元のメッシュの表示状態を切り替える
+  // 元のメッシュの表示状態を切り替える。建築用の当たり判定は Block 側の
+  // 専用水平面が担当するため、結合後の元メッシュは非表示でよい。
   useEffect(() => {
     if (!groupRef.current) return;
-    
-    // disable の場合は常にオリジナルを表示（hasMerged関係なく）
     const shouldHideOriginals = hasMerged && !disable;
-    
     groupRef.current.traverse((node) => {
-      if (node.isMesh && node.userData?.isMergedMesh !== true && node.userData?.keepVisible !== true) {
-        node.visible = !shouldHideOriginals;
-      }
+      if (!node.isMesh || node.userData?.isMergedMesh === true) return;
+      if (node.userData?.keepVisible === true) return;
+      node.visible = !shouldHideOriginals;
     });
   }, [hasMerged, disable]);
 
@@ -142,7 +150,8 @@ export const MergedLayout = ({ children, disable = false }) => {
           key={`merged-${m.key}-${idx}`}
           geometry={m.geometry}
           material={m.material}
-          userData={{ isMergedMesh: true }}
+          userData={{ isMergedMesh: true, placeLayoutSurface: true }}
+          {...interactionProps}
         />
       ))}
     </group>

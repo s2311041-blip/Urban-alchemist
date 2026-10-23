@@ -7,6 +7,7 @@ import { createQuestFromPost, questToBug } from './questLifecycle';
 import { QUEST_STATUS } from './questState';
 
 const PHOTO_BASE = 'https://ltpgtysvikszlcwsyieb.supabase.co/storage/v1/object/public/ar-photos/07a22342-6baa-4a1f-8d44-e212e87ff75b';
+export const WORKSHOP_SEED_VERSION = 4;
 
 const photoUrl = (id) => `${PHOTO_BASE}/${id}.jpg`;
 
@@ -60,6 +61,18 @@ const WORKSHOP_POSTS = [
     comment: '自販機の近くというだけで飲料のゴミが捨てられている。',
   },
 ];
+
+export const WORKSHOP_POST_IDS = WORKSHOP_POSTS.map((post) => post.id);
+
+/** 4件のデモ投稿がすべてセーブ内にあるときだけ、その進行状況を維持する。 */
+export const hasCurrentWorkshopPosts = (savedData) => {
+  const savedIds = new Set(
+    (Array.isArray(savedData?.quests) ? savedData.quests : [])
+      .map((quest) => quest?.sourceAnnotationId)
+      .filter((id) => typeof id === 'string'),
+  );
+  return WORKSHOP_POST_IDS.every((id) => savedIds.has(id));
+};
 
 export function createWorkshopIslandState() {
   const islandChunks = createDefaultIslandChunks();

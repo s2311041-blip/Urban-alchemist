@@ -7,7 +7,11 @@ import { withWorkshopDaytime } from '../../constants/workshopMode'
 import { DEFAULT_FARMING_PROGRESS } from '../../constants/farmingProgressData'
 import { DEFAULT_ECONOMY, normalizePostStats } from '../../constants/economyData'
 import { syncFerryRoutesForBlocks } from '../helpers/syncFerryRoutes'
-import { createWorkshopIslandState } from '../helpers/workshopIslandSeed'
+import {
+  createWorkshopIslandState,
+  hasCurrentWorkshopPosts,
+  WORKSHOP_SEED_VERSION,
+} from '../helpers/workshopIslandSeed'
 import {
   loadFavorites,
 } from '../helpers/saveSchema'
@@ -17,8 +21,13 @@ import { DEFAULT_ISLAND_SATISFACTION } from '../../constants/satisfactionAttribu
 
 export const createInitialState = (savedData) => {
   const workshopSeed = createWorkshopIslandState();
-  const islandChunks = savedData?.islandChunks || workshopSeed.islandChunks;
-  let placedBlocks = savedData?.placedBlocks || [];
+  // バージョン番号だけでは、1件だけ残ったセーブを誤って現行版と扱う。
+  // 4件のデモ投稿IDが揃っているときだけ進行状況を維持する。
+  const hasCurrentWorkshopSeed = hasCurrentWorkshopPosts(savedData);
+  const islandChunks = hasCurrentWorkshopSeed
+    ? (savedData?.islandChunks || workshopSeed.islandChunks)
+    : workshopSeed.islandChunks;
+  let placedBlocks = hasCurrentWorkshopSeed ? (savedData?.placedBlocks || []) : workshopSeed.placedBlocks;
   if (Array.isArray(placedBlocks) && placedBlocks.length > 0) {
     const existingArchetypes = new Set(placedBlocks.map(b => b.presetArchetype).filter(Boolean));
     const defaultBlocks = createDefaultPlacedBlocks(islandChunks);
@@ -35,8 +44,9 @@ export const createInitialState = (savedData) => {
 
   return {
   // --- 状態変数 ---
-    bugs: savedData?.bugs || workshopSeed.bugs,
-    quests: savedData?.quests || workshopSeed.quests,
+    workshopSeedVersion: WORKSHOP_SEED_VERSION,
+    bugs: hasCurrentWorkshopSeed ? (savedData?.bugs || workshopSeed.bugs) : workshopSeed.bugs,
+    quests: hasCurrentWorkshopSeed ? (savedData?.quests || workshopSeed.quests) : workshopSeed.quests,
   islandChunks,
   activeBug: null,
   isReturning: false,

@@ -80,6 +80,7 @@ export const IslandChunk = ({ chunk, isPlacing, buildMode, onGroundClick, onPoin
           radius={ART_DIRECTION.enabled ? 0.03 : 0.05} 
           smoothness={4} 
           receiveShadow
+          userData={{ islandSurface: true }}
           onClick={(e) => {
             if (onGroundClick && (isPlacing || buildMode)) {
               e.stopPropagation();

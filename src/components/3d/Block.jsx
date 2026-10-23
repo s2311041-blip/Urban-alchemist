@@ -19,6 +19,7 @@ import { PALETTE } from '../../constants/artDirection';
 import { ANCHOR_POINTS } from './blockAnchors';
 import { getBlockTexture } from '../../utils/textureLoader';
 import { getPixelTexture } from '../../utils/textureGenerator';
+import { getLayoutBuildSurface } from '../../utils/placeLayoutPointer';
 import {
   getStationCollider,
   getStationMeshPosition,
@@ -112,6 +113,7 @@ export const Block = React.memo(({
   hoverboard = {},
   presetNeedType = null,
   presetExpressionResolved = false,
+  layoutGroundY = null,
   glassColor = null,
 }) => {
   const position = rawPosition && Array.isArray(rawPosition) && rawPosition.length === 3 && rawPosition.every(Number.isFinite) ? rawPosition : [0, 0, 0];
@@ -242,6 +244,7 @@ export const Block = React.memo(({
     if (isAgriShape(shape)) return [0, -0.24, 0];
     return [0, 0, 0];
   }, [shape]);
+  const layoutBuildSurface = useMemo(() => getLayoutBuildSurface(shape), [shape]);
 
   const baseRotation = useMemo(() => (
     shape === 'slope' ? [0, (rotation - 90) * Math.PI / 180, 0] : [0, rotation * Math.PI / 180, 0]
@@ -1051,6 +1054,33 @@ export const Block = React.memo(({
         onClick={isGhost ? undefined : stableHandlers.onClick}
         onDoubleClick={isGhost ? undefined : stableHandlers.onDoubleClick}
       >
+        {!isGhost && layoutBuildSurface && (
+          <mesh
+            position={[
+              0,
+              Number.isFinite(layoutGroundY)
+                ? (layoutGroundY - position[1]) / (scale[1] || 1)
+                : 0,
+              0,
+            ]}
+            rotation={[-Math.PI / 2, 0, 0]}
+            userData={{ placeLayoutSurface: true, layoutBuildSurface: true }}
+            onPointerMove={stableHandlers.onPointerMove}
+            onPointerOut={stableHandlers.onPointerOut}
+            onPointerDown={stableHandlers.onPointerDown}
+            onClick={stableHandlers.onClick}
+            onDoubleClick={stableHandlers.onDoubleClick}
+          >
+            <planeGeometry args={layoutBuildSurface.size} />
+            <meshBasicMaterial
+              transparent
+              opacity={0}
+              colorWrite={false}
+              depthWrite={false}
+              side={THREE.DoubleSide}
+            />
+          </mesh>
+        )}
         {shape === 'rail' ? renderRail() :
          shape === 'door' ? renderDoor() :
          shape === 'bench' ? renderBench() :

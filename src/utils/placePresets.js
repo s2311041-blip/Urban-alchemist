@@ -50,20 +50,17 @@ const snapToBuildGrid = (value) => Math.floor(value / GRID_STEP) * GRID_STEP + G
 /** Block.jsx のレイアウトメッシュが原点から下がる量 */
 const LAYOUT_MESH_Y_OFFSET = -0.24;
 
-/**
- * 各レイアウトの最下層の床の上面が、島の上面＋1cm (Z-fighting防止) になるような groundTop の値。
- * これにより、プリセットが芝生に埋もれず、かつ不自然に浮かない「マット」のような見た目になります。
- */
+/** 各レイアウトの基準床上端（メッシュを下げる前のローカルY）。 */
 const LAYOUT_GROUND_TOP_LOCAL = {
-  road_layout: 0.08,
-  plaza_layout: 0.08,
-  park_layout: 0.12,
-  lane_layout: 0.08,
-  bus_stop_layout: 0.13,
-  commerce_layout: 0.075,
-  campus_layout: 0.08,
-  waterfront_layout: 0.116,
-  station_layout: 0.56,
+  road_layout: 0.14,
+  plaza_layout: 0.15,
+  park_layout: 0.13,
+  lane_layout: 0.09,
+  bus_stop_layout: 0.15,
+  commerce_layout: 0.105,
+  campus_layout: 0.105,
+  waterfront_layout: 0.138,
+  station_layout: 0.57,
 };
 
 /** 主地面の上端が島上面と一致するブロック中心Y */

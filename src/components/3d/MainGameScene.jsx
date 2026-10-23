@@ -33,9 +33,44 @@ import {
 import { isNatureShape } from '../../constants/natureData'
 import { InstancedBlocks } from './InstancedBlocks'
 import { BuildModePreviews } from './BuildModePreviews'
+import { findLayoutGroundAt, selectLayoutSurfaceHit } from '../../utils/placeLayoutPointer'
+import { getIslandTopYAt } from '../../utils/terrainPlacement'
 
 // We will use standard React-Three-Drei useKeyboardControls if imported.
 import { useKeyboardControls } from '@react-three/drei'
+
+const readHitNormal = (hit) => {
+  if (!hit?.face?.normal || typeof hit.object?.getWorldQuaternion !== 'function') return null;
+  return hit.face.normal.clone().applyQuaternion(
+    hit.object.getWorldQuaternion(new THREE.Quaternion()),
+  );
+};
+
+const placeFromPointer = (
+  e,
+  handlePointerMove,
+  fallback,
+  { force = false, layoutGround = null } = {},
+) => {
+  if (layoutGround) {
+    e.point.y = layoutGround.y;
+    handlePointerMove(e, new THREE.Vector3(0, 1, 0), {
+      onLayoutSurface: true,
+      force,
+    });
+    return;
+  }
+  const layoutSurface = selectLayoutSurfaceHit(e.intersections, readHitNormal);
+  if (!layoutSurface) {
+    fallback();
+    return;
+  }
+  e.point.copy(layoutSurface.hit.point);
+  handlePointerMove(e, new THREE.Vector3(0, 1, 0), {
+    onLayoutSurface: true,
+    force,
+  });
+};
 
 const GameCameraPanController = ({ buildMode, viewMode, controlsRef, disableKeys }) => {
   const [, get] = useKeyboardControls();
@@ -133,6 +168,8 @@ export const MainGameScene = ({
     setIsTransforming,
     selectedAreaBlocks,
     isAdjustingSize,
+    previewFixedPos,
+    setPreviewFixedPos,
     selectedNatureSpecies,
     selectedNatureColors,
     selectedAgriColors,
@@ -194,6 +231,8 @@ export const MainGameScene = ({
     setIsTransforming: state.setIsTransforming,
     selectedAreaBlocks: state.selectedAreaBlocks,
     isAdjustingSize: state.isAdjustingSize,
+    previewFixedPos: state.previewFixedPos,
+    setPreviewFixedPos: state.setPreviewFixedPos,
     selectedNatureSpecies: state.selectedNatureSpecies,
     selectedNatureColors: state.selectedNatureColors,
     selectedAgriColors: state.selectedAgriColors,
@@ -233,6 +272,13 @@ export const MainGameScene = ({
     placedBlocks.forEach((block) => {
       const shape = block.shape || 'block';
 
+      // 建築中はすべて個別 mesh にして当たり判定を有効にする。
+      // InstancedMesh のままでは既存ブロックの上面を選べない。
+      if (buildMode) {
+        individual.push(block);
+        return;
+      }
+
       // 1. 配置から1秒以内のブロックは個別Blockとして描画（アニメーションを再生するため）
       const isNewlyPlaced = Date.now() - (block.placedAt || 0) < 1000;
       if (isNewlyPlaced) {
@@ -264,7 +310,7 @@ export const MainGameScene = ({
     });
 
     return { instancedBlocks: instanced, individualBlocks: individual };
-  }, [placedBlocks]);
+  }, [placedBlocks, buildMode]);
 
   const showBugExperienceHints = !activeBug
     && !placingQuest
@@ -296,12 +342,25 @@ export const MainGameScene = ({
           <Island 
             islandChunks={islandChunks}
             onGroundClick={handleGroundClick}
-            onDoubleClick={onDoubleClick}
+            onDoubleClick={(e) => {
+              const layoutGround = findLayoutGroundAt(e.point, placedBlocks, islandChunks);
+              if (layoutGround) {
+                placeFromPointer(e, handlePointerMove, () => {}, {
+                  force: true,
+                  layoutGround,
+                });
+              }
+              onDoubleClick(e);
+            }}
             onPointerMove={(e) => {
               e.stopPropagation();
-              let normal = e.face ? e.face.normal.clone().applyQuaternion(e.object.quaternion) : new THREE.Vector3(0, 1, 0);
-              if (normal.y > 0.1) normal.set(0, 1, 0); 
-              handlePointerMove(e, normal);
+              placeFromPointer(e, handlePointerMove, () => {
+                let normal = e.face ? e.face.normal.clone().applyQuaternion(e.object.quaternion) : new THREE.Vector3(0, 1, 0);
+                if (normal.y > 0.1) normal.set(0, 1, 0);
+                handlePointerMove(e, normal);
+              }, {
+                layoutGround: findLayoutGroundAt(e.point, placedBlocks, islandChunks),
+              });
             }}
             setHoverPosition={setHoverPosition}
             isPlacing={!!placingQuest || (!!buildMode && selectedShape !== 'eraser' && selectedShape !== 'edit')}
@@ -373,29 +432,41 @@ export const MainGameScene = ({
                 hoverboard={block.hoverboard}
                 presetNeedType={block.presetNeedType ?? null}
                 presetExpressionResolved={isPresetExpressionResolved(block, quests)}
+                layoutGroundY={isPlaceLayoutShape(block.shape)
+                  ? getIslandTopYAt(block.pos[0], block.pos[2], islandChunks)
+                  : null}
                 agriNeighbors={isConnectableAgriShape(block.shape) ? sharedNeighbors : null}
                 terrainNeighbors={isConnectableTerrainShape(block.shape) ? sharedNeighbors : null}
                 railNeighbors={block.shape === 'rail' ? sharedNeighbors : null}
                 onPointerMove={buildMode ? (e) => { 
-                  e.stopPropagation(); 
-                  let normal = e.face ? e.face.normal.clone().applyQuaternion(e.object.quaternion) : null;
-                  
-                  let isLayoutSurface = false;
-                  if (isPlaceLayoutShape(block.shape) && normal && normal.y > 0.1) {
-                    isLayoutSurface = true;
-                    normal.set(0, 1, 0);
-                  } else if (block.shape === 'path' || block.shape === 'rail' || isAgriShape(block.shape) || isTerrainShape(block.shape)) {
-                    e.point.y = block.pos[1] + 0.25;
-                    normal = new THREE.Vector3(0, 1, 0);
-                  } else if (normal && normal.y > 0.1 && (block.shape === 'diagonal' || block.shape === 'slope')) {
-                    normal.set(0, 1, 0);
-                  }
-                  handlePointerMove(e, normal, { onLayoutSurface: isLayoutSurface }); 
+                  e.stopPropagation();
+                  placeFromPointer(e, handlePointerMove, () => {
+                    let normal = e.face ? e.face.normal.clone().applyQuaternion(e.object.quaternion) : null;
+                    if (block.shape === 'path' || block.shape === 'rail' || isAgriShape(block.shape) || isTerrainShape(block.shape)) {
+                      e.point.y = block.pos[1] + 0.25;
+                      normal = new THREE.Vector3(0, 1, 0);
+                    } else if (normal && normal.y > 0.1 && (block.shape === 'diagonal' || block.shape === 'slope')) {
+                      normal.set(0, 1, 0);
+                    }
+                    handlePointerMove(e, normal);
+                  }, {
+                    layoutGround: isPlaceLayoutShape(block.shape)
+                      ? findLayoutGroundAt(e.point, placedBlocks, islandChunks)
+                      : null,
+                  });
                 } : (agriActionable ? () => {
                   document.body.style.cursor = 'pointer';
                 } : undefined)} 
                 onPointerOut={buildMode ? () => { document.body.style.cursor = 'auto'; } : () => { document.body.style.cursor = 'auto'; }}
                 onPointerDown={buildMode ? (e) => {
+                  // タッチ操作では pointermove が先に発火しない場合があるため、
+                  // 押下時にも専用水平面から配置位置を確定する。
+                  placeFromPointer(e, handlePointerMove, () => {}, {
+                    force: true,
+                    layoutGround: isPlaceLayoutShape(block.shape)
+                      ? findLayoutGroundAt(e.point, placedBlocks, islandChunks)
+                      : null,
+                  });
                   e.stopPropagation();
                   if (selectedShape === 'diagonal' && isDesigningDiagonal) return;
                   if (isAdjustingSize && !previewFixedPos) {

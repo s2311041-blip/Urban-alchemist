@@ -14,7 +14,7 @@ import { applyCoinEarn, computePostReward } from '../../utils/economyActions'
 import { advanceAgriBlocksForPassedDays } from '../../utils/farmingActions'
 import { sameBugId } from '../../utils/bugIds'
 import { syncFerryRoutesForBlocks } from '../helpers/syncFerryRoutes'
-import { createWorkshopIslandState } from '../helpers/workshopIslandSeed'
+import { createWorkshopIslandState, WORKSHOP_SEED_VERSION } from '../helpers/workshopIslandSeed'
 import {
   normalizeBug,
   normalizeGoodSpot,
@@ -238,6 +238,7 @@ export const createSetterSlice = (set, get) => ({
     const defaultFavorites = createDefaultFavorites();
     const workshopSeed = createWorkshopIslandState();
     const defaultState = {
+      workshopSeedVersion: WORKSHOP_SEED_VERSION,
       bugs: workshopSeed.bugs,
       quests: workshopSeed.quests,
       islandChunks: workshopSeed.islandChunks,
@@ -332,6 +333,7 @@ export const createSetterSlice = (set, get) => ({
     set(defaultState);
     try {
       localStorage.setItem(SAVE_KEY, JSON.stringify({
+        workshopSeedVersion: WORKSHOP_SEED_VERSION,
         bugs: defaultState.bugs,
         quests: defaultState.quests,
         islandChunks: defaultState.islandChunks,
