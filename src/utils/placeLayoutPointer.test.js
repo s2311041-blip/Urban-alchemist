@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { PLACE_PRESET_TEMPLATES } from '../constants/placePresetTemplates';
 import { findLayoutGroundAt, selectLayoutSurfaceHit } from './placeLayoutPointer';
+import { layoutBlockY, layoutSurfaceWorldY } from './placePresets';
 
 const layout = (distance, y = 1) => ({
   distance,
@@ -66,9 +67,19 @@ describe('findLayoutGroundAt', () => {
     rotation: 0,
   };
 
-  it('uses the top of the half-block foundation as the preset ground', () => {
+  it('uses the visible preset floor, not the island grass', () => {
     const hit = findLayoutGroundAt({ x: 2, z: -1 }, [road], islandChunks);
     expect(hit.block).toBe(road);
+    expect(hit.y).toBe(layoutSurfaceWorldY(road));
+    expect(hit.y).not.toBe(0);
+  });
+
+  it('puts a freshly placed preset floor one half-block above the island', () => {
+    const placed = {
+      ...road,
+      pos: [0, layoutBlockY('road_layout', 0), 0],
+    };
+    const hit = findLayoutGroundAt({ x: 0, z: 0 }, [placed], islandChunks);
     expect(hit.y).toBe(0.25);
   });
 
@@ -88,12 +99,10 @@ describe('findLayoutGroundAt', () => {
       .map((block) => block.shape)
       .filter((shape) => shape.endsWith('_layout'));
     for (const shape of layoutShapes) {
-      const hit = findLayoutGroundAt(
-        { x: 0, z: 0 },
-        [{ shape, pos: [0, 99, 0], scale: [1, 1, 1], rotation: 0 }],
-        islandChunks,
-      );
+      const block = { shape, pos: [0, layoutBlockY(shape, 0), 0], scale: [1, 1, 1], rotation: 0 };
+      const hit = findLayoutGroundAt({ x: 0, z: 0 }, [block], islandChunks);
       expect(hit?.y, shape).toBe(0.25);
+      expect(hit?.y, shape).toBe(layoutSurfaceWorldY(block));
     }
     expect(new Set(layoutShapes).size).toBe(9);
   });

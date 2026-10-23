@@ -24,7 +24,7 @@ import { WorldProximityHints } from './WorldProximityHints'
 import { WORLD_PROXIMITY_HINT_STYLE } from '../../constants/worldHintStyles'
 import { BUILD_ORBIT, GOD_ISO_ORBIT, TPS_ORBIT } from '../../constants/cameraControls'
 import { BugOrb } from './BugOrb'
-import { PLACE_ARCHETYPE_LABELS } from '../../utils/placePresets'
+import { layoutSurfaceWorldY, PLACE_ARCHETYPE_LABELS } from '../../utils/placePresets'
 import {
   isPlaceLayoutShape,
   isPresetExpressionResolved,
@@ -34,7 +34,6 @@ import { isNatureShape } from '../../constants/natureData'
 import { InstancedBlocks } from './InstancedBlocks'
 import { BuildModePreviews } from './BuildModePreviews'
 import { findLayoutGroundAt, selectLayoutSurfaceHit } from '../../utils/placeLayoutPointer'
-import { getIslandTopYAt } from '../../utils/terrainPlacement'
 
 // We will use standard React-Three-Drei useKeyboardControls if imported.
 import { useKeyboardControls } from '@react-three/drei'
@@ -433,7 +432,7 @@ export const MainGameScene = ({
                 presetNeedType={block.presetNeedType ?? null}
                 presetExpressionResolved={isPresetExpressionResolved(block, quests)}
                 layoutGroundY={isPlaceLayoutShape(block.shape)
-                  ? getIslandTopYAt(block.pos[0], block.pos[2], islandChunks)
+                  ? layoutSurfaceWorldY(block)
                   : null}
                 agriNeighbors={isConnectableAgriShape(block.shape) ? sharedNeighbors : null}
                 terrainNeighbors={isConnectableTerrainShape(block.shape) ? sharedNeighbors : null}
@@ -508,9 +507,8 @@ export const MainGameScene = ({
                     if (selectedEditBlockId) return;
                     const targetPos = useGameStore.getState().hoverPosition || block.pos;
                     useGameStore.getState().placeBlockAtHover(targetPos);
-                  } else {
-                    if (selectedEditBlockId) return;
-                    if (onDoubleClick) onDoubleClick(e);
+                  } else if (selectedEditBlockId) {
+                    return;
                   }
                 } : (e) => {
                   if (!isAgriShape(block.shape)) {

@@ -69,6 +69,13 @@ export const layoutBlockY = (shape, islandTopY) => {
   return Number((islandTopY + 0.25 - LAYOUT_MESH_Y_OFFSET - groundTop).toFixed(3));
 };
 
+/** 配置済みプリセットの、見えている床の世界Y。ブロックの下端はここへ乗せる。 */
+export const layoutSurfaceWorldY = (block) => {
+  const groundTop = LAYOUT_GROUND_TOP_LOCAL[block?.shape] ?? 0.14;
+  const posY = Number.isFinite(block?.pos?.[1]) ? block.pos[1] : 0;
+  return Number((posY + LAYOUT_MESH_Y_OFFSET + groundTop).toFixed(3));
+};
+
 const computeYForShape = (shape, topY) => {
   if (shape === 'path' || shape === 'rail') return Number((topY + 0.01).toFixed(3));
   if (shape === 'half' || shape === 'slope') return Number((topY + 0.25).toFixed(3));

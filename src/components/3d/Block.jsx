@@ -637,8 +637,6 @@ export const Block = React.memo(({
   };
 
   const layoutChildren = useMemo(() => {
-    const meshPosition = [0, 0, 0];
-    const meshRotation = [0, 0, 0];
     const stationShapeProps = {
       isGhost,
       meshPosition,
@@ -1066,9 +1064,9 @@ export const Block = React.memo(({
               0,
               Number.isFinite(layoutGroundY)
                 ? (
-                  layoutGroundY + LAYOUT_FOUNDATION_HEIGHT / 2 - position[1]
+                  layoutGroundY - LAYOUT_FOUNDATION_HEIGHT / 2 - position[1]
                 ) / (scale[1] || 1)
-                : LAYOUT_FOUNDATION_HEIGHT / 2,
+                : -LAYOUT_FOUNDATION_HEIGHT / 2,
               0,
             ]}
             userData={{ placeLayoutSurface: true, layoutBuildSurface: true }}
@@ -1179,7 +1177,7 @@ export const Block = React.memo(({
               ]}
               position={[
                 0,
-                layoutGroundY + LAYOUT_FOUNDATION_HEIGHT / 2 - position[1],
+                layoutGroundY - LAYOUT_FOUNDATION_HEIGHT / 2 - position[1],
                 0,
               ]}
             />

@@ -1,4 +1,4 @@
-import { getIslandTopYAt } from './terrainPlacement';
+import { layoutSurfaceWorldY } from './placePresets';
 
 export const LAYOUT_FOUNDATION_HEIGHT = 0.25;
 
@@ -29,7 +29,7 @@ export const getLayoutBuildSurface = (shape) => LAYOUT_BUILD_SURFACES[shape] ?? 
  * レイキャスト結果に依存せず、XZ が場所プリセットの敷地内なら建築上の地面を返す。
  * 表示メッシュの結合・透明度・描画順に左右されない、配置ロジック側の当たり判定。
  */
-export const findLayoutGroundAt = (point, blocks = [], islandChunks = []) => {
+export const findLayoutGroundAt = (point, blocks = []) => {
   if (!point || !Number.isFinite(point.x) || !Number.isFinite(point.z)) return null;
   for (const block of blocks) {
     const surface = getLayoutBuildSurface(block?.shape);
@@ -49,7 +49,7 @@ export const findLayoutGroundAt = (point, blocks = [], islandChunks = []) => {
     ) {
       return {
         block,
-        y: getIslandTopYAt(point.x, point.z, islandChunks) + LAYOUT_FOUNDATION_HEIGHT,
+        y: layoutSurfaceWorldY(block),
       };
     }
   }

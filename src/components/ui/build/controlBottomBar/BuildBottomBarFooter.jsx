@@ -59,7 +59,7 @@ export const BuildBottomBarFooter = (props) => {
             )
           ) : (
             <>
-              <Hammer size={13} /> 【地面をクリック】で配置します
+              <Hammer size={13} /> 【ダブルクリック】で配置します
             </>
           )}
         </div>
