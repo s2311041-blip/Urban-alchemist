@@ -19,7 +19,10 @@ import { PALETTE } from '../../constants/artDirection';
 import { ANCHOR_POINTS } from './blockAnchors';
 import { getBlockTexture } from '../../utils/textureLoader';
 import { getPixelTexture } from '../../utils/textureGenerator';
-import { getLayoutBuildSurface } from '../../utils/placeLayoutPointer';
+import {
+  getLayoutBuildSurface,
+  LAYOUT_FOUNDATION_HEIGHT,
+} from '../../utils/placeLayoutPointer';
 import {
   getStationCollider,
   getStationMeshPosition,
@@ -1062,20 +1065,22 @@ export const Block = React.memo(({
             position={[
               0,
               Number.isFinite(layoutGroundY)
-                ? ((layoutGroundY - position[1]) / (scale[1] || 1)) - 0.125
-                : -0.125,
+                ? (
+                  layoutGroundY + LAYOUT_FOUNDATION_HEIGHT / 2 - position[1]
+                ) / (scale[1] || 1)
+                : LAYOUT_FOUNDATION_HEIGHT / 2,
               0,
             ]}
             userData={{ placeLayoutSurface: true, layoutBuildSurface: true }}
-            onPointerMove={stableHandlers.onPointerMove}
-            onPointerOut={stableHandlers.onPointerOut}
-            onPointerDown={stableHandlers.onPointerDown}
-            onClick={stableHandlers.onClick}
-            onDoubleClick={stableHandlers.onDoubleClick}
+            onPointerMove={(e) => stableHandlers.onPointerMove(e)}
+            onPointerOut={(e) => stableHandlers.onPointerOut(e)}
+            onPointerDown={(e) => stableHandlers.onPointerDown(e)}
+            onClick={(e) => stableHandlers.onClick(e)}
+            onDoubleClick={(e) => stableHandlers.onDoubleClick(e)}
           >
             <boxGeometry args={[
               layoutBuildSurface.size[0],
-              0.25,
+              LAYOUT_FOUNDATION_HEIGHT / (scale[1] || 1),
               layoutBuildSurface.size[1],
             ]} />
             <meshBasicMaterial
@@ -1165,6 +1170,20 @@ export const Block = React.memo(({
       
       {progress === 1 && !isGhost && !selectedEditBlockId && !noPhysics && (
         <RigidBody type="fixed" colliders={false} position={position} rotation={baseRotation}>
+          {layoutBuildSurface && Number.isFinite(layoutGroundY) && (
+            <CuboidCollider
+              args={[
+                layoutBuildSurface.size[0] * scale[0] / 2,
+                LAYOUT_FOUNDATION_HEIGHT / 2,
+                layoutBuildSurface.size[1] * scale[2] / 2,
+              ]}
+              position={[
+                0,
+                layoutGroundY + LAYOUT_FOUNDATION_HEIGHT / 2 - position[1],
+                0,
+              ]}
+            />
+          )}
           {getCollider()}
         </RigidBody>
       )}
@@ -1178,9 +1197,15 @@ export const Block = React.memo(({
          prev.isGhost === next.isGhost &&
          prev.isHoveredToDelete === next.isHoveredToDelete &&
          prev.isHoveredToEdit === next.isHoveredToEdit &&
+         prev.onPointerMove === next.onPointerMove &&
+         prev.onPointerOut === next.onPointerOut &&
+         prev.onPointerDown === next.onPointerDown &&
+         prev.onClick === next.onClick &&
+         prev.onDoubleClick === next.onDoubleClick &&
          prev.selectedEditBlockId === next.selectedEditBlockId &&
          prev.presetExpressionResolved === next.presetExpressionResolved &&
          prev.presetNeedType === next.presetNeedType &&
+         prev.layoutGroundY === next.layoutGroundY &&
          prev.text === next.text &&
          prev.agri?.phase === next.agri?.phase &&
          prev.agri?.harvestable === next.agri?.harvestable &&

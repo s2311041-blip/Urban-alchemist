@@ -1,5 +1,7 @@
 import { getIslandTopYAt } from './terrainPlacement';
 
+export const LAYOUT_FOUNDATION_HEIGHT = 0.25;
+
 export const objectIsPlaceLayoutSurface = (object) => {
   let node = object;
   while (node) {
@@ -47,7 +49,7 @@ export const findLayoutGroundAt = (point, blocks = [], islandChunks = []) => {
     ) {
       return {
         block,
-        y: getIslandTopYAt(point.x, point.z, islandChunks),
+        y: getIslandTopYAt(point.x, point.z, islandChunks) + LAYOUT_FOUNDATION_HEIGHT,
       };
     }
   }

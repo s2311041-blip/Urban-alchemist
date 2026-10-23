@@ -56,7 +56,7 @@ const placeFromPointer = (
     e.point.y = layoutGround.y;
     handlePointerMove(e, new THREE.Vector3(0, 1, 0), {
       onLayoutSurface: true,
-      force,
+      force: force || !!layoutGround,
     });
     return;
   }

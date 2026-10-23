@@ -63,10 +63,10 @@ const LAYOUT_GROUND_TOP_LOCAL = {
   station_layout: 0.57,
 };
 
-/** 主地面の上端が島上面と一致するブロック中心Y */
+/** 主地面の上端を、島上に置くハーフブロック基礎（高さ0.25）の上面へ合わせる。 */
 export const layoutBlockY = (shape, islandTopY) => {
   const groundTop = LAYOUT_GROUND_TOP_LOCAL[shape] ?? 0.14;
-  return Number((islandTopY - LAYOUT_MESH_Y_OFFSET - groundTop).toFixed(3));
+  return Number((islandTopY + 0.25 - LAYOUT_MESH_Y_OFFSET - groundTop).toFixed(3));
 };
 
 const computeYForShape = (shape, topY) => {

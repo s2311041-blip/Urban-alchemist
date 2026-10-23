@@ -66,10 +66,10 @@ describe('findLayoutGroundAt', () => {
     rotation: 0,
   };
 
-  it('treats the preset footprint as ground zero regardless of its stored Y', () => {
+  it('uses the top of the half-block foundation as the preset ground', () => {
     const hit = findLayoutGroundAt({ x: 2, z: -1 }, [road], islandChunks);
     expect(hit.block).toBe(road);
-    expect(hit.y).toBe(0);
+    expect(hit.y).toBe(0.25);
   });
 
   it('does not claim points outside the preset footprint', () => {
@@ -93,7 +93,7 @@ describe('findLayoutGroundAt', () => {
         [{ shape, pos: [0, 99, 0], scale: [1, 1, 1], rotation: 0 }],
         islandChunks,
       );
-      expect(hit?.y, shape).toBe(0);
+      expect(hit?.y, shape).toBe(0.25);
     }
     expect(new Set(layoutShapes).size).toBe(9);
   });
