@@ -124,6 +124,9 @@ export const Block = React.memo(({
   const isHoverboardStation = shape === 'hoverboard_station';
   const isHoverboarding = useGameStore(state => isHoverboardStation ? state.isHoverboarding : false);
   const currentHoverboardStationId = useGameStore(state => isHoverboardStation ? state.currentHoverboardStationId : null);
+  const disableLayoutRaycast = useGameStore(
+    state => getLayoutBuildSurface(shape) ? !!state.buildMode : false,
+  );
   const needsNight = material === 'light' || material === 'mana' || shape === 'hoverboard_station' || 
     isStationShape(shape) || isBusStopShape(shape) || isPlazaShape(shape) || isRoadShape(shape) || 
     isLaneShape(shape) || isParkShape(shape) || isWaterfrontShape(shape) || isCampusShape(shape) || 
@@ -646,25 +649,25 @@ export const Block = React.memo(({
     };
 
     switch (shape) {
-      case 'station_layout': return <MergedLayout disable={isGhost}>{renderStationLayout(stationShapeProps)}</MergedLayout>;
-      case 'station_platform': return <MergedLayout disable={isGhost}>{renderStationPlatform(stationShapeProps)}</MergedLayout>;
-      case 'station_stairs': return <MergedLayout disable={isGhost}>{renderStationStairs(stationShapeProps)}</MergedLayout>;
-      case 'station_gate': return <MergedLayout disable={isGhost}>{renderStationGate(stationShapeProps)}</MergedLayout>;
-      case 'station_building': return <MergedLayout disable={isGhost}>{renderStationBuilding(stationShapeProps)}</MergedLayout>;
-      case 'bus_stop_layout': return <MergedLayout disable={isGhost}>{renderBusStopLayout(stationShapeProps)}</MergedLayout>;
-      case 'plaza_layout': return <MergedLayout disable={isGhost}>{renderPlazaLayout(stationShapeProps)}</MergedLayout>;
-      case 'road_layout': return <MergedLayout disable={isGhost}>{renderRoadLayout(stationShapeProps)}</MergedLayout>;
-      case 'lane_layout': return <MergedLayout disable={isGhost}>{renderLaneLayout(stationShapeProps)}</MergedLayout>;
-      case 'park_layout': return <MergedLayout disable={isGhost}>{renderParkLayout(stationShapeProps)}</MergedLayout>;
-      case 'waterfront_layout': return <MergedLayout disable={isGhost}>{renderWaterfrontLayout(stationShapeProps)}</MergedLayout>;
-      case 'campus_layout': return <MergedLayout disable={isGhost}>{renderCampusLayout(stationShapeProps)}</MergedLayout>;
-      case 'commerce_layout': return <MergedLayout disable={isGhost}>{renderCommerceLayout(stationShapeProps)}</MergedLayout>;
+      case 'station_layout': return <MergedLayout disable={isGhost} disableRaycast={disableLayoutRaycast}>{renderStationLayout(stationShapeProps)}</MergedLayout>;
+      case 'station_platform': return <MergedLayout disable={isGhost} disableRaycast={disableLayoutRaycast}>{renderStationPlatform(stationShapeProps)}</MergedLayout>;
+      case 'station_stairs': return <MergedLayout disable={isGhost} disableRaycast={disableLayoutRaycast}>{renderStationStairs(stationShapeProps)}</MergedLayout>;
+      case 'station_gate': return <MergedLayout disable={isGhost} disableRaycast={disableLayoutRaycast}>{renderStationGate(stationShapeProps)}</MergedLayout>;
+      case 'station_building': return <MergedLayout disable={isGhost} disableRaycast={disableLayoutRaycast}>{renderStationBuilding(stationShapeProps)}</MergedLayout>;
+      case 'bus_stop_layout': return <MergedLayout disable={isGhost} disableRaycast={disableLayoutRaycast}>{renderBusStopLayout(stationShapeProps)}</MergedLayout>;
+      case 'plaza_layout': return <MergedLayout disable={isGhost} disableRaycast={disableLayoutRaycast}>{renderPlazaLayout(stationShapeProps)}</MergedLayout>;
+      case 'road_layout': return <MergedLayout disable={isGhost} disableRaycast={disableLayoutRaycast}>{renderRoadLayout(stationShapeProps)}</MergedLayout>;
+      case 'lane_layout': return <MergedLayout disable={isGhost} disableRaycast={disableLayoutRaycast}>{renderLaneLayout(stationShapeProps)}</MergedLayout>;
+      case 'park_layout': return <MergedLayout disable={isGhost} disableRaycast={disableLayoutRaycast}>{renderParkLayout(stationShapeProps)}</MergedLayout>;
+      case 'waterfront_layout': return <MergedLayout disable={isGhost} disableRaycast={disableLayoutRaycast}>{renderWaterfrontLayout(stationShapeProps)}</MergedLayout>;
+      case 'campus_layout': return <MergedLayout disable={isGhost} disableRaycast={disableLayoutRaycast}>{renderCampusLayout(stationShapeProps)}</MergedLayout>;
+      case 'commerce_layout': return <MergedLayout disable={isGhost} disableRaycast={disableLayoutRaycast}>{renderCommerceLayout(stationShapeProps)}</MergedLayout>;
       default: return null;
     }
   }, [
     shape, isGhost, meshPosition, meshRotation,
     stableHandlers,
-    isBuilding, nightFactor, presetNeedType, presetExpressionResolved
+    isBuilding, nightFactor, presetNeedType, presetExpressionResolved, disableLayoutRaycast
   ]);
 
   const renderSignPost = () => {
@@ -1059,11 +1062,10 @@ export const Block = React.memo(({
             position={[
               0,
               Number.isFinite(layoutGroundY)
-                ? (layoutGroundY - position[1]) / (scale[1] || 1)
-                : 0,
+                ? ((layoutGroundY - position[1]) / (scale[1] || 1)) - 0.125
+                : -0.125,
               0,
             ]}
-            rotation={[-Math.PI / 2, 0, 0]}
             userData={{ placeLayoutSurface: true, layoutBuildSurface: true }}
             onPointerMove={stableHandlers.onPointerMove}
             onPointerOut={stableHandlers.onPointerOut}
@@ -1071,7 +1073,11 @@ export const Block = React.memo(({
             onClick={stableHandlers.onClick}
             onDoubleClick={stableHandlers.onDoubleClick}
           >
-            <planeGeometry args={layoutBuildSurface.size} />
+            <boxGeometry args={[
+              layoutBuildSurface.size[0],
+              0.25,
+              layoutBuildSurface.size[1],
+            ]} />
             <meshBasicMaterial
               transparent
               opacity={0}

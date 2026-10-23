@@ -2,7 +2,9 @@ import React, { useRef, useState, useEffect } from 'react';
 import * as THREE from 'three';
 import * as BufferGeometryUtils from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 
-export const MergedLayout = ({ children, disable = false }) => {
+const noRaycast = () => null;
+
+export const MergedLayout = ({ children, disable = false, disableRaycast = false }) => {
   const groupRef = useRef();
   const [mergedMeshes, setMergedMeshes] = useState([]);
   const [hasMerged, setHasMerged] = useState(false);
@@ -131,10 +133,14 @@ export const MergedLayout = ({ children, disable = false }) => {
     const shouldHideOriginals = hasMerged && !disable;
     groupRef.current.traverse((node) => {
       if (!node.isMesh || node.userData?.isMergedMesh === true) return;
+      if (!node.userData.layoutOriginalRaycast) {
+        node.userData.layoutOriginalRaycast = node.raycast;
+      }
+      node.raycast = disableRaycast ? noRaycast : node.userData.layoutOriginalRaycast;
       if (node.userData?.keepVisible === true) return;
       node.visible = !shouldHideOriginals;
     });
-  }, [hasMerged, disable]);
+  }, [hasMerged, disable, disableRaycast]);
 
   if (disable) {
     return <group>{children}</group>;
@@ -152,6 +158,7 @@ export const MergedLayout = ({ children, disable = false }) => {
           material={m.material}
           userData={{ isMergedMesh: true, placeLayoutSurface: true }}
           {...interactionProps}
+          raycast={disableRaycast ? noRaycast : undefined}
         />
       ))}
     </group>

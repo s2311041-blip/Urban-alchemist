@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { PLACE_PRESET_TEMPLATES } from '../constants/placePresetTemplates';
 import { findLayoutGroundAt, selectLayoutSurfaceHit } from './placeLayoutPointer';
 
 const layout = (distance, y = 1) => ({
@@ -79,5 +80,21 @@ describe('findLayoutGroundAt', () => {
     const rotated = { ...road, rotation: 90 };
     expect(findLayoutGroundAt({ x: 6, z: -1 }, [rotated], islandChunks)).toBeTruthy();
     expect(findLayoutGroundAt({ x: 2, z: 7.5 }, [rotated], islandChunks)).toBeNull();
+  });
+
+  it('defines a build surface for every place preset layout', () => {
+    const layoutShapes = Object.values(PLACE_PRESET_TEMPLATES)
+      .flatMap((template) => template.base)
+      .map((block) => block.shape)
+      .filter((shape) => shape.endsWith('_layout'));
+    for (const shape of layoutShapes) {
+      const hit = findLayoutGroundAt(
+        { x: 0, z: 0 },
+        [{ shape, pos: [0, 99, 0], scale: [1, 1, 1], rotation: 0 }],
+        islandChunks,
+      );
+      expect(hit?.y, shape).toBe(0);
+    }
+    expect(new Set(layoutShapes).size).toBe(9);
   });
 });
