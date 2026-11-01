@@ -5,7 +5,7 @@ import { AR_THEME } from '../constants/arTheme';
 export function ArPinMarker({
   nx,
   ny,
-  kind = 'barrier',
+  kind: _kind = 'notice',
   distM,
   label,
   onClick,
@@ -14,7 +14,7 @@ export function ArPinMarker({
   relBearing = 0,
   scale = 1,
 }) {
-  const color = kind === 'positive' ? AR_THEME.positive : AR_THEME.barrier;
+  const color = AR_THEME.notice;
   const baseSize = large ? 44 : Math.max(32, 42 - (distM ?? 0) / 12);
   const size = baseSize * scale;
   const rotateY = Math.max(-35, Math.min(35, relBearing * 0.5));

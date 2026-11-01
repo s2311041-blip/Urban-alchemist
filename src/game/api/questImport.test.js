@@ -36,6 +36,15 @@ describe('annotationToQuestPost', () => {
   it('skips good posts', () => {
     expect(annotationToQuestPost({ postKind: 'good', comment: 'nice' })).toBeNull();
   });
+
+  it('skips positive_place notices even if needType is set', () => {
+    expect(annotationToQuestPost({
+      categoryId: 'positive_place',
+      needType: 'O',
+      postKind: 'notice',
+      comment: '日陰があって涼しくて休めた',
+    })).toBeNull();
+  });
 });
 
 describe('parseImportJson', () => {

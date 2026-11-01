@@ -1,12 +1,15 @@
 import { NEED_CATEGORY_OPTIONS } from '../../constants/barrierData';
 import { KOTO_PLACE_OPTIONS } from '../constants/kotoArea';
 import { getSeverityLabel } from './classifyMetaFields';
+import { categoryIdFromAnnotation, getNoticeCategory } from '../constants/noticeCategories';
 
 /** 図鑑・検索用タグをアノテーションから抽出 */
 export function getAnnotationTags(annotation) {
   const tags = [];
-  if (annotation.kind === 'positive') tags.push({ id: 'kind:positive', label: '良い場所', group: 'kind' });
-  else tags.push({ id: 'kind:barrier', label: 'バリア', group: 'kind' });
+  const category = getNoticeCategory(categoryIdFromAnnotation(annotation));
+  if (category) {
+    tags.push({ id: `notice:${category.id}`, label: category.label, group: 'notice' });
+  }
 
   const need = NEED_CATEGORY_OPTIONS.find((o) => o.needType === annotation.needType);
   if (need) tags.push({ id: `need:${need.needType}`, label: need.label, group: 'need' });

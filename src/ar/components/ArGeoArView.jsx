@@ -38,7 +38,7 @@ export function ArGeoArView({
   onSelectPin,
   captureRef,
   showReticle = false,
-  reticleHint = '不満の点をここに合わせてください',
+  reticleHint = '気づいた場所をここに合わせてください',
 }) {
   const pointerLabel = usePointerLabel();
   const placeAction = pointerActionPhrase(pointerLabel);
@@ -740,7 +740,7 @@ export function ArGeoArView({
                 {Math.round(pin.nearbyDistM)}
                 m
                 {' · '}
-                {pin.kind === 'positive' ? '良い場所' : '困りごと'}
+                街の気づき
               </div>
               <div style={{ fontSize: 14, lineHeight: 1.45 }}>
                 {pin.comment?.slice(0, 48) || '（本文なし）'}

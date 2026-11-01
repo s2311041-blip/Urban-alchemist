@@ -40,7 +40,7 @@ export function ArVisiblePinBar({ visiblePins = [], onSelectPin }) {
               maxWidth: 180,
               padding: '10px 12px',
               borderRadius: 12,
-              border: `2px solid ${annotation.kind === 'positive' ? AR_THEME.positive : AR_THEME.barrier}`,
+              border: `2px solid ${AR_THEME.notice}`,
               background: 'rgba(0,0,0,0.82)',
               color: AR_THEME.text,
               textAlign: 'left',

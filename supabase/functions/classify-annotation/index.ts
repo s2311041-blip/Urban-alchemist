@@ -28,6 +28,9 @@ type ClassifyRequest = {
 };
 
 type ClassifyResponse = {
+  category_id: string;
+  category_label: string;
+  message: string;
   needType: NeedTypeCode;
   confidence: number;
   ambiguous: boolean;
@@ -37,32 +40,68 @@ type ClassifyResponse = {
 };
 
 function buildPrompt(body: ClassifyRequest) {
-  const typeList = NEED_TYPES.map((t) => `- ${t.code}: ${t.label} — ${t.hint}`).join("\n");
+  return `あなたは市民のまちづくりにおける「気づき」に耳を傾ける共感的なファシリテーターです。
+ユーザーから街での「体験や感情（テキスト）」が送られてきます。
+行政への不満通報・改善要求としては扱わず、主観的な体験を尊重してください。
 
-  return `あなたは街歩きARアプリの「困りごと」分類アシスタントです。
-参加者の自由記述を、次の9コードのいずれか1つに分類してください。
+以下の9つのカテゴリ（8つの課題 + 1つのポジティブ）から、最も当てはまるものを1つ選び、ユーザーへのメッセージ（1文）を作成してください。
 
-${typeList}
+【9つのカテゴリ】
+1. access_walk: 歩きにくい（物理的な段差・狭さ）
+2. access_connect: 行き来しにくい（ネットワーク・経路の分断）
+3. access_guide: 迷いやすい（案内・視認性の不足）
+4. stay_rest: 休みにくい（ベンチ・待つ拠点の不足）
+5. sense_sight: 見えにくい（暗さ・死角）
+6. sense_clean: 汚れ・荒れ（清掃・管理の不足）
+7. relation_anxiety: こわい・不安（心理的不安・視線不足）
+8. relation_support: 頼れる場がない（孤立・サポート不足）
+9. positive_place: 良い・心地よい体験（すてきな場所、便利、快適など）
 
-分類の注意:
-- P は「その場所を歩く・通る」物理的なしにくさ。L は「地点Aと地点Bの間の移動・接続」。
-- V は視認・照明。S は心理的な不安・怖さ。両方あれば主訴を優先。
-- 8タイプのどれにも弱く当てはまる場合のみ O。
-- confidence は 0〜1。迷う場合は ambiguous=true と rivalType に第2候補を入れる。
+【出力フォーマット (JSONのみ)】
+{"category_id":"relation_anxiety","category_label":"こわい・不安","message":"AIからの返答メッセージ"}
 
-回答は JSON のみ（説明文不要）:
-{"needType":"P","confidence":0.85,"ambiguous":false,"rivalType":null,"reason":"短い理由"}
+【メッセージの生成ルール】
+- category_id が positive_place 以外：「[体験の要約]と感じたのですね。この大切な気づきを、まちづくりの議題として共有しますか？」という確認メッセージにする。『』は付けない。
+- category_id が positive_place：「素敵な場所のシェア、ありがとうございます！マップに記録しますね。」という感謝のメッセージにする。
+- 体験の要約は投稿者の原文を要求文に言い換えない。
 
 ---
-困りごと: ${body.comment ?? ""}
+体験: ${body.comment ?? ""}
 場所: ${body.placeText ?? ""}
-誰にとって: ${body.whoText ?? ""}
-時間・程度: ${body.contextText ?? ""}`;
+誰の目線: ${body.whoText ?? ""}
+気持ちの強さ: ${body.contextText ?? ""}`;
 }
 
 async function callLlm(prompt: string): Promise<string> {
+  const geminiKey = Deno.env.get("GEMINI_API_KEY");
+  if (geminiKey) {
+    const model = Deno.env.get("GEMINI_MODEL") ?? "gemini-2.5-flash";
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: {
+            temperature: 0.2,
+            responseMimeType: "application/json",
+          },
+        }),
+      },
+    );
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`Gemini HTTP ${res.status}: ${errText.slice(0, 200)}`);
+    }
+    const json = await res.json();
+    const content = json?.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!content) throw new Error("Gemini returned empty content");
+    return content;
+  }
+
   const apiKey = Deno.env.get("LLM_API_KEY");
-  if (!apiKey) throw new Error("LLM_API_KEY not configured");
+  if (!apiKey) throw new Error("GEMINI_API_KEY not configured");
 
   const baseUrl = (Deno.env.get("LLM_API_BASE_URL") ?? "https://api.openai.com/v1").replace(/\/$/, "");
   const model = Deno.env.get("LLM_MODEL") ?? "gpt-4o-mini";
@@ -99,17 +138,41 @@ function parseLlmJson(raw: string): ClassifyResponse {
   const cleaned = raw.trim().replace(/^```json\s*/i, "").replace(/```$/i, "").trim();
   const parsed = JSON.parse(cleaned);
 
-  const validCodes = new Set(NEED_TYPES.map((t) => t.code));
-  const needType = validCodes.has(parsed.needType) ? parsed.needType : "O";
-  const rivalType = parsed.rivalType && validCodes.has(parsed.rivalType) ? parsed.rivalType : null;
+  const categories: Record<string, { label: string; needType: NeedTypeCode }> = {
+    access_walk: { label: "歩きにくい", needType: "P" },
+    access_connect: { label: "行き来しにくい", needType: "L" },
+    access_guide: { label: "迷いやすい", needType: "I" },
+    stay_rest: { label: "休みにくい", needType: "R" },
+    sense_sight: { label: "見えにくい", needType: "V" },
+    sense_clean: { label: "汚れ・荒れ", needType: "M" },
+    relation_anxiety: { label: "こわい・不安", needType: "S" },
+    relation_support: { label: "頼れる場がない", needType: "C" },
+    positive_place: { label: "良い・心地よい体験だった", needType: "O" },
+  };
+  const categoryId = categories[parsed.category_id] ? parsed.category_id : "relation_anxiety";
+  const category = categories[categoryId];
+  const fallbackMessage = categoryId === "positive_place"
+    ? "素敵な場所のシェア、ありがとうございます！マップに記録しますね。"
+    : `${String(parsed.message ?? "").replace(/『|』/g, "").trim() || "この体験"}と感じたのですね。この大切な気づきを、まちづくりの議題として共有しますか？`;
+  const rawMessage = String(parsed.message ?? "").replace(/『|』/g, "").trim();
+  const message = rawMessage.includes("共有しますか") || rawMessage.includes("マップに記録")
+    ? rawMessage
+    : (categoryId === "positive_place"
+      ? fallbackMessage
+      : (rawMessage
+        ? `${rawMessage}と感じたのですね。この大切な気づきを、まちづくりの議題として共有しますか？`
+        : fallbackMessage));
 
   return {
-    needType,
+    category_id: categoryId,
+    category_label: category.label,
+    message,
+    needType: category.needType,
     confidence: Math.min(1, Math.max(0, Number(parsed.confidence) || 0.7)),
-    ambiguous: Boolean(parsed.ambiguous),
-    rivalType: rivalType === needType ? null : rivalType,
+    ambiguous: false,
+    rivalType: null,
     reason: String(parsed.reason ?? "llm"),
-    model: Deno.env.get("LLM_MODEL") ?? "gpt-4o-mini",
+    model: Deno.env.get("GEMINI_MODEL") ?? Deno.env.get("LLM_MODEL") ?? "gemini-2.5-flash",
   };
 }
 
@@ -127,12 +190,6 @@ Deno.serve(async (req) => {
 
   try {
     const body = (await req.json()) as ClassifyRequest;
-
-    if (body.postKind === "good") {
-      return new Response(JSON.stringify({ skipped: true }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
 
     const prompt = buildPrompt(body);
     const llmRaw = await callLlm(prompt);

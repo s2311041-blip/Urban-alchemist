@@ -43,6 +43,8 @@ import {
   PlanSatisfactionDeltas,
 } from '../consensus/SatisfactionGaugePanel';
 import { IslandSatisfactionBlock } from '../consensus/IslandSatisfactionBlock';
+import { getPersona } from '../../../constants/personas';
+import { workshopPersonaKey } from '../../../store/helpers/workshopIslandSeed';
 import { JokerPlanForm } from '../consensus/JokerPlanForm';
 import {
   JOKER_BUDGET_MAX,
@@ -115,6 +117,8 @@ export const BugReportOverlay = ({
 
   const needCategory = NEED_CATEGORY_OPTIONS.find((opt) => opt.needType === bug.needType);
   const placeLabel = bug.placeText?.trim() || getPlaceArchetypeLabel(bug.placeArchetype);
+  const persona = getPersona(workshopPersonaKey(bug));
+  const speakerLabel = persona ? `${persona.name}（${persona.role}）` : bug.demographic;
   const fallbackPhoto = 'https://images.unsplash.com/photo-1519608487953-e999c86e7455?auto=format&fit=crop&q=80&w=800';
   const heroPhoto = bug.photo || fallbackPhoto;
   const canEditPost = bug.isMine && bug.sourceQuestId && !bug.solved;
@@ -165,7 +169,7 @@ export const BugReportOverlay = ({
                 {BUG_REPORT_COPY.placeTypePrefix} {placeLabel}
               </span>
             )}
-            <span style={getDemographicChipStyle()}>{bug.demographic}</span>
+            <span style={getDemographicChipStyle()}>{speakerLabel}</span>
             {bug.timeTag && (
               <span style={getTimeTagChipStyle()}>
                 <span style={BUG_REPORT_STYLE.tagChip}>
@@ -193,6 +197,17 @@ export const BugReportOverlay = ({
               </span>
             )}
           </div>
+          {persona && (
+            <div style={{
+              fontSize: 15,
+              fontWeight: 800,
+              color: persona.color,
+              marginBottom: 6,
+            }}
+            >
+              {persona.name}の声
+            </div>
+          )}
           <p style={BUG_REPORT_STYLE.comment}>
             「{bug.comment}」
           </p>

@@ -4,12 +4,12 @@ import { AR_THEME } from '../../constants/arTheme';
 
 export function ArXrPin3d({
   position = [0, 0, 0],
-  kind = 'barrier',
+  kind = 'notice',
   label,
   distM,
   onSelect,
 }) {
-  const color = kind === 'positive' ? AR_THEME.positive : AR_THEME.barrier;
+  const color = kind === 'positive' ? AR_THEME.positive : AR_THEME.notice;
   const y = position[1] ?? 0;
 
   return (

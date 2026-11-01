@@ -1,6 +1,7 @@
 import React from 'react';
 import { ChevronLeft, Download, Trash2, Pencil } from 'lucide-react';
 import { AR_THEME } from '../constants/arTheme';
+import { categoryIdFromAnnotation, getNoticeCategory } from '../constants/noticeCategories';
 
 export function ArListPanel({
   annotations,
@@ -70,10 +71,11 @@ export function ArListPanel({
                     fontSize: 11,
                     padding: '2px 8px',
                     borderRadius: 6,
-                    background: item.kind === 'positive' ? 'rgba(102,187,106,0.2)' : 'rgba(239,83,80,0.2)',
+                    background: 'rgba(66,165,245,0.22)',
+                    color: AR_THEME.notice,
                   }}
                   >
-                    {item.kind === 'positive' ? '良い' : 'バリア'}
+                    {getNoticeCategory(categoryIdFromAnnotation(item))?.label ?? '街の気づき'}
                   </span>
                   <p style={{ margin: '8px 0 0', fontSize: 14, lineHeight: 1.5 }}>{item.comment || '—'}</p>
                 </div>

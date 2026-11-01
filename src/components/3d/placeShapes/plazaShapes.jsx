@@ -1,6 +1,7 @@
 import React from 'react';
 import { Text } from '@react-three/drei';
-import { CuboidCollider } from '@react-three/rapier';
+import { ConvexHullCollider, CuboidCollider } from '@react-three/rapier';
+import * as THREE from 'three';
 import { PALETTE } from '../../../constants/artDirection';
 import { placeMat, PLACE_COLORS, StringLightRow } from './placeVoxelHelpers';
 
@@ -33,7 +34,15 @@ const WalkFloor = ({ args, position, isGhost, castShadow, color = PLACE_COLORS.w
 const RoadSurface = ({ args, position, rotation = [0, 0, 0], isGhost, castShadow }) => (
   <mesh position={position} rotation={rotation} receiveShadow={castShadow}>
     <boxGeometry args={args} />
-    <meshStandardMaterial color="#4a4a4a" roughness={0.92} metalness={0.05} {...ghostProps(isGhost)} />
+    <meshStandardMaterial
+      color="#4a4a4a"
+      roughness={0.92}
+      metalness={0.05}
+      polygonOffset
+      polygonOffsetFactor={2}
+      polygonOffsetUnits={2}
+      {...ghostProps(isGhost)}
+    />
   </mesh>
 );
 
@@ -42,7 +51,7 @@ const WallCollider = ({ args, position }) => (
 );
 
 const ROTARY_SEGMENTS = [
-  { pos: [0, ROAD_Y, 3.6], args: [9.2, 0.06, 2], rot: [0, 0, 0] },
+  { pos: [0, ROAD_Y, 3.82], args: [9.2, 0.06, 1.64], rot: [0, 0, 0] },
   { pos: [-3.8, ROAD_Y, 4.9], args: [3.2, 0.06, 2.4], rot: [0, 0.32, 0] },
   { pos: [3.8, ROAD_Y, 4.9], args: [3.2, 0.06, 2.4], rot: [0, -0.32, 0] },
   { pos: [0, ROAD_Y, 5.8], args: [6.5, 0.06, 1.4], rot: [0, 0, 0] },
@@ -55,6 +64,85 @@ const BUS_BAY_MARKS = [
 ];
 
 const PLAZA_ENTRY_STEPS = 3;
+const PLAZA_FLOOR_HALF_X = 4.75;
+const PLAZA_FLOOR_TOP = FLOOR_Y + 0.05;
+const PLAZA_SIDE_Z0 = -2.8;
+const PLAZA_SIDE_Z1 = 3.1;
+const PLAZA_ISLAND_LOCAL_Y = -0.1;
+const PLAZA_SIDE_RUN = 1.6;
+
+const buildPlazaSideRampGeometry = () => {
+  const shape = new THREE.Shape();
+  const top = PLAZA_FLOOR_TOP + 0.01;
+  const low = PLAZA_ISLAND_LOCAL_Y;
+  shape.moveTo(0.02, top);
+  shape.lineTo(PLAZA_SIDE_RUN, low);
+  shape.lineTo(PLAZA_SIDE_RUN, low - 0.08);
+  shape.lineTo(0.02, top - 0.14);
+  shape.closePath();
+  const geo = new THREE.ExtrudeGeometry(shape, {
+    depth: PLAZA_SIDE_Z1 - PLAZA_SIDE_Z0,
+    bevelEnabled: false,
+  });
+  geo.translate(0, 0, PLAZA_SIDE_Z0);
+  geo.computeVertexNormals();
+  return geo;
+};
+
+const PLAZA_SIDE_RAMP_GEO = buildPlazaSideRampGeometry();
+
+const PLAZA_WALK_HALF_X = 4.55;
+
+const buildPlazaSideHull = (side, sx, sy, sz) => {
+  const z0 = (PLAZA_SIDE_Z0 - 0.45) * sz;
+  const z1 = (PLAZA_SIDE_Z1 + 0.35) * sz;
+  const yTop = (PLAZA_FLOOR_TOP + MESH_Y_OFFSET) * sy;
+  const yLow = (PLAZA_ISLAND_LOCAL_Y + MESH_Y_OFFSET) * sy;
+  const yBot = yLow - 0.22 * sy;
+  const xIn = 4.05 * sx;
+  const xKnee = PLAZA_FLOOR_HALF_X * sx;
+  const xOut = (PLAZA_FLOOR_HALF_X + PLAZA_SIDE_RUN + 0.08) * sx;
+  const s = (x) => side * x;
+  const points = [z0, z1].flatMap((z) => [
+    s(xIn), yTop, z,
+    s(xKnee), yTop, z,
+    s(xOut), yLow, z,
+    s(xIn), yBot, z,
+    s(xOut), yBot, z,
+  ]);
+  return new Float32Array(points);
+};
+
+const buildPlazaSideColliders = (sx, sy, sz) => (
+  [-1, 1].map((side) => (
+    <ConvexHullCollider
+      key={`plaza-side-ramp-${side}`}
+      args={[buildPlazaSideHull(side, sx, sy, sz)]}
+      friction={1.1}
+      restitution={0}
+    />
+  ))
+);
+
+const SideRamp = ({ side, isGhost, castShadow }) => (
+  <mesh
+    geometry={PLAZA_SIDE_RAMP_GEO}
+    position={[side * PLAZA_FLOOR_HALF_X, 0, 0]}
+    scale={[side, 1, 1]}
+    receiveShadow={castShadow}
+    userData={WALK}
+  >
+    <meshStandardMaterial
+      color={PLACE_COLORS.plaster}
+      roughness={0.86}
+      side={THREE.DoubleSide}
+      polygonOffset
+      polygonOffsetFactor={-1}
+      polygonOffsetUnits={-1}
+      {...ghostProps(isGhost)}
+    />
+  </mesh>
+);
 
 const buildPlazaEntryMeshes = (isGhost, castShadow) => (
   Array.from({ length: PLAZA_ENTRY_STEPS }, (_, i) => (
@@ -240,6 +328,8 @@ export const renderPlazaLayout = ({
       {renderClockTower({ isGhost, castShadow, signIntensity })}
 
       <WalkFloor args={[9.5, 0.1, 5.2]} position={[0, FLOOR_Y, -0.2]} isGhost={isGhost} castShadow={castShadow} color={PLACE_COLORS.plaster} />
+      <SideRamp side={1} isGhost={isGhost} castShadow={castShadow} />
+      <SideRamp side={-1} isGhost={isGhost} castShadow={castShadow} />
       <StringLightRow from={[-4.2, FLOOR_Y + 2.2, -2.2]} to={[4.2, FLOOR_Y + 2.2, -2.2]} y={FLOOR_Y + 2.15} intensity={0.8} isGhost={isGhost} />
       <mesh position={[0, FLOOR_Y + 0.06, -0.2]} receiveShadow={castShadow}>
         <boxGeometry args={[0.45, 0.03, 4.8]} />
@@ -289,7 +379,7 @@ export const renderPlazaLayout = ({
         </group>
       ))}
 
-      <WalkFloor args={[9.2, 0.08, 1.1]} position={[0, FLOOR_Y, 2.55]} isGhost={isGhost} castShadow={castShadow} color="#d7ccc8" />
+      <WalkFloor args={[9.5, 0.04, 0.56]} position={[0, 0.13, 2.69]} isGhost={isGhost} castShadow={castShadow} color="#d7ccc8" />
       {[-4.6, 4.6].map((x) => (
         <group key={`plaza-rail-vis-${x}`} position={[x, FLOOR_Y + 0.22, 3.15]}>
           <mesh castShadow={castShadow}>
@@ -330,8 +420,9 @@ export const getPlazaWalkColliders = (shape, sx, sy, sz) => {
     return (
       <>
         {buildPlazaEntryColliders(sx, sy, sz)}
-        <CuboidCollider args={[4.6 * sx, 0.04, 2.5 * sz]} position={[0, colliderY(FLOOR_Y) * sy, -0.2 * sz]} />
-        <CuboidCollider args={[4.5 * sx, 0.04, 0.5 * sz]} position={[0, colliderY(FLOOR_Y) * sy, 2.55 * sz]} />
+        {buildPlazaSideColliders(sx, sy, sz)}
+        <CuboidCollider args={[PLAZA_WALK_HALF_X * sx, 0.04, 2.55 * sz]} position={[0, colliderY(FLOOR_Y) * sy - 0.015 * sy, -0.2 * sz]} />
+        <CuboidCollider args={[PLAZA_WALK_HALF_X * sx, 0.02, 0.26 * sz]} position={[0, colliderY(0.13) * sy - 0.02 * sy, 2.69 * sz]} />
         {getPlazaFacadeColliders(sx, sy, sz)}
         {getPlazaRailColliders(sx, sy, sz)}
       </>

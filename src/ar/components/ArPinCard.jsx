@@ -76,8 +76,8 @@ export function ArPinCard({ annotation, onClose, authorId, onEdit, initialPhase 
             zIndex: 5,
           }}
           >
-            <span style={badgeStyle(annotation.kind === 'positive' ? AR_THEME.positive : AR_THEME.barrier)}>
-              {annotation.kind === 'positive' ? '良い場所' : '困りごと'}
+            <span style={badgeStyle(AR_THEME.notice)}>
+              街の気づき
             </span>
             <button type="button" onClick={onClose} style={iconBtnStyle} aria-label="閉じる">
               <X size={22} />
@@ -99,7 +99,7 @@ export function ArPinCard({ annotation, onClose, authorId, onEdit, initialPhase 
               pointerEvents: 'none',
             }}
             >
-              赤いピンが「困っている場所」です（{photoPins.length}か所）
+              青いピンが「気づいた場所」です（{photoPins.length}か所）
             </div>
           )}
         </div>

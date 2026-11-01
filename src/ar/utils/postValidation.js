@@ -14,8 +14,11 @@ export function validateDraftForSubmit(draft) {
   }
 
   const comment = draft.comment?.trim() ?? '';
+  if (!draft.placeArchetype && !draft.placeText?.trim()) {
+    errors.push('場所の種類を選んでください');
+  }
   if (comment.length < MIN_COMMENT_LEN) {
-    errors.push('コメントを入力してください');
+    errors.push('気づいたことを入力してください');
   }
   if (comment.length > MAX_COMMENT_LEN) {
     errors.push(`コメントは${MAX_COMMENT_LEN}文字以内にしてください`);

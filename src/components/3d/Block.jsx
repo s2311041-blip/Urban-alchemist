@@ -1168,7 +1168,7 @@ export const Block = React.memo(({
       
       {progress === 1 && !isGhost && !selectedEditBlockId && !noPhysics && (
         <RigidBody type="fixed" colliders={false} position={position} rotation={baseRotation}>
-          {layoutBuildSurface && Number.isFinite(layoutGroundY) && (
+          {layoutBuildSurface && Number.isFinite(layoutGroundY) && shape !== 'plaza_layout' && (
             <CuboidCollider
               args={[
                 layoutBuildSurface.size[0] * scale[0] / 2,

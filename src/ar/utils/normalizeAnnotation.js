@@ -1,4 +1,8 @@
 import { NEED_TYPE_TO_DEFAULT_TYPE } from '../../constants/barrierData';
+import {
+  categoryIdFromAnnotation,
+  getNoticeCategory,
+} from '../constants/noticeCategories';
 
 const newId = () => `ar-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 
@@ -15,8 +19,11 @@ const TIME_TAG_ID_TO_LABEL = {
  */
 export function buildAnnotationFromDraft(draft, { authorId, profileTags = [], existingId, existingCreatedAt } = {}) {
   const now = Date.now();
-  const kind = draft.postKind === 'good' ? 'positive' : 'barrier';
-  const needType = draft.needType ?? 'P';
+  const categoryId = categoryIdFromAnnotation(draft);
+  const category = getNoticeCategory(categoryId);
+  const positive = categoryId === 'positive_place' || draft.postKind === 'good';
+  const kind = positive ? 'positive' : 'barrier';
+  const needType = positive ? 'O' : (category?.needType ?? draft.needType ?? 'O');
   const timeTagId = draft.timeTag ?? 'always';
 
   return {
@@ -24,8 +31,12 @@ export function buildAnnotationFromDraft(draft, { authorId, profileTags = [], ex
     authorId: authorId ?? 'anon',
     createdAt: existingCreatedAt ?? now,
     updatedAt: now,
+    recordKind: 'notice',
     kind,
-    postKind: draft.postKind === 'good' ? 'good' : 'bad',
+    postKind: positive ? 'good' : 'bad',
+    categoryId: categoryId ?? null,
+    categoryLabel: category?.label ?? draft.categoryLabel ?? null,
+    classificationMessage: draft.classificationMessage?.trim() || null,
     comment: draft.comment?.trim() ?? '',
     photo: draft.photo ?? null,
     photoPins: Array.isArray(draft.photoPins) ? draft.photoPins : [],
@@ -44,7 +55,7 @@ export function buildAnnotationFromDraft(draft, { authorId, profileTags = [], ex
     affectedOther: draft.affectedOther?.trim() || null,
     timeTag: TIME_TAG_ID_TO_LABEL[timeTagId] ?? 'いつでも',
     timeTagId,
-    severity: draft.severity ?? 'mid',
+    severity: draft.severity ?? 'low',
     profileTags: [...profileTags],
     classification: draft.classification ?? null,
     promptKind: draft.promptKind ?? 'free',
@@ -62,13 +73,14 @@ export function computePoints(draft) {
   let pts = 10;
   if ((draft.comment?.trim().length ?? 0) >= 20) pts += 5;
   if (draft.worldPin) pts += 5;
-  if (draft.postKind !== 'good') pts += 3;
   return pts;
 }
 
 export function annotationToGameExport(annotation) {
   return {
+    recordKind: 'notice',
     postKind: annotation.postKind ?? (annotation.kind === 'positive' ? 'good' : 'bad'),
+    categoryId: categoryIdFromAnnotation(annotation),
     photo: annotation.photo,
     comment: annotation.comment,
     photoPins: annotation.photoPins,
@@ -91,7 +103,10 @@ export function annotationToExportRecord(annotation) {
   return {
     id: annotation.id,
     authorId: annotation.authorId,
+    recordKind: annotation.recordKind ?? 'notice',
     kind: annotation.kind,
+    categoryId: categoryIdFromAnnotation(annotation),
+    categoryLabel: annotation.categoryLabel ?? getNoticeCategory(categoryIdFromAnnotation(annotation))?.label ?? null,
     comment: annotation.comment,
     worldPin: annotation.worldPin,
     authorGeo: annotation.authorGeo,

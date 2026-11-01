@@ -19,6 +19,15 @@ import { createDefaultPlacedBlocks } from '../../utils/placePresets'
 import { normalizeCompetition } from '../../constants/competitionData'
 import { DEFAULT_ISLAND_SATISFACTION } from '../../constants/satisfactionAttributes'
 
+/** 駅前の左右に敷いていた低い歩道。床との段差になるので、保存済み配置からも外す。 */
+const isLegacyPlazaSidePath = (block) => (
+  block?.presetLocked
+  && block?.presetArchetype === 'plaza'
+  && block?.shape === 'path'
+  && Math.abs((block.scale?.[0] ?? 0) - 2.2) < 0.05
+  && Math.abs((block.scale?.[2] ?? 0) - 7) < 0.05
+);
+
 export const createInitialState = (savedData) => {
   const workshopSeed = createWorkshopIslandState();
   // バージョン番号だけでは、1件だけ残ったセーブを誤って現行版と扱う。
@@ -28,6 +37,9 @@ export const createInitialState = (savedData) => {
     ? (savedData?.islandChunks || workshopSeed.islandChunks)
     : workshopSeed.islandChunks;
   let placedBlocks = hasCurrentWorkshopSeed ? (savedData?.placedBlocks || []) : workshopSeed.placedBlocks;
+  if (Array.isArray(placedBlocks)) {
+    placedBlocks = placedBlocks.filter((block) => !isLegacyPlazaSidePath(block));
+  }
   if (Array.isArray(placedBlocks) && placedBlocks.length > 0) {
     const existingArchetypes = new Set(placedBlocks.map(b => b.presetArchetype).filter(Boolean));
     const defaultBlocks = createDefaultPlacedBlocks(islandChunks);

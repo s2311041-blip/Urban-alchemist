@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { layoutBlockY } from '../../utils/placePresets.js';
 import { getIslandTopYAt } from '../../utils/terrainPlacement.js';
 import { QUEST_STATUS } from './questState.js';
-import { createWorkshopIslandState } from './workshopIslandSeed.js';
+import { createWorkshopIslandState, workshopPersonaKey } from './workshopIslandSeed.js';
 
 describe('createWorkshopIslandState', () => {
   it('starts the island with the four demo complaints already placed', () => {
@@ -17,6 +17,18 @@ describe('createWorkshopIslandState', () => {
       '自転車がスピードを出して降りてきて歩行者とぶつかりそうになる。歩道橋の道自体も広くないから危ない。',
       '歩道を舗装して欲しい。ボロボロになっていてつまづいた。階段だから危なかった。',
       '自販機の近くというだけで飲料のゴミが捨てられている。',
+    ]);
+    expect(bugs.map((bug) => bug.personaKey)).toEqual([
+      'inclusive',
+      'link',
+      'place',
+      'livability',
+    ]);
+    expect(bugs.map((bug) => bug.demographic)).toEqual([
+      '守る人（車椅子・ベビーカー）',
+      '急ぐ人（通勤・通学）',
+      '休む人（高齢者・家族連れ）',
+      '静かに暮らす人（近隣住民）',
     ]);
     expect(bugs.map((bug) => [bug.pos[0], bug.pos[2]])).toEqual([
       [-11, -11],
@@ -43,6 +55,8 @@ describe('createWorkshopIslandState', () => {
       return Math.hypot(dx, dz) < 8;
     });
     expect(nearBridge).toEqual([]);
+    expect(workshopPersonaKey({ sourceAnnotationId: 'ar-1792483946203-3yxt010' })).toBe('link');
+    expect(workshopPersonaKey({ personaKey: 'place' })).toBe('place');
     placedBlocks.filter((block) => String(block.shape).endsWith('_layout')).forEach((block) => {
       const topY = getIslandTopYAt(block.pos[0], block.pos[2], islandChunks);
       expect(block.pos[1]).toBe(layoutBlockY(block.shape, topY));

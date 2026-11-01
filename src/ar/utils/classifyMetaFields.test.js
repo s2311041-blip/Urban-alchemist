@@ -44,7 +44,7 @@ describe('display labels', () => {
   it('uses everyday language for time and severity', () => {
     expect(getTimeTagLabel('always')).toBe('いつでも');
     expect(getSeverityLabel('low')).toBe('すこし');
-    expect(getSeverityLabel('high')).toBe('かなり深刻');
+    expect(getSeverityLabel('high')).toBe('とても強く');
   });
 });
 

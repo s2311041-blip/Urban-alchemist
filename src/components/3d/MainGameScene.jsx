@@ -24,6 +24,9 @@ import { WorldProximityHints } from './WorldProximityHints'
 import { WORLD_PROXIMITY_HINT_STYLE } from '../../constants/worldHintStyles'
 import { BUILD_ORBIT, GOD_ISO_ORBIT, TPS_ORBIT } from '../../constants/cameraControls'
 import { BugOrb } from './BugOrb'
+import { PersonaFigure } from './PersonaFigure'
+import { getPersona } from '../../constants/personas'
+import { workshopPersonaKey } from '../../store/helpers/workshopIslandSeed'
 import { layoutSurfaceWorldY, PLACE_ARCHETYPE_LABELS } from '../../utils/placePresets'
 import {
   isPlaceLayoutShape,
@@ -546,32 +549,69 @@ export const MainGameScene = ({
 
           <BuildModePreviews islandChunks={islandChunks} />
           
-          {bugs.map(bug => 
-            !bug.solved && Array.isArray(bug?.pos) && bug.pos.length === 3 && (
+          {bugs.map((bug) => {
+            if (bug.solved || !Array.isArray(bug?.pos) || bug.pos.length !== 3) return null;
+            const persona = getPersona(workshopPersonaKey(bug));
+            const layoutGround = findLayoutGroundAt(
+              { x: bug.pos[0], z: bug.pos[2] },
+              placedBlocks,
+            );
+            const standPos = layoutGround
+              ? [bug.pos[0], layoutGround.y + 0.5, bug.pos[2]]
+              : bug.pos;
+            const openBug = (e) => {
+              if (!showBugExperienceHints) return;
+              e.stopPropagation();
+              setActiveBug(bug.id);
+            };
+            const hoverOn = () => { if (showBugExperienceHints) document.body.style.cursor = 'pointer'; };
+            const hoverOff = () => { if (showBugExperienceHints) document.body.style.cursor = 'auto'; };
+            return (
               <group key={bug.id}>
-                <BugOrb
-                  bug={bug}
-                  position={bug.pos}
-                  onClick={(e) => {
-                    if (showBugExperienceHints) {
-                      e.stopPropagation();
-                      setActiveBug(bug.id);
-                    }
-                  }}
-                  onPointerOver={() => { if (showBugExperienceHints) document.body.style.cursor = 'pointer' }}
-                  onPointerOut={() => { if (showBugExperienceHints) document.body.style.cursor = 'auto' }}
-                />
-                
+                {persona ? (
+                  <PersonaFigure
+                    persona={persona}
+                    position={standPos}
+                    onClick={openBug}
+                    onPointerOver={hoverOn}
+                    onPointerOut={hoverOff}
+                  />
+                ) : (
+                  <BugOrb
+                    bug={bug}
+                    position={bug.pos}
+                    onClick={openBug}
+                    onPointerOver={hoverOn}
+                    onPointerOut={hoverOff}
+                  />
+                )}
+
                 {!showBugExperienceHints ? null : (
-                  <Html position={[bug.pos[0], bug.pos[1] + 0.9, bug.pos[2]]} center zIndexRange={[100, 0]}>
-                    <div style={{ ...WORLD_PROXIMITY_HINT_STYLE, animation: 'bounce 2s infinite' }}>
-                      タップして追体験
+                  <Html
+                    position={[standPos[0], standPos[1] + (persona ? 1.42 : 0.9), standPos[2]]}
+                    center
+                    zIndexRange={[100, 0]}
+                    style={{ pointerEvents: persona ? 'auto' : 'none' }}
+                  >
+                    <div
+                      role={persona ? 'button' : undefined}
+                      onClick={persona ? openBug : undefined}
+                      onPointerDown={persona ? (event) => event.stopPropagation() : undefined}
+                      style={{
+                        ...WORLD_PROXIMITY_HINT_STYLE,
+                        animation: 'bounce 2s infinite',
+                        transform: persona ? 'none' : WORLD_PROXIMITY_HINT_STYLE.transform,
+                        pointerEvents: persona ? 'auto' : 'none',
+                        cursor: persona ? 'pointer' : undefined,
+                      }}
+                    >
+                      {persona ? '話しかける' : 'タップして追体験'}
                     </div>
                   </Html>
                 )}
               </group>
-            )
-          )}
+            );
+          })}
         </group>
       </Physics>
       

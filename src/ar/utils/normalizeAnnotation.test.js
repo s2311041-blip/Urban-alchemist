@@ -21,6 +21,8 @@ describe('buildAnnotationFromDraft', () => {
     expect(record.affectedGroups).toEqual(['車いす']);
     expect(record.timeTag).toBe('いつでも');
     expect(record.type).toBe('danger');
+    expect(record.recordKind).toBe('notice');
+    expect(record.categoryId).toBe('access_walk');
   });
 
   it('stores free-text meta fields', () => {
@@ -99,6 +101,6 @@ describe('computePinWorldPosition', () => {
 
 describe('computePoints', () => {
   it('rewards narrative', () => {
-    expect(computePoints({ postKind: 'bad', comment: 'a'.repeat(25), worldPin: {} })).toBeGreaterThan(15);
+    expect(computePoints({ comment: 'a'.repeat(25), worldPin: {} })).toBe(20);
   });
 });

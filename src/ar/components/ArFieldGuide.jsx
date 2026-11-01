@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { ChevronLeft, Download, Heart, Pencil, Search, Trash2 } from 'lucide-react';
-import { NEED_CATEGORY_OPTIONS } from '../../constants/barrierData';
 import { AR_HOME } from '../constants/arTheme';
+import { categoryIdFromAnnotation, getNoticeCategory } from '../constants/noticeCategories';
 import { isFacilitatorMode } from '../constants/facilitatorMode';
 import { ArPinCard } from './ArPinCard';
 import {
@@ -156,15 +156,14 @@ export function ArFieldGuide({
 }
 
 function FieldGuideCard({ item, onOpen, onEdit, onDelete, onLike, canLike = false }) {
-  const needLabel = NEED_CATEGORY_OPTIONS.find((o) => o.needType === item.needType)?.label;
   const tags = getAnnotationTags(item).slice(0, 3);
-  const isPositive = item.kind === 'positive';
+  const category = getNoticeCategory(categoryIdFromAnnotation(item));
 
   return (
     <article
       style={{
         ...styles.card,
-        borderColor: isPositive ? '#86efac' : '#fecaca',
+        borderColor: AR_HOME.notice,
       }}
       onClick={onOpen}
       onKeyDown={(e) => e.key === 'Enter' && onOpen()}
@@ -175,12 +174,12 @@ function FieldGuideCard({ item, onOpen, onEdit, onDelete, onLike, canLike = fals
         ...styles.cardThumb,
         background: item.photo
           ? `url(${item.photo}) center/cover`
-          : isPositive ? AR_HOME.positiveSoft : '#fee2e2',
+          : AR_HOME.noticeSoft,
       }}
       />
       <div style={styles.cardBody}>
         <div style={styles.cardKind}>
-          {isPositive ? '良い場所' : needLabel ?? '困りごと'}
+          {category?.label ?? '街の気づき'}
         </div>
         <p style={styles.cardText}>{item.comment || '—'}</p>
         <div style={styles.tagRow}>

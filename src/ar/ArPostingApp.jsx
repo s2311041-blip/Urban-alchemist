@@ -77,6 +77,13 @@ export function ArPostingApp() {
   }, [setAuthorId, syncAnnotations]);
 
   useEffect(() => {
+    const previewNoticeForm = new URLSearchParams(window.location.search).has('notice-flow');
+    if (previewNoticeForm) {
+      setHelpOpen(false);
+      setPostEntry({ kind: 'free', prompt: null });
+      setScreen('post');
+      return;
+    }
     if (!helpSeenOnce) {
       setHelpOpen(true);
       markHelpSeen();

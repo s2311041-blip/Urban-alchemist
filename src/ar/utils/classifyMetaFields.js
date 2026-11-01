@@ -4,7 +4,7 @@ import { inferPlaceFromText, normalizeClassifyText } from './classifyDraft';
 
 export const PLACE_OTHER_LABEL = 'その他';
 
-/** 困りごと／良い場所で共通。確認画面・ゲームの場所型と同じ文言 */
+/** 気づきフォーム・確認画面・ゲームの場所型と同じ文言 */
 export const PLACE_INPUT_HINTS = [
   ...KOTO_PLACE_OPTIONS.filter((opt) => opt.id !== 'none').map((opt) => opt.label),
   PLACE_OTHER_LABEL,
@@ -98,7 +98,7 @@ export function classifyMetaFromDraft(draft = {}) {
     ?? (contextText ? inferTimeTagFromText(contextText) : 'always');
 
   const severity = draft.severity
-    ?? (contextText ? inferSeverityFromText(contextText) : 'mid');
+    ?? (contextText ? inferSeverityFromText(contextText) : 'low');
 
   return {
     placeText: placeText || null,
@@ -123,9 +123,9 @@ export function getPlaceDisplayLabel(placeArchetype, placeText) {
 export function buildClassificationContext(draft = {}) {
   const parts = [];
   const timeTag = draft.timeTag ?? 'always';
-  const severity = draft.severity ?? 'mid';
+  const severity = draft.severity ?? 'low';
   if (timeTag !== 'always') parts.push(getTimeTagLabel(timeTag));
-  if (severity !== 'mid') parts.push(getSeverityLabel(severity));
+  parts.push(getSeverityLabel(severity));
   if (draft.contextText?.trim()) parts.push(draft.contextText.trim());
   return parts.join('、');
 }
@@ -135,5 +135,6 @@ export function getTimeTagLabel(timeTagId) {
 }
 
 export function getSeverityLabel(severityId) {
+  if (severityId === 'high') return 'とても強く';
   return SEVERITY_OPTIONS.find((opt) => opt.id === severityId)?.label ?? '中くらい';
 }

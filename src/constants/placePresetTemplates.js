@@ -64,8 +64,6 @@ export const PLACE_PRESET_TEMPLATES = {
     base: [
       { shape: 'plaza_layout', material: 'stone', offset: [0, 0], scale: [1, 1, 1] },
       { shape: 'path', material: 'stone', offset: [0, -6.5], scale: [6, 1, 3] },
-      { shape: 'path', material: 'stone', offset: [-5.5, 0], scale: [2.2, 1, 7] },
-      { shape: 'path', material: 'stone', offset: [5.5, 0], scale: [2.2, 1, 7] },
       { shape: 'path', material: 'stone', offset: [0, 7.5], scale: [8, 1, 2.5] },
     ],
     accents: {

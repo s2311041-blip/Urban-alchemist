@@ -30,8 +30,12 @@ export function annotationToDraft(annotation) {
 
   return {
     id: annotation.id,
-    postKind: annotation.kind === 'positive' || annotation.postKind === 'good' ? 'good' : 'bad',
-    needType: annotation.needType ?? 'P',
+    recordKind: 'notice',
+    postKind: annotation.postKind
+      ?? (annotation.kind === 'positive' ? 'good' : 'bad'),
+    categoryId: annotation.categoryId ?? null,
+    categoryLabel: annotation.categoryLabel ?? null,
+    needType: annotation.needType ?? 'O',
     placeArchetype: annotation.placeArchetype ?? null,
     placeText: annotation.placeText ?? '',
     whoText: annotation.whoText ?? '',
@@ -40,7 +44,7 @@ export function annotationToDraft(annotation) {
     affectedOther,
     comment: annotation.comment ?? '',
     timeTag,
-    severity: annotation.severity ?? 'mid',
+    severity: annotation.severity ?? 'low',
     classification: annotation.classification ?? null,
     photo: annotation.photo ?? null,
     photoPins: Array.isArray(annotation.photoPins) ? [...annotation.photoPins] : [],
@@ -57,20 +61,19 @@ export function annotationToDraft(annotation) {
   };
 }
 
-export function getFormStepIds(postKind) {
-  if (postKind === 'good') {
-    return ['kind', 'place', 'story'];
-  }
-  return ['kind', 'needPlace', 'context', 'story'];
+export function getFormStepIds() {
+  return ['place', 'story', 'perspective', 'intensity'];
 }
 
 export function getStepTitle(stepId) {
   const titles = {
+    place: 'ここはどんな場所ですか？',
+    story: 'どんなことがあって、どう感じましたか？',
+    perspective: '誰の目線（立場）でそう感じましたか？',
+    intensity: 'その気持ちの強さはどのくらいですか？',
     kind: '記録の種類',
-    needPlace: '困りごとと場所',
+    needPlace: '気づきと場所',
     context: '誰にとって？',
-    place: 'どんな場所？',
-    story: 'どう感じたか',
   };
   return titles[stepId] ?? '';
 }
@@ -78,7 +81,7 @@ export function getStepTitle(stepId) {
 export function canProceedStep(stepId, draft) {
   switch (stepId) {
     case 'kind':
-      return draft.postKind === 'good' || draft.postKind === 'bad';
+      return true;
     case 'needPlace':
       return !!draft.needType && !!draft.placeArchetype;
     case 'context': {
@@ -88,10 +91,12 @@ export function canProceedStep(stepId, draft) {
       return true;
     }
     case 'place':
-      return !!draft.placeArchetype;
+      return !!(draft.placeText?.trim() || draft.placeArchetype);
     case 'story':
-      if (draft.postKind === 'good') return (draft.comment?.trim().length ?? 0) >= 1;
-      return (draft.comment?.trim().length ?? 0) >= 10;
+      return (draft.comment?.trim().length ?? 0) >= 1;
+    case 'perspective':
+    case 'intensity':
+      return true;
     default:
       return false;
   }

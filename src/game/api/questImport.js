@@ -14,11 +14,12 @@ function formatDemographic(annotation = {}) {
 }
 
 function isBadAnnotation(annotation = {}) {
+  if (annotation.categoryId === 'positive_place') return false;
   if (annotation.postKind === 'good') return false;
   if (annotation.kind === 'positive') return false;
   return annotation.postKind === 'bad'
     || annotation.kind === 'barrier'
-    || annotation.needType;
+    || (annotation.needType && annotation.needType !== 'O');
 }
 
 /** v1 会話投稿 — ユーザー確認済みのみゲーム取り込み（レガシー投稿は classification なしで通す） */

@@ -1,4 +1,5 @@
 import { NEED_TYPE_TO_DEFAULT_TYPE } from '../../constants/barrierData';
+import { getPersona } from '../../constants/personas';
 import { createDefaultPlacedBlocks, createPresetForQuestPlacement } from '../../utils/placePresets';
 import { getIslandTopYAt } from '../../utils/terrainPlacement';
 import { createDefaultIslandChunks } from './saveSchema';
@@ -23,44 +24,62 @@ const cornerPosition = (islandChunks, [x, z]) => {
   const y = Number((getIslandTopYAt(x, z, islandChunks) + 0.5).toFixed(3));
   return [x, y, z];
 };
+
+const personaDemographic = (personaKey) => {
+  const persona = getPersona(personaKey);
+  return persona ? `${persona.name}（${persona.role}）` : '';
+};
+
 const WORKSHOP_POSTS = [
   {
     id: 'ar-1792484266589-qk9i9dy',
+    personaKey: 'inclusive',
     needType: 'P',
     placeArchetype: 'road',
     placeText: '歩道・道路',
-    demographic: '自転車に乗ってる人',
+    demographic: personaDemographic('inclusive'),
     severity: 'mid',
     comment: '歩道に上がる段差のブロックの一個が周りより少し浮いていて転びそうになる',
   },
   {
     id: 'ar-1792483946203-3yxt010',
+    personaKey: 'link',
     needType: 'S',
     placeArchetype: 'road',
     placeText: '歩道・道路',
-    demographic: '歩行者',
+    demographic: personaDemographic('link'),
     severity: 'high',
     comment: '自転車がスピードを出して降りてきて歩行者とぶつかりそうになる。歩道橋の道自体も広くないから危ない。',
   },
   {
     id: 'ar-1792483690461-xp641d3',
+    personaKey: 'place',
     needType: 'P',
     placeArchetype: 'none',
     placeText: '歩道橋',
-    demographic: '特に足腰の弱い人は危険だと思う。',
+    demographic: personaDemographic('place'),
     severity: 'mid',
     comment: '歩道を舗装して欲しい。ボロボロになっていてつまづいた。階段だから危なかった。',
   },
   {
     id: 'ar-1792483015533-x3nbmdb',
+    personaKey: 'livability',
     needType: 'M',
     placeArchetype: 'plaza',
     placeText: '駅前・広場',
-    demographic: 'みんな',
+    demographic: personaDemographic('livability'),
     severity: 'low',
     comment: '自販機の近くというだけで飲料のゴミが捨てられている。',
   },
 ];
+
+/** セーブ済みの四隅投稿にも、人物を後から当てる。 */
+export function workshopPersonaKey(record) {
+  if (typeof record?.personaKey === 'string' && record.personaKey) return record.personaKey;
+  const id = record?.sourceAnnotationId;
+  if (typeof id !== 'string') return null;
+  return WORKSHOP_POSTS.find((post) => post.id === id)?.personaKey ?? null;
+}
 
 export const WORKSHOP_POST_IDS = WORKSHOP_POSTS.map((post) => post.id);
 

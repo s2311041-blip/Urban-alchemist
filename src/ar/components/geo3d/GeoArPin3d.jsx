@@ -6,14 +6,16 @@ import { pinElevationM, pinTiltRad, stakeHeightM } from '../../utils/geo3dWorld'
 
 export function GeoArPin3d({
   position = [0, 0, 0],
-  kind = 'barrier',
+  kind = 'notice',
   label,
   distM,
   annotation,
   onSelect,
   pulsing = false,
 }) {
-  const color = kind === 'positive' ? AR_THEME.positive : AR_THEME.barrier;
+  const color = kind === 'positive' || annotation?.categoryId === 'positive_place'
+    ? AR_THEME.positive
+    : AR_THEME.notice;
   const elev = annotation ? pinElevationM(annotation) : 0;
   const tilt = annotation ? pinTiltRad(annotation) : 0;
   const stakeH = stakeHeightM(distM ?? 8);
@@ -102,7 +104,7 @@ export function GeoArPlacementPin({ position = [0, 0, 0] }) {
   return (
     <GeoArPin3d
       position={position}
-      kind="barrier"
+      kind="notice"
       label="ここ"
       distM={5}
       pulsing

@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { SATISFACTION_ATTRS, SATISFACTION_ATTR_BY_KEY } from '../../../constants/satisfactionAttributes';
+import { getPersona } from '../../../constants/personas';
 
 const OVERLAY_STYLE = {
   position: 'absolute',
@@ -63,7 +64,10 @@ function AttributeIntroGrid() {
             flexShrink: 0,
           }}
           >
-            <div style={{ fontSize: 12, fontWeight: 800, color: attr.color, lineHeight: 1.35 }}>
+            <div style={{ fontSize: 13, fontWeight: 800, color: attr.color, lineHeight: 1.35 }}>
+              {getPersona(attr.key)?.name ?? attr.shortLabel}
+            </div>
+            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.82)', lineHeight: 1.3, marginTop: 2 }}>
               {attr.label}
             </div>
             <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.72)', lineHeight: 1.3, marginTop: 2 }}>

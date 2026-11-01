@@ -2,6 +2,8 @@ import React, { useMemo, useState } from 'react';
 import { ClipboardList, X, User, Users, Pencil } from 'lucide-react';
 import { PLACE_ARCHETYPE_LABELS } from '../../../utils/placePresets';
 import { normalizeQuestStatus, isQuestResolved, isQuestOnIsland, canStartQuestPlacement } from '../../../store/helpers/questState';
+import { getPersona } from '../../../constants/personas';
+import { workshopPersonaKey } from '../../../store/helpers/workshopIslandSeed';
 import {
   QUEST_OWNER_FILTER_OPTIONS,
   QUEST_STATUS_FILTER_OPTIONS,
@@ -14,6 +16,12 @@ import {
   getQuestActionButtonStyle,
   getQuestStatusMeta,
 } from '../../../constants/ui/questBoardOverlay';
+
+const getSpeakerLabel = (quest) => {
+  const persona = getPersona(workshopPersonaKey(quest));
+  if (persona) return `${persona.name}（${persona.role}）`;
+  return quest?.demographic ?? '';
+};
 
 const getPlaceLabel = (quest) => {
   const written = quest?.placeText?.trim();
@@ -89,7 +97,7 @@ export const QuestBoardOverlay = ({
                 <div key={quest.id} style={getQuestCardStyle(quest.isMine)}>
                   <div style={QUEST_BOARD_STYLE.cardHeader}>
                     <span style={getQuestOwnerBadgeStyle(quest.isMine)}>
-                      {quest.isMine ? <User size={14} /> : <Users size={14} />} {quest.demographic}
+                      {quest.isMine ? <User size={14} /> : <Users size={14} />} {getSpeakerLabel(quest)}
                     </span>
                     <span style={QUEST_BOARD_STYLE.dateText}>{QUEST_BOARD_COPY.today}</span>
                   </div>

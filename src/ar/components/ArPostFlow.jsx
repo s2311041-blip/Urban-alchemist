@@ -6,14 +6,15 @@ import { annotationToDraft } from '../utils/postFormSteps';
 import { computePinAtFeet, computePinFromMap, buildCapturePoseAtPhoto } from '../utils/pinPlacement';
 import { AR_THEME } from '../constants/arTheme';
 import { ArCameraShell } from './ArCameraShell';
-import { ArPostChat } from './ArPostChat';
+import { ArNoticeChat } from './ArNoticeChat';
 import { ArPinMarker } from './ArPinMarker';
 import { ArMapPinPicker } from './ArMapPinPicker';
 import { PhotoPinSurface } from '../../components/ui/PhotoPinSurface';
 
 const INITIAL_DRAFT = {
-  postKind: 'bad',
-  needType: 'P',
+  recordKind: 'notice',
+  postKind: 'notice',
+  needType: 'O',
   placeArchetype: null,
   placeText: '',
   whoText: '',
@@ -22,7 +23,7 @@ const INITIAL_DRAFT = {
   affectedOther: '',
   comment: '',
   timeTag: 'always',
-  severity: 'mid',
+  severity: 'low',
   photoPins: [],
   promptKind: 'free',
   promptId: null,
@@ -40,9 +41,6 @@ function draftFromPostEntry(postEntry) {
   };
   if (prompt?.placeArchetype) {
     base.placeArchetype = prompt.placeArchetype;
-  }
-  if (prompt?.id === 'standing-12-good-spots') {
-    base.postKind = 'good';
   }
   if (prompt?.timeTagHint) {
     base.timeTag = prompt.timeTagHint;
@@ -109,7 +107,9 @@ export function ArPostFlow({
   onViewAfterPost,
 }) {
   const isEdit = !!editTarget?.id;
-  const [phase, setPhase] = useState(isEdit ? 'form' : 'capture');
+  const previewNoticeForm = typeof window !== 'undefined'
+    && new URLSearchParams(window.location.search).has('notice-flow');
+  const [phase, setPhase] = useState(isEdit || previewNoticeForm ? 'form' : 'capture');
   const [showMapPicker, setShowMapPicker] = useState(false);
   const [placementTap, setPlacementTap] = useState(editTarget?.screenTap ?? { nx: 0.5, ny: 0.5 });
   const [draft, setDraft] = useState(
@@ -381,7 +381,7 @@ export function ArPostFlow({
           />
         )}
 
-        <ArPostChat
+        <ArNoticeChat
           draft={draft}
           onChange={patchDraft}
           isEdit={isEdit}
@@ -411,7 +411,7 @@ export function ArPostFlow({
       >
         {placementTap && (
           <div style={{ position: 'relative', width: '100vw', height: '100vh' }}>
-            <ArPinMarker nx={placementTap.nx} ny={placementTap.ny} kind={draft.postKind === 'good' ? 'positive' : 'barrier'} large pulsing />
+            <ArPinMarker nx={placementTap.nx} ny={placementTap.ny} kind="notice" large pulsing />
           </div>
         )}
         <div style={{

@@ -14,6 +14,7 @@ describe('validateDraftForSubmit', () => {
     const errors = validateDraftForSubmit({
       worldPin: { lat: 35.5, lng: 139.8 },
       comment: '段差がある',
+      placeArchetype: 'road',
     });
     expect(errors).toHaveLength(0);
   });

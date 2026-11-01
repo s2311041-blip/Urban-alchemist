@@ -12,8 +12,8 @@ function pinSvg(color) {
 }
 
 /** 地図用の AR ピン（Leaflet の壊れたデフォルトアイコンを使わない） */
-export function createArMapPinIcon(kind = 'barrier') {
-  const color = kind === 'positive' ? AR_THEME.positive : AR_THEME.barrier;
+export function createArMapPinIcon(_kind = 'notice') {
+  const color = AR_THEME.notice;
   return L.divIcon({
     className: 'ar-map-pin-icon',
     html: pinSvg(color),
@@ -31,7 +31,7 @@ export function createArMapClusterIcon(count) {
     html: `
       <div style="
         width:${size}px;height:${size}px;border-radius:50%;
-        background:#ef5350;color:#fff;
+        background:${AR_THEME.notice};color:#fff;
         display:grid;place-items:center;
         font-weight:800;font-size:${count >= 10 ? 15 : 16}px;
         border:3px solid #fff;
