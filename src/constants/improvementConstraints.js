@@ -37,9 +37,9 @@ export const PLAN_SHAPE_LIMITS = {
 export const PLAN_REPAIR_SCALE = {
   hard_fix: { label: '大規模', hint: '構造改修・本格工事' },
   mobility_support: { label: '大規模', hint: '動線の再設計を伴う' },
-  care_point: { label: '大規模', hint: '場の設備をまとめて整える' },
+  care_point: { label: '大規模', hint: '人が集まれる場所をまとめてつくる' },
   transit_link: { label: '大規模', hint: '接続インフラの設置' },
-  maintenance: { label: '中規模', hint: '清掃・補修・小さな設備' },
+  maintenance: { label: '中規模', hint: '憩いを減らして管理しやすくする' },
   detour_path: { label: '中規模', hint: '迂回ルートの整備' },
   lighting: { label: '中規模', hint: '照明と導線の追加' },
   sign_info: { label: '小規模', hint: '看板・案内など最小限の手当' },

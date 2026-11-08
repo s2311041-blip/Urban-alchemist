@@ -41,9 +41,9 @@ export const PLAN_LABEL = {
   detour_path: '迂回ルートを作る（動線変更）',
   transit_link: '海列車をつなぐ（移動支援）',
   mobility_support: '移動支援を導入する（交通手段の提供）',
-  maintenance: '維持しやすい空間にする（環境美化）',
+  maintenance: '管理しやすい無機質な空間にする',
   sign_info: '案内で誘導する（ソフト整備・情報）',
-  care_point: '見守り拠点をつくる（人的・社会的支援）',
+  care_point: '集まれる場所（広場・カフェ等）をつくる',
   plant_tree: '緑を増やす（景観改善）',
   build_bench: '休める場所を増やす（滞在支援）',
 };
@@ -54,9 +54,9 @@ export const PLAN_DESCRIPTION = {
   detour_path: '通れない場所を避けて、安全に移動できる新しいルートを用意します。',
   transit_link: '離れた場所同士を船などで結び、移動のハードルを下げます。',
   mobility_support: 'バスやタクシーなど、歩かずに移動できる手段を提供します。',
-  maintenance: 'ゴミや放置自転車などを防ぐため、綺麗に保たれる空間をデザインします。',
+  maintenance: '植え込みやベンチを減らし、清掃や管理がしやすい無機質な空間にします。休める機能は失われます。',
   sign_info: '迷いやすい場所に看板などを置き、正しい道順を案内します。',
-  care_point: '人が留まれる場所を作り、困っている人を誰かが見守れるようにします。',
+  care_point: '広場やカフェのように人が自然に集まれる場所をつくります。集まることで、困っている人にも目が届きます。',
   plant_tree: '殺風景な場所に緑を増やし、居心地や安心感を高めます。',
   build_bench: '座って休める場所を増やし、滞在しやすい空間にします。',
 };
@@ -118,9 +118,9 @@ export const PLAN_HINT = {
   detour_path: `${B.path}を連続してつなぎ、迂回できる道を作る`,
   transit_link: `${B.ferry_dock}を本島と離島に置いて航路をつなぐ`,
   mobility_support: `${B.path}や${B.bench}を置いてバス停・移動拠点の代わりにする`,
-  maintenance: `${B.bench}と${B.path}を置いて、休める・歩ける空間にする`,
+  maintenance: `${B.bench}と${B.path}を置いて、管理用の動線を確保する`,
   sign_info: `${B.sign_post}を置いて、行き先が分かるようにする`,
-  care_point: `${B.bench}と${B.light_pole}を置いて、休んで見守ってもらえる場所にする`,
+  care_point: `${B.bench}と${B.light_pole}を置いて、人が集まれる場所にする`,
 };
 
 export const PLAN_HINT_BY_SCALE = {
@@ -158,9 +158,9 @@ export const PLAN_FAIL_MESSAGE = {
   hard_fix: `段差解消が足りません。「${B.slope}」または「${B.half}」を置いてください。`,
   detour_path: `迂回ルートが足りません。「${B.path}」を連続してつないでください。`,
   transit_link: `航路が未接続です。「${B.ferry_dock}」を本島と離島に置いてください。`,
-  maintenance: `休める・歩ける空間が足りません。「${B.bench}」と「${B.path}」を追加してください。`,
+  maintenance: `管理しやすい空間の条件が足りません。「${B.bench}」と「${B.path}」を追加してください。`,
   sign_info: `案内が足りません。「${B.sign_post}」を置くか、「${B.bench}」と「${B.path}」で代用してください。`,
-  care_point: `見守り拠点が足りません。「${B.bench}」と「${B.light_pole}」を追加してください。`,
+  care_point: `集まれる場所が足りません。「${B.bench}」と「${B.light_pole}」を追加してください。`,
 };
 
 /** scale 別の判定失敗メッセージ（建築パレット表記・半径を明示） */

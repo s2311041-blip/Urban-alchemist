@@ -81,7 +81,7 @@ export const createConsensusSlice = (set, get) => ({
       islandSatisfaction: nextSat,
       bugs: updatedBugs,
       quests: targetBug && targetBug.sourceQuestId ? markQuestResolved(state.quests, targetBug.sourceQuestId, targetBug.id) : state.quests,
-      narrativeFeedback: appendWorkshopEnding(feedback, updatedBugs),
+      narrativeFeedback: appendWorkshopEnding(feedback, updatedBugs, nextSat),
       questDecisions: {
         ...state.questDecisions,
         [questId]: nextDecision,

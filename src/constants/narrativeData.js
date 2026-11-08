@@ -1,4 +1,9 @@
 import { getPersona } from './personas';
+import {
+  MIN_ISLAND_SATISFACTION,
+  SATISFACTION_ATTRS,
+  normalizeIslandSatisfaction,
+} from './satisfactionAttributes';
 
 const rush = getPersona('link');
 const rest = getPersona('place');
@@ -81,8 +86,8 @@ export const PLAN_FEEDBACK_NARRATIVE = {
     negative: { speaker: quiet.name, text: '防犯灯が眩しすぎる！夜中も昼みたいで一睡もできないぞ！' }
   },
   maintenance: {
-    positive: { speaker: rest.name, text: '綺麗になった道端で、ちょっと座って休めるわ。嬉しい！' },
-    negative: { speaker: rush.name, text: '歩道にベンチなんか置いたら、道幅が狭くてすれ違えないだろうが！' }
+    positive: { speaker: '副市長', text: '植え込みもベンチも撤去し、管理のしやすい空間に整えました。' },
+    negative: { speaker: rest.name, text: '座る場所も日陰もなくなった。どこで休めばいいの…。' }
   },
   care_point: {
     positive: { speaker: `${rest.name}・${guard.name}`, text: 'みんなが集まれる最高の居場所ができた！助け合いの輪が広がっている！' },
@@ -124,9 +129,39 @@ export const WORKSHOP_ENDING_SCENARIO = [
   },
 ];
 
-export function appendWorkshopEnding(feedback, bugs = []) {
+export function listIslandClearFailures(satisfaction) {
+  const sat = normalizeIslandSatisfaction(satisfaction);
+  return SATISFACTION_ATTRS
+    .filter((attr) => sat[attr.key] < MIN_ISLAND_SATISFACTION)
+    .map((attr) => ({ key: attr.key, label: attr.shortLabel, value: sat[attr.key] }));
+}
+
+/** 四つとも手を打ったあとに、どれかが20未満なら失敗の結び。20ちょうどはクリア。 */
+export function buildWorkshopGameOverScenario(satisfaction) {
+  const failed = listIslandClearFailures(satisfaction);
+  const detail = failed.map((attr) => `${attr.label}が${attr.value}`).join('、');
+  return [
+    {
+      speaker: '副市長',
+      role: 'システム',
+      color: '#ef9a9a',
+      text: `四つの声には、すべて手を打ちました。しかし、${detail}です。`,
+    },
+    {
+      speaker: '副市長',
+      role: 'システム',
+      color: '#ef9a9a',
+      text: 'どれか一つでも20を切ると、この街は成り立ちません。ゲームオーバーです。',
+    },
+  ];
+}
+
+export function appendWorkshopEnding(feedback, bugs = [], satisfaction = null) {
   const list = Array.isArray(bugs) ? bugs : [];
   if (list.length === 0 || list.some((bug) => !bug?.solved)) return feedback;
-  if (Array.isArray(feedback)) return [...feedback, ...WORKSHOP_ENDING_SCENARIO];
-  return WORKSHOP_ENDING_SCENARIO;
+  const ending = satisfaction != null && listIslandClearFailures(satisfaction).length > 0
+    ? buildWorkshopGameOverScenario(satisfaction)
+    : WORKSHOP_ENDING_SCENARIO;
+  if (Array.isArray(feedback)) return [...feedback, ...ending];
+  return ending;
 }

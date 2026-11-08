@@ -295,7 +295,7 @@ export const createBugSlice = (set, get) => ({
             resolution?.planId ?? targetBug.chosenPlan,
           ))
         : null;
-      const narrativeFeedback = appendWorkshopEnding(resolveToast, updatedBugs);
+      let narrativeFeedback = resolveToast;
 
       if (solvedCount > 0) {
         if (targetBug) {
@@ -306,6 +306,7 @@ export const createBugSlice = (set, get) => ({
           }
           get().finalizeQuestDecision?.(questIdForDecision);
         }
+        narrativeFeedback = appendWorkshopEnding(resolveToast, updatedBugs, get().islandSatisfaction);
 
         const expansion = null; // 満足度モードでは島は拡張しない（固定ルールにする）
 
