@@ -10,6 +10,8 @@ import { ArNoticeChat } from './ArNoticeChat';
 import { ArPinMarker } from './ArPinMarker';
 import { ArMapPinPicker } from './ArMapPinPicker';
 import { PhotoPinSurface } from '../../components/ui/PhotoPinSurface';
+import { fileToJpegDataUrl, libraryPhotoErrorMessage } from '../utils/libraryPhoto';
+import { initialPostPhase } from '../utils/postEntry';
 
 const INITIAL_DRAFT = {
   recordKind: 'notice',
@@ -45,6 +47,12 @@ function draftFromPostEntry(postEntry) {
   if (prompt?.timeTagHint) {
     base.timeTag = prompt.timeTagHint;
   }
+  if (postEntry.photoSource === 'library' && postEntry.photo) {
+    base.photo = postEntry.photo;
+    base.photoPins = [{ id: 'center', nx: 0.5, ny: 0.5 }];
+    base.photoSource = 'library';
+    base.screenTap = { nx: 0.5, ny: 0.5 };
+  }
   return base;
 }
 
@@ -60,8 +68,11 @@ function stepIndexForPhase(phase) {
   return 2;
 }
 
-function PostProgress({ phase }) {
+function PostProgress({ phase, photoSource }) {
   const current = stepIndexForPhase(phase);
+  const steps = photoSource === 'library'
+    ? [{ id: 'capture', label: '選択' }, { id: 'annotate', label: '写真' }, { id: 'form', label: '質問' }]
+    : POST_STEPS;
   return (
     <div style={{
       display: 'flex',
@@ -70,7 +81,7 @@ function PostProgress({ phase }) {
       alignItems: 'center',
     }}
     >
-      {POST_STEPS.map((step, i) => (
+      {steps.map((step, i) => (
         <div key={step.id} style={{ flex: 1, textAlign: 'center' }}>
           <div style={{
             height: 6,
@@ -87,7 +98,7 @@ function PostProgress({ phase }) {
           >
             {i + 1}
             /
-            {POST_STEPS.length}
+            {steps.length}
             {' '}
             {step.label}
           </div>
@@ -109,7 +120,7 @@ export function ArPostFlow({
   const isEdit = !!editTarget?.id;
   const previewNoticeForm = typeof window !== 'undefined'
     && new URLSearchParams(window.location.search).has('notice-flow');
-  const [phase, setPhase] = useState(isEdit || previewNoticeForm ? 'form' : 'capture');
+  const [phase, setPhase] = useState(() => initialPostPhase({ isEdit, previewNoticeForm, postEntry }));
   const [showMapPicker, setShowMapPicker] = useState(false);
   const [placementTap, setPlacementTap] = useState(editTarget?.screenTap ?? { nx: 0.5, ny: 0.5 });
   const [draft, setDraft] = useState(
@@ -118,6 +129,8 @@ export function ArPostFlow({
   const [submitting, setSubmitting] = useState(false);
   const [stickDone, setStickDone] = useState(false);
   const captureRef = useRef(null);
+  const libraryInputRef = useRef(null);
+  const fromLibrary = draft.photoSource === 'library';
 
   const { geo, headingDeg, pitchDeg } = useDevicePose({ enabled: !isEdit });
 
@@ -192,6 +205,25 @@ export function ArPostFlow({
     });
     setPlacementTap(tap);
     setPhase('annotate');
+  };
+
+  const replaceLibraryPhoto = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    try {
+      const photo = await fileToJpegDataUrl(file);
+      const tap = { nx: 0.5, ny: 0.5 };
+      patchDraft({
+        photo,
+        photoPins: [{ id: 'center', nx: tap.nx, ny: tap.ny }],
+        photoSource: 'library',
+        screenTap: tap,
+      });
+      setPlacementTap(tap);
+    } catch (error) {
+      alert(libraryPhotoErrorMessage(error));
+    }
   };
 
   const confirmMapPlacement = (worldPin) => {
@@ -317,7 +349,7 @@ export function ArPostFlow({
           borderBottom: '1px solid rgba(255,255,255,0.08)',
         }}
         >
-          <PostProgress phase="annotate" />
+          <PostProgress phase="annotate" photoSource={draft.photoSource} />
           <div style={{ fontWeight: 'bold', fontSize: 18 }}>気になるところをタップして、ピンを合わせてください</div>
         </header>
 
@@ -350,12 +382,22 @@ export function ArPostFlow({
           gap: 10,
         }}
         >
+          {fromLibrary && (
+            <input
+              ref={libraryInputRef}
+              type="file"
+              accept="image/*"
+              onChange={replaceLibraryPhoto}
+              aria-label="別の写真を選ぶ"
+              style={{ display: 'none' }}
+            />
+          )}
           <button
             type="button"
-            onClick={() => setPhase('capture')}
+            onClick={() => (fromLibrary ? libraryInputRef.current?.click() : setPhase('capture'))}
             style={{ ...bottomBtnStyle(true), flex: 1, background: 'rgba(255,255,255,0.12)', color: AR_THEME.text }}
           >
-            撮り直す
+            {fromLibrary ? '選び直す' : '撮り直す'}
           </button>
           <button
             type="button"
@@ -385,7 +427,7 @@ export function ArPostFlow({
           draft={draft}
           onChange={patchDraft}
           isEdit={isEdit}
-          headerExtra={!isEdit ? <PostProgress phase="form" /> : null}
+          headerExtra={!isEdit ? <PostProgress phase="form" photoSource={draft.photoSource} /> : null}
           onBack={() => {
             if (isEdit) onCancel();
             else setPhase('annotate');

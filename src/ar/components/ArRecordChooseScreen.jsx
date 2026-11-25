@@ -1,7 +1,8 @@
-import React, { useMemo } from 'react';
-import { Calendar, Camera, ChevronLeft, ChevronRight, Megaphone, PenLine } from 'lucide-react';
+import React, { useMemo, useRef, useState } from 'react';
+import { Calendar, Camera, ChevronLeft, ChevronRight, Image, Megaphone, PenLine } from 'lucide-react';
 import { AR_HOME } from '../constants/arTheme';
 import { PPS_GROUP_META } from '../constants/promptSpecs';
+import { fileToJpegDataUrl, libraryPhotoErrorMessage } from '../utils/libraryPhoto';
 import {
   getActiveSpecialPrompts,
   getPpsGroupLabel,
@@ -11,11 +12,28 @@ import {
 const MONTH_LABELS = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'];
 
 export function ArRecordChooseScreen({ onChoose, onBack }) {
+  const libraryInputRef = useRef(null);
+  const [readingLibrary, setReadingLibrary] = useState(false);
   const now = useMemo(() => new Date(), []);
   const standingPrompt = useMemo(() => getStandingPrompt(now), [now]);
   const specialPrompts = useMemo(() => getActiveSpecialPrompts(now), [now]);
   const monthLabel = MONTH_LABELS[now.getMonth()];
   const ppsMeta = standingPrompt.ppsGroup ? PPS_GROUP_META[standingPrompt.ppsGroup] : null;
+
+  const chooseLibraryPhoto = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    setReadingLibrary(true);
+    try {
+      const photo = await fileToJpegDataUrl(file);
+      onChoose({ kind: 'free', prompt: null, photoSource: 'library', photo });
+    } catch (error) {
+      alert(libraryPhotoErrorMessage(error));
+    } finally {
+      setReadingLibrary(false);
+    }
+  };
 
   return (
     <div style={styles.page}>
@@ -121,6 +139,34 @@ export function ArRecordChooseScreen({ onChoose, onBack }) {
             <ChevronRight size={18} />
           </div>
         </button>
+
+        <div style={styles.libraryCard}>
+          <div style={styles.cardHead}>
+            <Image size={18} color={AR_HOME.free} />
+            <span style={{ ...styles.cardEyebrow, color: AR_HOME.free }}>撮った写真を使う</span>
+          </div>
+          <p style={styles.promptQuestion}>
+            写真フォルダから1枚選びます。選んだあとは、撮影したときと同じようにピンを合わせて質問に答えます。
+          </p>
+          <button
+            type="button"
+            onClick={() => libraryInputRef.current?.click()}
+            disabled={readingLibrary}
+            style={{ ...styles.ctaRow, width: '100%', border: 'none', color: AR_HOME.free, background: AR_HOME.freeSoft }}
+          >
+            <Image size={18} />
+            {readingLibrary ? '読み込み中…' : '撮った写真にピンをつける'}
+            {!readingLibrary && <ChevronRight size={18} />}
+          </button>
+          <input
+            ref={libraryInputRef}
+            type="file"
+            accept="image/*"
+            onChange={chooseLibraryPhoto}
+            style={styles.hiddenFile}
+            aria-label="写真フォルダから選ぶ"
+          />
+        </div>
       </div>
     </div>
   );
@@ -218,6 +264,18 @@ const styles = {
     borderRadius: AR_HOME.radius,
     padding: '16px',
     cursor: 'pointer',
+    marginBottom: 12,
+  },
+  libraryCard: {
+    width: '100%',
+    textAlign: 'left',
+    background: AR_HOME.surface,
+    border: `2px solid ${AR_HOME.free}`,
+    borderRadius: AR_HOME.radius,
+    padding: '16px',
+  },
+  hiddenFile: {
+    display: 'none',
   },
   cardHead: {
     display: 'flex',
