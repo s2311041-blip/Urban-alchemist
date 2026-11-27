@@ -113,7 +113,7 @@ export const WORKSHOP_ENDING_SCENARIO = [
     speaker: '副市長',
     role: 'システム',
     color: '#90caf9',
-    text: '島に届いていた四つの声に、すべて手を打ちました。',
+    text: '街に届いていた四つの声に、すべて手を打ちました。',
   },
   {
     speaker: '副市長',

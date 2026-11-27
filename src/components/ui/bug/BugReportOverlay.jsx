@@ -82,8 +82,12 @@ export const BugReportOverlay = ({
   }, [bug]);
   const selectablePlans = useMemo(() => {
     if (!effectiveNeedType) return [];
-    return getSelectablePlansForQuest({ needType: effectiveNeedType, includeIgnore: true });
-  }, [effectiveNeedType]);
+    return getSelectablePlansForQuest({
+      needType: effectiveNeedType,
+      includeIgnore: true,
+      sourceAnnotationId: bug.sourceAnnotationId,
+    });
+  }, [effectiveNeedType, bug]);
   const initialSelectedPlan = useMemo(() => {
     if (!bug) return null;
     if (bug.chosenPlan && selectablePlans.includes(bug.chosenPlan)) return bug.chosenPlan;
@@ -220,6 +224,7 @@ export const BugReportOverlay = ({
               variant="overlay"
               previewNeedType={effectiveNeedType}
               previewPlanId={selectedPlan}
+              previewSourceId={bug.sourceAnnotationId}
             />
           )}
           {phase === 'decision' ? (
@@ -264,18 +269,18 @@ export const BugReportOverlay = ({
                       const isJokerPlan = plan === JOKER_PLAN_ID;
                       const accent = PLAN_CARD_ACCENT[plan] ?? '#90caf9';
                       const cardDeltas = effectiveNeedType && !isJokerPlan
-                        ? getPlanPreviewDeltas(effectiveNeedType, plan)
+                        ? getPlanPreviewDeltas(effectiveNeedType, plan, 'point', bug.sourceAnnotationId)
                         : null;
                       const contextLabel = isIgnorePlan
-                        ? BUG_REPORT_COPY.ignorePlanLabel
+                        ? (getPlanContextLabel(effectiveNeedType, plan, bug.sourceAnnotationId) ?? BUG_REPORT_COPY.ignorePlanLabel)
                         : isJokerPlan
                           ? JOKER_PLAN_LABEL
-                          : getPlanContextLabel(effectiveNeedType, plan);
+                          : getPlanContextLabel(effectiveNeedType, plan, bug.sourceAnnotationId);
                       const contextDescription = isIgnorePlan
-                        ? BUG_REPORT_COPY.ignorePlanDescription
+                        ? (getPlanContextDescription(effectiveNeedType, plan, bug.sourceAnnotationId) ?? BUG_REPORT_COPY.ignorePlanDescription)
                         : isJokerPlan
                           ? JOKER_PLAN_DESCRIPTION
-                          : getPlanContextDescription(effectiveNeedType, plan);
+                          : getPlanContextDescription(effectiveNeedType, plan, bug.sourceAnnotationId);
                       const typeNumber = selectablePlans
                         .slice(0, idx)
                         .filter((p) => p !== IGNORE_PLAN_ID && p !== JOKER_PLAN_ID)

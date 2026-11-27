@@ -1,5 +1,6 @@
 import { NEED_TYPE_TO_DEFAULT_TYPE } from '../../constants/barrierData';
 import { getPersona } from '../../constants/personas';
+import { WORKSHOP_CHALLENGES } from '../../constants/workshopChallenges';
 import { createDefaultPlacedBlocks, createPresetForQuestPlacement } from '../../utils/placePresets';
 import { getIslandTopYAt } from '../../utils/terrainPlacement';
 import { createDefaultIslandChunks } from './saveSchema';
@@ -7,10 +8,14 @@ import { normalizeQuest } from './bugFactory';
 import { createQuestFromPost, questToBug } from './questLifecycle';
 import { QUEST_STATUS } from './questState';
 
-const PHOTO_BASE = 'https://ltpgtysvikszlcwsyieb.supabase.co/storage/v1/object/public/ar-photos/07a22342-6baa-4a1f-8d44-e212e87ff75b';
-export const WORKSHOP_SEED_VERSION = 4;
+export const WORKSHOP_SEED_VERSION = 5;
 
-const photoUrl = (id) => `${PHOTO_BASE}/${id}.jpg`;
+const LEGACY_PERSONA_BY_ID = {
+  'ar-1792484266589-qk9i9dy': 'inclusive',
+  'ar-1792483946203-3yxt010': 'link',
+  'ar-1792483690461-xp641d3': 'place',
+  'ar-1792483015533-x3nbmdb': 'livability',
+};
 
 /** 島の四隅。隣り合う距離が同じになる正方形。 */
 const WORKSHOP_CORNERS = [
@@ -30,55 +35,36 @@ const personaDemographic = (personaKey) => {
   return persona ? `${persona.name}（${persona.role}）` : '';
 };
 
-const WORKSHOP_POSTS = [
-  {
-    id: 'ar-1792484266589-qk9i9dy',
-    personaKey: 'inclusive',
-    needType: 'P',
-    placeArchetype: 'road',
-    placeText: '歩道・道路',
-    demographic: personaDemographic('inclusive'),
-    severity: 'mid',
-    comment: '歩道に上がる段差のブロックの一個が周りより少し浮いていて転びそうになる',
-  },
-  {
-    id: 'ar-1792483946203-3yxt010',
-    personaKey: 'link',
-    needType: 'S',
-    placeArchetype: 'road',
-    placeText: '歩道・道路',
-    demographic: personaDemographic('link'),
-    severity: 'high',
-    comment: '自転車がスピードを出して降りてきて歩行者とぶつかりそうになる。歩道橋の道自体も広くないから危ない。',
-  },
-  {
-    id: 'ar-1792483690461-xp641d3',
-    personaKey: 'place',
-    needType: 'P',
-    placeArchetype: 'none',
-    placeText: '歩道橋',
-    demographic: personaDemographic('place'),
-    severity: 'mid',
-    comment: '歩道を舗装して欲しい。ボロボロになっていてつまづいた。階段だから危なかった。',
-  },
-  {
-    id: 'ar-1792483015533-x3nbmdb',
-    personaKey: 'livability',
-    needType: 'M',
-    placeArchetype: 'plaza',
-    placeText: '駅前・広場',
-    demographic: personaDemographic('livability'),
-    severity: 'low',
-    comment: '自販機の近くというだけで飲料のゴミが捨てられている。',
-  },
-];
+const CORNER_BY_PERSONA = {
+  inclusive: 0,
+  link: 1,
+  place: 2,
+  livability: 3,
+};
+
+const WORKSHOP_POSTS = [...WORKSHOP_CHALLENGES]
+  .sort((a, b) => CORNER_BY_PERSONA[a.personaKey] - CORNER_BY_PERSONA[b.personaKey])
+  .map((challenge) => ({
+    id: challenge.id,
+    personaKey: challenge.personaKey,
+    needType: challenge.needType,
+    placeArchetype: challenge.placeArchetype,
+    placeText: challenge.placeText,
+    demographic: personaDemographic(challenge.personaKey),
+    severity: challenge.severity,
+    comment: challenge.comment,
+    photo: challenge.photo,
+    photoPins: challenge.photoPins,
+  }));
 
 /** セーブ済みの四隅投稿にも、人物を後から当てる。 */
 export function workshopPersonaKey(record) {
   if (typeof record?.personaKey === 'string' && record.personaKey) return record.personaKey;
   const id = record?.sourceAnnotationId;
   if (typeof id !== 'string') return null;
-  return WORKSHOP_POSTS.find((post) => post.id === id)?.personaKey ?? null;
+  return WORKSHOP_POSTS.find((post) => post.id === id)?.personaKey
+    ?? LEGACY_PERSONA_BY_ID[id]
+    ?? null;
 }
 
 export const WORKSHOP_POST_IDS = WORKSHOP_POSTS.map((post) => post.id);
@@ -105,8 +91,8 @@ export function createWorkshopIslandState() {
       sourceAnnotationId: post.id,
       postKind: 'bad',
       type: NEED_TYPE_TO_DEFAULT_TYPE[post.needType] ?? 'danger',
-      photo: photoUrl(post.id),
-      photoPins: [{ id: 'center', nx: 0.5, ny: 0.5 }],
+      photo: post.photo,
+      photoPins: post.photoPins ?? [{ id: 'center', nx: 0.5, ny: 0.5 }],
       timeTag: 'いつでも',
       whoText: post.demographic,
       isMine: false,

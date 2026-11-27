@@ -210,7 +210,7 @@ export const createBugSlice = (set, get) => ({
           const needType = targetBug.needType ?? 'P';
           const decision = get().questDecisions[targetBug.sourceQuestId];
           if (!decision?.satisfactionDeltaApplied) {
-            const policyCost = getPlanBudgetCost(needType, planId);
+            const policyCost = getPlanBudgetCost(needType, planId, 'point', targetBug.sourceAnnotationId);
             const remaining = get().remainingBudget;
             if (policyCost > remaining) {
               const msg = `施策コスト（${policyCost}）に対してセッション予算（${remaining}）が不足しています。`;
@@ -287,6 +287,7 @@ export const createBugSlice = (set, get) => ({
             needType: targetBug.needType,
             planId: resolution?.planId ?? targetBug.chosenPlan,
             affectedGroups: targetBug.affectedGroups,
+            sourceAnnotationId: targetBug.sourceAnnotationId,
             questComment: get().quests.find((q) => q.id === targetBug.sourceQuestId)?.comment
               ?? targetBug.comment,
           })

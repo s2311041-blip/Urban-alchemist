@@ -26,8 +26,13 @@ export function ArMapPinPicker({
   initialPin,
   onConfirm,
   onCancel,
+  title = '地図で位置を決める',
+  hint = '地図をタップ、または赤ピンをドラッグして場所を合わせてください。',
+  confirmLabel = 'この位置にピンを置く',
+  startAtUser = true,
+  banner = null,
 }) {
-  const start = initialPin ?? userGeo ?? KOTO_CENTER;
+  const start = initialPin ?? (startAtUser ? userGeo : null) ?? KOTO_CENTER;
   const [pin, setPin] = useState(start);
 
   return (
@@ -55,10 +60,11 @@ export function ArMapPinPicker({
         </button>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 11, color: AR_THEME.accent }}>位置の指定</div>
-          <div style={{ fontWeight: 'bold' }}>地図で位置を決める</div>
+          <div style={{ fontWeight: 'bold' }}>{title}</div>
         </div>
       </header>
 
+      {banner}
       <p style={{
         margin: 0,
         padding: '10px 16px',
@@ -68,7 +74,7 @@ export function ArMapPinPicker({
         borderBottom: '1px solid rgba(255,255,255,0.06)',
       }}
       >
-        地図をタップ、または赤ピンをドラッグして場所を合わせてください。
+        {hint}
       </p>
 
       <div style={{ flex: 1, minHeight: 0 }}>
@@ -119,7 +125,7 @@ export function ArMapPinPicker({
             cursor: 'pointer',
           }}
         >
-          この位置にピンを置く
+          {confirmLabel}
         </button>
       </div>
     </div>

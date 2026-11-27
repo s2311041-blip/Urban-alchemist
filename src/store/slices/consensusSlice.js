@@ -1,6 +1,5 @@
 import { computeSessionBudget } from '../../utils/consensusBudget';
 import { QUEST_STATUS } from '../helpers/questState';
-import { TRADEOFF_MATRIX } from '../../constants/tradeoffMatrix';
 import { TYPE_TO_BARRIER_META, DEFAULT_BARRIER_META } from '../../constants/barrierData';
 import {
   createInitialSatisfaction,
@@ -10,6 +9,7 @@ import {
 import {
   applyPlanDeltaToSatisfaction,
   getPlanBudgetCost,
+  getPlanMatrixEntry,
   revertPlanDeltaFromSatisfaction,
 } from '../../utils/planSatisfaction';
 import { JOKER_PLAN_ID, applyJokerDeltasToSatisfaction, revertJokerDeltasFromSatisfaction, validateJokerPlan } from '../../utils/jokerPlan';
@@ -47,12 +47,14 @@ export const createConsensusSlice = (set, get) => ({
         : revertPlanDeltaFromSatisfaction(baseSatisfaction, {
           needType: decision.needType,
           planId: decision.chosenPlan,
+          sourceAnnotationId: workshopSourceId(state, questId),
         });
     }
 
     const nextSat = applyPlanDeltaToSatisfaction(baseSatisfaction, {
       needType: decision.needType,
       planId: 'ignore',
+      sourceAnnotationId: workshopSourceId(state, questId),
     });
 
     const nextDecision = {
@@ -73,6 +75,7 @@ export const createConsensusSlice = (set, get) => ({
       needType: decision.needType,
       planId: 'ignore',
       affectedGroups: targetBug.affectedGroups,
+      sourceAnnotationId: targetBug.sourceAnnotationId,
       questComment: state.quests.find((q) => q.id === targetBug.sourceQuestId)?.comment ?? targetBug.comment,
     }) : null;
 
@@ -115,18 +118,19 @@ export const createConsensusSlice = (set, get) => ({
         baseBudget += decision.planMatrixCostApplied;
         baseSatisfaction = revertJokerDeltasFromSatisfaction(baseSatisfaction, decision.jokerPlan.deltas);
       } else {
-        baseBudget += getPlanBudgetCost(decision.needType, decision.chosenPlan);
+        baseBudget += getPlanBudgetCost(decision.needType, decision.chosenPlan, 'point', workshopSourceId(state, questId));
         baseSatisfaction = revertPlanDeltaFromSatisfaction(baseSatisfaction, {
           needType: decision.needType,
           planId: decision.chosenPlan,
+          sourceAnnotationId: workshopSourceId(state, questId),
         });
       }
     }
 
-    const row = TRADEOFF_MATRIX[decision.needType] ?? TRADEOFF_MATRIX.P;
-    if (!row[chosenPlan]) return false;
+    const sourceAnnotationId = workshopSourceId(state, questId);
+    if (!getPlanMatrixEntry(decision.needType, chosenPlan, sourceAnnotationId)) return false;
 
-    const cost = getPlanBudgetCost(decision.needType, chosenPlan);
+    const cost = getPlanBudgetCost(decision.needType, chosenPlan, 'point', sourceAnnotationId);
     if (cost > 0 && baseBudget < cost) {
       setTimedToast({
         set,
@@ -140,6 +144,7 @@ export const createConsensusSlice = (set, get) => ({
     const nextSat = applyPlanDeltaToSatisfaction(baseSatisfaction, {
       needType: decision.needType,
       planId: chosenPlan,
+      sourceAnnotationId,
     });
 
     const nextDecision = {
@@ -231,6 +236,7 @@ export const createConsensusSlice = (set, get) => ({
       baseSatisfaction = revertPlanDeltaFromSatisfaction(baseSatisfaction, {
         needType: decision.needType,
         planId: decision.chosenPlan,
+        sourceAnnotationId: workshopSourceId(state, questId),
       });
     }
 
@@ -285,6 +291,7 @@ export const createConsensusSlice = (set, get) => ({
       : revertPlanDeltaFromSatisfaction(state.islandSatisfaction, {
         needType: decision.needType,
         planId: decision.chosenPlan,
+        sourceAnnotationId: workshopSourceId(state, questId),
       });
 
     const nextDecision = {
@@ -307,6 +314,13 @@ export const createConsensusSlice = (set, get) => ({
     });
   },
 });
+
+function workshopSourceId(state, questId) {
+  const quest = state.quests.find((item) => item.id === questId);
+  if (typeof quest?.sourceAnnotationId === 'string') return quest.sourceAnnotationId;
+  const bug = state.bugs.find((item) => item.sourceQuestId === questId || item.id === questId);
+  return typeof bug?.sourceAnnotationId === 'string' ? bug.sourceAnnotationId : null;
+}
 
 function getInitialDecision(state, questId) {
   const bug = state.bugs.find(b => b.sourceQuestId === questId || b.id === questId);

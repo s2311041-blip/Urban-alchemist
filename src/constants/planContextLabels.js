@@ -1,3 +1,5 @@
+import { getWorkshopPlan } from './workshopChallenges';
+
 /** needType × planId ごとの文脈別 UI テキスト */
 
 const CONTEXT = {
@@ -139,16 +141,20 @@ const CONTEXT = {
   },
 };
 
-export function getPlanContextCopy(needType, planId) {
+export function getPlanContextCopy(needType, planId, sourceAnnotationId = null) {
+  const workshop = getWorkshopPlan(sourceAnnotationId, planId);
+  if (workshop) {
+    return { label: workshop.label, description: workshop.description, tradeoff: workshop.description };
+  }
   return CONTEXT[needType]?.[planId] ?? null;
 }
 
-export function getPlanContextLabel(needType, planId) {
-  return getPlanContextCopy(needType, planId)?.label ?? null;
+export function getPlanContextLabel(needType, planId, sourceAnnotationId = null) {
+  return getPlanContextCopy(needType, planId, sourceAnnotationId)?.label ?? null;
 }
 
-export function getPlanContextDescription(needType, planId) {
-  return getPlanContextCopy(needType, planId)?.description ?? null;
+export function getPlanContextDescription(needType, planId, sourceAnnotationId = null) {
+  return getPlanContextCopy(needType, planId, sourceAnnotationId)?.description ?? null;
 }
 
 export function getPlanContextTradeoff(needType, planId) {

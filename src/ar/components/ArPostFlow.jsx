@@ -11,7 +11,7 @@ import { ArPinMarker } from './ArPinMarker';
 import { ArMapPinPicker } from './ArMapPinPicker';
 import { PhotoPinSurface } from '../../components/ui/PhotoPinSurface';
 import { fileToJpegDataUrl, libraryPhotoErrorMessage } from '../utils/libraryPhoto';
-import { initialPostPhase } from '../utils/postEntry';
+import { initialPostPhase, nextPhaseAfterPhotoPin } from '../utils/postEntry';
 
 const INITIAL_DRAFT = {
   recordKind: 'notice',
@@ -62,16 +62,27 @@ const POST_STEPS = [
   { id: 'form', label: '質問' },
 ];
 
-function stepIndexForPhase(phase) {
+function stepIndexForPhase(phase, photoSource) {
+  if (photoSource === 'library') {
+    if (phase === 'capture') return 0;
+    if (phase === 'annotate') return 1;
+    if (phase === 'locate') return 2;
+    return 3;
+  }
   if (phase === 'capture') return 0;
   if (phase === 'annotate') return 1;
   return 2;
 }
 
 function PostProgress({ phase, photoSource }) {
-  const current = stepIndexForPhase(phase);
+  const current = stepIndexForPhase(phase, photoSource);
   const steps = photoSource === 'library'
-    ? [{ id: 'capture', label: '選択' }, { id: 'annotate', label: '写真' }, { id: 'form', label: '質問' }]
+    ? [
+      { id: 'capture', label: '選択' },
+      { id: 'annotate', label: '写真' },
+      { id: 'locate', label: '場所' },
+      { id: 'form', label: '質問' },
+    ]
     : POST_STEPS;
   return (
     <div style={{
@@ -137,6 +148,9 @@ export function ArPostFlow({
   useEffect(() => {
     if (isEdit || !geo) return;
     setDraft((d) => {
+      if (d.photoSource === 'library' && d.placementMode !== 'map') {
+        return d.authorGeo ? d : { ...d, authorGeo: geo };
+      }
       if (d.placementMode === 'map' && d.worldPin) return d;
       const anchor = computePinAtFeet({ authorGeo: geo });
       if (!anchor) return d;
@@ -219,6 +233,8 @@ export function ArPostFlow({
         photoPins: [{ id: 'center', nx: tap.nx, ny: tap.ny }],
         photoSource: 'library',
         screenTap: tap,
+        worldPin: null,
+        placementMode: null,
       });
       setPlacementTap(tap);
     } catch (error) {
@@ -241,6 +257,11 @@ export function ArPostFlow({
 
   const handleSubmit = async (draftOverride) => {
     const payload = { ...(draftOverride ?? draft) };
+    if (!isEdit && payload.photoSource === 'library' && payload.placementMode !== 'map') {
+      alert('写真を撮った場所を地図で指してください。大まかで大丈夫です。');
+      setPhase('locate');
+      return;
+    }
     if (!isEdit && (!payload.worldPin || !isValidGeoCoordinate(payload.worldPin.lat, payload.worldPin.lng))) {
       const fallbackGeo = geo ?? payload.authorGeo;
       if (fallbackGeo && isValidGeoCoordinate(fallbackGeo.lat, fallbackGeo.lng)) {
@@ -401,13 +422,32 @@ export function ArPostFlow({
           </button>
           <button
             type="button"
-            onClick={() => setPhase('form')}
+            onClick={() => setPhase(nextPhaseAfterPhotoPin(draft.photoSource))}
             style={{ ...bottomBtnStyle(true), flex: 2 }}
           >
             次へ
           </button>
         </div>
       </div>
+    );
+  }
+
+  if (phase === 'locate') {
+    return (
+      <ArMapPinPicker
+        userGeo={geo ?? draft.authorGeo}
+        initialPin={draft.placementMode === 'map' ? draft.worldPin : null}
+        startAtUser={false}
+        title="写真を撮った場所"
+        hint="大まかで大丈夫です。地図をタップするか、ピンを動かして、この写真のあたりを指してください。"
+        confirmLabel="この場所で質問へ"
+        banner={<div style={{ padding: '12px 16px 0' }}><PostProgress phase="locate" photoSource="library" /></div>}
+        onConfirm={(worldPin) => {
+          confirmMapPlacement(worldPin);
+          setPhase('form');
+        }}
+        onCancel={() => setPhase('annotate')}
+      />
     );
   }
 
@@ -430,7 +470,7 @@ export function ArPostFlow({
           headerExtra={!isEdit ? <PostProgress phase="form" photoSource={draft.photoSource} /> : null}
           onBack={() => {
             if (isEdit) onCancel();
-            else setPhase('annotate');
+            else setPhase(fromLibrary ? 'locate' : 'annotate');
           }}
           onSubmit={(finalDraft) => handleSubmit(finalDraft)}
           onEditLocation={() => setShowMapPicker(true)}

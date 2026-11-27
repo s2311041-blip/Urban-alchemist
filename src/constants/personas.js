@@ -4,28 +4,28 @@ import { SATISFACTION_ATTR_BY_KEY } from './satisfactionAttributes';
 export const PERSONAS = [
   {
     key: 'link',
-    name: '急ぐ人',
+    name: 'スムーズに移動したい人',
     role: '通勤・通学',
     blurb: 'スイスイ進みたい',
     color: SATISFACTION_ATTR_BY_KEY.link.color,
   },
   {
     key: 'place',
-    name: '休む人',
+    name: '街でゆっくり過ごしたい人',
     role: '高齢者・家族連れ',
     blurb: 'ゆっくり過ごしたい',
     color: SATISFACTION_ATTR_BY_KEY.place.color,
   },
   {
     key: 'inclusive',
-    name: '守る人',
+    name: '安全・安心にまちを利用したい人',
     role: '車椅子・ベビーカー',
     blurb: '段差や危険をなくしたい',
     color: SATISFACTION_ATTR_BY_KEY.inclusive.color,
   },
   {
     key: 'livability',
-    name: '静かに暮らす人',
+    name: '静かに暮らしたい人',
     role: '近隣住民',
     blurb: '静かに暮らしたい',
     color: SATISFACTION_ATTR_BY_KEY.livability.color,

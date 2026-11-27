@@ -1,24 +1,11 @@
-import React, { useMemo, useRef, useState } from 'react';
-import { Calendar, Camera, ChevronLeft, ChevronRight, Image, Megaphone, PenLine } from 'lucide-react';
+import React, { useRef, useState } from 'react';
+import { Camera, ChevronLeft, ChevronRight, Image } from 'lucide-react';
 import { AR_HOME } from '../constants/arTheme';
-import { PPS_GROUP_META } from '../constants/promptSpecs';
 import { fileToJpegDataUrl, libraryPhotoErrorMessage } from '../utils/libraryPhoto';
-import {
-  getActiveSpecialPrompts,
-  getPpsGroupLabel,
-  getStandingPrompt,
-} from '../utils/promptRotation';
-
-const MONTH_LABELS = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'];
 
 export function ArRecordChooseScreen({ onChoose, onBack }) {
   const libraryInputRef = useRef(null);
   const [readingLibrary, setReadingLibrary] = useState(false);
-  const now = useMemo(() => new Date(), []);
-  const standingPrompt = useMemo(() => getStandingPrompt(now), [now]);
-  const specialPrompts = useMemo(() => getActiveSpecialPrompts(now), [now]);
-  const monthLabel = MONTH_LABELS[now.getMonth()];
-  const ppsMeta = standingPrompt.ppsGroup ? PPS_GROUP_META[standingPrompt.ppsGroup] : null;
 
   const chooseLibraryPhoto = async (event) => {
     const file = event.target.files?.[0];
@@ -43,8 +30,8 @@ export function ArRecordChooseScreen({ onChoose, onBack }) {
             <ChevronLeft size={20} />
             ホーム
           </button>
-          <h1 style={styles.title}>記録のテーマを選ぶ</h1>
-          <p style={styles.lead}>今月のお題で、または自由に投稿できます</p>
+          <h1 style={styles.title}>写真の選び方</h1>
+          <p style={styles.lead}>その場で写真を撮るか、スマホに入っている写真から選びます</p>
           <div style={styles.howto}>
             <div>① 気になるところを中心に合わせて撮影</div>
             <div>② 簡単な質問に答えて完了</div>
@@ -54,88 +41,19 @@ export function ArRecordChooseScreen({ onChoose, onBack }) {
 
         <button
           type="button"
-          onClick={() => onChoose({ kind: 'standing', prompt: standingPrompt })}
-          style={styles.standingCard}
-        >
-          <div style={styles.cardHead}>
-            <Calendar size={18} color={AR_HOME.standing} />
-            <span style={styles.cardEyebrow}>今月のお題で記録する</span>
-            <span style={styles.monthChip}>{monthLabel}</span>
-          </div>
-          {ppsMeta && (
-            <span style={{
-              ...styles.ppsBadge,
-              background: `${ppsMeta.color}18`,
-              color: ppsMeta.color,
-              borderColor: `${ppsMeta.color}40`,
-            }}
-            >
-              {ppsMeta.emoji}
-              {' '}
-              {getPpsGroupLabel(standingPrompt.ppsGroup)}
-            </span>
-          )}
-          <div style={styles.promptTitle}>{standingPrompt.title}</div>
-          <p style={styles.promptQuestion}>{standingPrompt.question}</p>
-          <div style={styles.ctaRow}>
-            <Camera size={18} />
-            このお題で記録する
-            <ChevronRight size={18} />
-          </div>
-        </button>
-
-        {specialPrompts.map((prompt) => {
-          const spPps = prompt.ppsGroup ? PPS_GROUP_META[prompt.ppsGroup] : null;
-          return (
-            <button
-              key={prompt.id}
-              type="button"
-              onClick={() => onChoose({ kind: 'special', prompt })}
-              style={styles.specialCard}
-            >
-              <div style={styles.cardHead}>
-                <Megaphone size={18} color={AR_HOME.special} />
-                <span style={{ ...styles.cardEyebrow, color: AR_HOME.special }}>特設のお題で記録する</span>
-              </div>
-              {spPps && (
-                <span style={{
-                  ...styles.ppsBadge,
-                  background: AR_HOME.specialSoft,
-                  color: AR_HOME.special,
-                  borderColor: '#c4b5fd',
-                }}
-                >
-                  {spPps.emoji}
-                  {' '}
-                  {getPpsGroupLabel(prompt.ppsGroup)}
-                </span>
-              )}
-              <div style={styles.promptTitleSm}>{prompt.title}</div>
-              <p style={styles.promptQuestion}>{prompt.question}</p>
-              <div style={{ ...styles.ctaRow, color: AR_HOME.special }}>
-                <Camera size={18} />
-                このお題で記録する
-                <ChevronRight size={18} />
-              </div>
-            </button>
-          );
-        })}
-
-        <button
-          type="button"
           onClick={() => onChoose({ kind: 'free', prompt: null })}
           style={styles.freeCard}
         >
           <div style={styles.cardHead}>
-            <PenLine size={18} color={AR_HOME.primary} />
-            <span style={styles.cardEyebrow}>自由に記録する</span>
+            <Camera size={18} color={AR_HOME.primary} />
+            <span style={{ ...styles.cardEyebrow, color: AR_HOME.primary }}>カメラで撮る</span>
           </div>
           <p style={styles.promptQuestion}>
-            お題に関係なく、今感じたことをそのまま残せます。
+            気になった場所をその場で撮影します
           </p>
           <div style={styles.ctaRow}>
             <Camera size={18} />
-            自由に記録する
+            カメラを開く
             <ChevronRight size={18} />
           </div>
         </button>
@@ -146,7 +64,7 @@ export function ArRecordChooseScreen({ onChoose, onBack }) {
             <span style={{ ...styles.cardEyebrow, color: AR_HOME.free }}>撮った写真を使う</span>
           </div>
           <p style={styles.promptQuestion}>
-            写真フォルダから1枚選びます。選んだあとは、撮影したときと同じようにピンを合わせて質問に答えます。
+            スマホに保存してある写真から選びます
           </p>
           <button
             type="button"
@@ -155,7 +73,7 @@ export function ArRecordChooseScreen({ onChoose, onBack }) {
             style={{ ...styles.ctaRow, width: '100%', border: 'none', color: AR_HOME.free, background: AR_HOME.freeSoft }}
           >
             <Image size={18} />
-            {readingLibrary ? '読み込み中…' : '撮った写真にピンをつける'}
+            {readingLibrary ? '読み込み中…' : '写真を選ぶ'}
             {!readingLibrary && <ChevronRight size={18} />}
           </button>
           <input
@@ -164,7 +82,7 @@ export function ArRecordChooseScreen({ onChoose, onBack }) {
             accept="image/*"
             onChange={chooseLibraryPhoto}
             style={styles.hiddenFile}
-            aria-label="写真フォルダから選ぶ"
+            aria-label="写真を選ぶ"
           />
         </div>
       </div>
@@ -232,30 +150,6 @@ const styles = {
     fontWeight: 600,
     color: AR_HOME.textSecondary,
   },
-  standingCard: {
-    width: '100%',
-    textAlign: 'left',
-    background: AR_HOME.surface,
-    border: `1px solid ${AR_HOME.border}`,
-    borderRadius: AR_HOME.radiusLg,
-    padding: '18px 16px 16px',
-    boxShadow: AR_HOME.shadowLg,
-    borderTop: `4px solid ${AR_HOME.standing}`,
-    cursor: 'pointer',
-    marginBottom: 12,
-  },
-  specialCard: {
-    width: '100%',
-    textAlign: 'left',
-    background: AR_HOME.surface,
-    border: `1px solid #ddd6fe`,
-    borderRadius: AR_HOME.radius,
-    padding: '16px',
-    boxShadow: AR_HOME.shadow,
-    borderLeft: `4px solid ${AR_HOME.special}`,
-    cursor: 'pointer',
-    marginBottom: 12,
-  },
   freeCard: {
     width: '100%',
     textAlign: 'left',
@@ -288,37 +182,6 @@ const styles = {
     fontSize: 13,
     fontWeight: 700,
     color: AR_HOME.standing,
-  },
-  monthChip: {
-    fontSize: 12,
-    fontWeight: 600,
-    padding: '4px 10px',
-    borderRadius: 999,
-    background: AR_HOME.standingSoft,
-    color: AR_HOME.standing,
-  },
-  ppsBadge: {
-    display: 'inline-block',
-    fontSize: 12,
-    fontWeight: 600,
-    padding: '5px 10px',
-    borderRadius: 999,
-    border: '1px solid',
-    marginBottom: 10,
-  },
-  promptTitle: {
-    margin: '0 0 6px',
-    fontSize: 18,
-    fontWeight: 800,
-    lineHeight: 1.35,
-    color: AR_HOME.text,
-  },
-  promptTitleSm: {
-    margin: '0 0 6px',
-    fontSize: 16,
-    fontWeight: 800,
-    lineHeight: 1.35,
-    color: AR_HOME.text,
   },
   promptQuestion: {
     margin: '0 0 12px',

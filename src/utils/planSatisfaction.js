@@ -1,4 +1,5 @@
 import { TRADEOFF_MATRIX } from '../constants/tradeoffMatrix';
+import { workshopPlanMatrixEntry } from '../constants/workshopChallenges';
 import {
   SATISFACTION_KEYS,
   clampSatisfaction,
@@ -6,30 +7,32 @@ import {
   normalizeIslandSatisfaction,
 } from '../constants/satisfactionAttributes';
 
-export function getPlanMatrixEntry(needType, planId) {
+export function getPlanMatrixEntry(needType, planId, sourceAnnotationId = null) {
+  const workshop = workshopPlanMatrixEntry(sourceAnnotationId, planId);
+  if (workshop) return workshop;
   const row = TRADEOFF_MATRIX[needType] ?? TRADEOFF_MATRIX.P;
   return row[planId] ?? null;
 }
 
 /** プラン1件の満足度Δ */
-export function getPlanSatisfactionDeltas(needType, planId) {
-  const entry = getPlanMatrixEntry(needType, planId);
+export function getPlanSatisfactionDeltas(needType, planId, sourceAnnotationId = null) {
+  const entry = getPlanMatrixEntry(needType, planId, sourceAnnotationId);
   if (!entry) return null;
   return Object.fromEntries(
     SATISFACTION_KEYS.map((key) => [key, entry[key] ?? 0]),
   );
 }
 
-export function getPlanBudgetCost(needType, planId, _scale = 'point') {
-  const entry = getPlanMatrixEntry(needType, planId);
+export function getPlanBudgetCost(needType, planId, _scale = 'point', sourceAnnotationId = null) {
+  const entry = getPlanMatrixEntry(needType, planId, sourceAnnotationId);
   if (!entry) return 0;
   return Math.abs(entry.budget ?? 0);
 }
 
 /** 現在値にプラン効果を加えたプレビュー（確定前） */
-export function previewIslandSatisfaction(current, { needType, planId }) {
+export function previewIslandSatisfaction(current, { needType, planId, sourceAnnotationId = null }) {
   const base = normalizeIslandSatisfaction(current);
-  const entry = getPlanMatrixEntry(needType, planId);
+  const entry = getPlanMatrixEntry(needType, planId, sourceAnnotationId);
   if (!entry) return { ...base };
 
   const next = { ...base };
@@ -41,8 +44,8 @@ export function previewIslandSatisfaction(current, { needType, planId }) {
 }
 
 /** プラン選択時のΔ一覧（UI用） */
-export function getPlanPreviewDeltas(needType, planId, _scale = 'point') {
-  const entry = getPlanMatrixEntry(needType, planId);
+export function getPlanPreviewDeltas(needType, planId, _scale = 'point', sourceAnnotationId = null) {
+  const entry = getPlanMatrixEntry(needType, planId, sourceAnnotationId);
   if (!entry) return null;
 
   return {
@@ -53,12 +56,12 @@ export function getPlanPreviewDeltas(needType, planId, _scale = 'point') {
   };
 }
 
-export function applyPlanDeltaToSatisfaction(current, { needType, planId }) {
-  return previewIslandSatisfaction(current, { needType, planId });
+export function applyPlanDeltaToSatisfaction(current, { needType, planId, sourceAnnotationId = null }) {
+  return previewIslandSatisfaction(current, { needType, planId, sourceAnnotationId });
 }
 
-export function revertPlanDeltaFromSatisfaction(current, { needType, planId }) {
-  const entry = getPlanMatrixEntry(needType, planId);
+export function revertPlanDeltaFromSatisfaction(current, { needType, planId, sourceAnnotationId = null }) {
+  const entry = getPlanMatrixEntry(needType, planId, sourceAnnotationId);
   const normalized = normalizeIslandSatisfaction(current);
   if (!entry) return { ...normalized };
 

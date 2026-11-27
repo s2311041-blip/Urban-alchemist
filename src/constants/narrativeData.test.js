@@ -10,6 +10,7 @@ describe('appendWorkshopEnding', () => {
   it('keeps the success ending when every attribute is at least 20', () => {
     const satisfaction = { ...createInitialSatisfaction(), livability: 20 };
     const lines = appendWorkshopEnding(lastLine, solved, satisfaction);
+    expect(lines.map((line) => line.text).join('\n')).toContain('街に届いていた四つの声');
     expect(lines.map((line) => line.text).join('\n')).toContain('ありがとうございました');
     expect(lines.map((line) => line.text).join('\n')).not.toContain('ゲームオーバー');
   });

@@ -1,5 +1,6 @@
 import { SATISFACTION_ATTRS } from '../constants/satisfactionAttributes';
-import { getPlanContextLabel, getPlanContextTradeoff } from '../constants/planContextLabels';
+import { getPlanContextLabel } from '../constants/planContextLabels';
+import { getWorkshopPlan } from '../constants/workshopChallenges';
 import { getPlanMatrixEntry } from './planSatisfaction';
 import { PLAN_FEEDBACK_NARRATIVE } from '../constants/narrativeData';
 
@@ -21,24 +22,30 @@ export function buildPlanResolutionFeedback({
   planId,
   affectedGroups = [],
   questComment = '',
+  sourceAnnotationId = null,
 }) {
-  const entry = getPlanMatrixEntry(needType, planId);
-  const narrative = PLAN_FEEDBACK_NARRATIVE[planId] ?? {
-    positive: { speaker: '市民', text: '課題が解決しました！' },
-    negative: null
-  };
-  
-  const planLabel = getPlanContextLabel(needType, planId) ?? planId;
+  const entry = getPlanMatrixEntry(needType, planId, sourceAnnotationId);
+  const workshop = getWorkshopPlan(sourceAnnotationId, planId);
+  const narrative = workshop
+    ? { positive: workshop.positive, negative: workshop.negative }
+    : (PLAN_FEEDBACK_NARRATIVE[planId] ?? {
+      positive: { speaker: '市民', text: '課題が解決しました！' },
+      negative: null,
+    });
+
+  const planLabel = getPlanContextLabel(needType, planId, sourceAnnotationId) ?? planId;
   const snippet = typeof questComment === 'string' && questComment.length > 0
     ? questComment.slice(0, 16)
     : 'この不満';
+  const systemText = workshop?.systemText
+    ?? `「${snippet}…」を\n${planLabel}で解決しました。`;
 
   const parts = [
     {
       speaker: 'システム',
       role: '進行',
       color: '#90caf9',
-      text: `「${snippet}…」を\n${planLabel}で解決しました。`
+      text: systemText,
     }
   ];
 

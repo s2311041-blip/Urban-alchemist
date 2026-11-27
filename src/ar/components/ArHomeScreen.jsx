@@ -1,36 +1,21 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import {
   Calendar,
   Camera,
   ChevronRight,
   HelpCircle,
-  Megaphone,
   Smartphone,
   Sparkles,
 } from 'lucide-react';
 import { AR_HOME } from '../constants/arTheme';
-import { PPS_GROUP_META } from '../constants/promptSpecs';
-import {
-  getActiveSpecialPrompts,
-  getPpsGroupLabel,
-  getStandingPrompt,
-} from '../utils/promptRotation';
 
-const MONTH_LABELS = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'];
+const WORKSHOP_HINTS = ['歩きやすい', '休める場所', '段差・暗い道'];
 
 export function ArHomeScreen({
   onRecord,
   onView,
   onHelp,
 }) {
-  const now = useMemo(() => new Date(), []);
-  const standingPrompt = useMemo(() => getStandingPrompt(now), [now]);
-  const specialPrompts = useMemo(() => getActiveSpecialPrompts(now), [now]);
-  const featuredPrompt = specialPrompts[0] ?? standingPrompt;
-  const isSpecialFeatured = specialPrompts.length > 0;
-  const monthLabel = MONTH_LABELS[now.getMonth()];
-  const ppsMeta = featuredPrompt.ppsGroup ? PPS_GROUP_META[featuredPrompt.ppsGroup] : null;
-
   return (
     <div style={styles.page}>
       <div style={styles.inner}>
@@ -52,45 +37,23 @@ export function ArHomeScreen({
 
         <section style={styles.section} aria-labelledby="standing-heading">
           <div style={styles.sectionHead}>
-            {isSpecialFeatured
-              ? <Megaphone size={18} color={AR_HOME.special} />
-              : <Calendar size={18} color={AR_HOME.standing} />}
+            <Calendar size={18} color={AR_HOME.standing} />
             <h2 id="standing-heading" style={styles.sectionTitle}>
-              {isSpecialFeatured ? '今日のお題（特設）' : '今月のお題'}
+              今日のテーマ
             </h2>
-            {!isSpecialFeatured && <span style={styles.monthChip}>{monthLabel}</span>}
           </div>
 
-          <article style={{
-            ...styles.standingCard,
-            ...(isSpecialFeatured ? styles.specialCard : {}),
-          }}
-          >
-            {ppsMeta && (
-              <span style={{
-                ...styles.ppsBadge,
-                background: `${ppsMeta.color}18`,
-                color: ppsMeta.color,
-                borderColor: `${ppsMeta.color}40`,
-              }}
-              >
-                {ppsMeta.emoji}
-                {' '}
-                {getPpsGroupLabel(featuredPrompt.ppsGroup)}
-              </span>
-            )}
-            <h3 style={styles.promptTitle}>{featuredPrompt.title}</h3>
-            <p style={styles.promptQuestion}>{featuredPrompt.question}</p>
-            {featuredPrompt.subtitle && (
-              <p style={styles.promptSub}>{featuredPrompt.subtitle}</p>
-            )}
-            {featuredPrompt.exampleHints?.length > 0 && (
-              <div style={styles.hintRow}>
-                {featuredPrompt.exampleHints.map((h) => (
-                  <span key={h} style={styles.hintChip}>{h}</span>
-                ))}
-              </div>
-            )}
+          <article style={styles.standingCard}>
+            <h3 style={styles.promptTitle}>会場まわりの気づき</h3>
+            <p style={styles.promptQuestion}>
+              歩いていて「いいな」「ちょっと不便だな」と感じた場所を残してみてください。
+            </p>
+            <p style={styles.promptNote}>※立ち止まって安全に操作してください</p>
+            <div style={styles.hintRow}>
+              {WORKSHOP_HINTS.map((h) => (
+                <span key={h} style={styles.hintChip}>{h}</span>
+              ))}
+            </div>
           </article>
         </section>
 
@@ -188,14 +151,6 @@ const styles = {
     color: AR_HOME.text,
     flex: 1,
   },
-  monthChip: {
-    fontSize: 12,
-    fontWeight: 600,
-    padding: '4px 10px',
-    borderRadius: 999,
-    background: AR_HOME.standingSoft,
-    color: AR_HOME.standing,
-  },
   standingCard: {
     background: AR_HOME.surface,
     border: `1px solid ${AR_HOME.border}`,
@@ -203,18 +158,6 @@ const styles = {
     padding: '18px 18px 16px',
     boxShadow: AR_HOME.shadowLg,
     borderTop: `4px solid ${AR_HOME.standing}`,
-  },
-  specialCard: {
-    borderTop: `4px solid ${AR_HOME.special}`,
-  },
-  ppsBadge: {
-    display: 'inline-block',
-    fontSize: 12,
-    fontWeight: 600,
-    padding: '5px 10px',
-    borderRadius: 999,
-    border: '1px solid',
-    marginBottom: 10,
   },
   promptTitle: {
     margin: '0 0 8px',
@@ -229,9 +172,9 @@ const styles = {
     lineHeight: 1.55,
     color: AR_HOME.textSecondary,
   },
-  promptSub: {
+  promptNote: {
     margin: '0 0 10px',
-    fontSize: 14,
+    fontSize: 12,
     color: AR_HOME.textSecondary,
     lineHeight: 1.45,
   },

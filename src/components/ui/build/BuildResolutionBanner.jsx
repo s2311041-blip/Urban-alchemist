@@ -37,7 +37,7 @@ function BuildBudgetRow({
 
   const needType = targetBug?.needType ?? 'P';
   const policyCost = buildSession.jokerBudgetCost
-    ?? getPlanBudgetCost(needType, buildSession.plan);
+    ?? getPlanBudgetCost(needType, buildSession.plan, 'point', targetBug?.sourceAnnotationId);
   const remaining = remainingBudget ?? 0;
   const repair = getPlanRepairScale(buildSession.plan, { jokerBudgetCost: buildSession.jokerBudgetCost });
   const decision = targetBug?.sourceQuestId

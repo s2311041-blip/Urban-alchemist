@@ -17,6 +17,7 @@ import { hudPanelStyle } from '../hud/hudPanelStyles';
 export function IslandSatisfactionBlock({
   previewNeedType = null,
   previewPlanId = null,
+  previewSourceId = null,
   compact = true,
   variant = 'hud',
 }) {
@@ -30,11 +31,12 @@ export function IslandSatisfactionBlock({
     return previewIslandSatisfaction(islandSatisfaction, {
       needType: previewNeedType,
       planId: previewPlanId,
+      sourceAnnotationId: previewSourceId,
     });
-  }, [islandSatisfaction, previewNeedType, previewPlanId]);
+  }, [islandSatisfaction, previewNeedType, previewPlanId, previewSourceId]);
 
   const effect = previewNeedType && previewPlanId
-    ? getPlanPreviewDeltas(previewNeedType, previewPlanId)
+    ? getPlanPreviewDeltas(previewNeedType, previewPlanId, 'point', previewSourceId)
     : null;
 
   const minSat = Math.min(...SATISFACTION_ATTRS.map((a) => islandSatisfaction[a.key] ?? 0));
@@ -74,7 +76,7 @@ export function IslandSatisfactionBlock({
       }}
       >
         <div style={{ fontSize: 12, fontWeight: 700, color: titleColor }}>
-          {isPreview ? '島全体の満足度（選択中プラン）' : '島全体の満足度（現在）'}
+          {isPreview ? '街全体の満足度（選択中プラン）' : '街全体の満足度（現在）'}
           {effect?.budgetCost != null && isPreview && (
             <span style={{ color: '#90a4ae', fontWeight: 500, marginLeft: 8 }}>
               施策コスト

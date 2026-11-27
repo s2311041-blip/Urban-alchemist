@@ -12,11 +12,12 @@ describe('createWorkshopIslandState', () => {
     expect(bugs).toHaveLength(4);
     expect(quests.every((quest) => quest.questStatus === QUEST_STATUS.ON_ISLAND)).toBe(true);
     expect(quests.map((quest) => quest.linkedBugId)).toEqual(bugs.map((bug) => bug.id));
-    expect(bugs.map((bug) => bug.comment)).toEqual([
-      '歩道に上がる段差のブロックの一個が周りより少し浮いていて転びそうになる',
-      '自転車がスピードを出して降りてきて歩行者とぶつかりそうになる。歩道橋の道自体も広くないから危ない。',
-      '歩道を舗装して欲しい。ボロボロになっていてつまづいた。階段だから危なかった。',
-      '自販機の近くというだけで飲料のゴミが捨てられている。',
+    expect(bugs.map((bug) => bug.comment[0])).toEqual(['駅', '歩', '高', '歩']);
+    expect(bugs.map((bug) => bug.photo)).toEqual([
+      '/workshop/shiomi-bikes.jpg',
+      '/workshop/slope-blind.jpg',
+      '/workshop/underpass-rest.jpg',
+      '/workshop/lane-night.jpg',
     ]);
     expect(bugs.map((bug) => bug.personaKey)).toEqual([
       'inclusive',
@@ -25,10 +26,10 @@ describe('createWorkshopIslandState', () => {
       'livability',
     ]);
     expect(bugs.map((bug) => bug.demographic)).toEqual([
-      '守る人（車椅子・ベビーカー）',
-      '急ぐ人（通勤・通学）',
-      '休む人（高齢者・家族連れ）',
-      '静かに暮らす人（近隣住民）',
+      '安全・安心にまちを利用したい人（車椅子・ベビーカー）',
+      'スムーズに移動したい人（通勤・通学）',
+      '街でゆっくり過ごしたい人（高齢者・家族連れ）',
+      '静かに暮らしたい人（近隣住民）',
     ]);
     expect(bugs.map((bug) => [bug.pos[0], bug.pos[2]])).toEqual([
       [-11, -11],
@@ -41,20 +42,12 @@ describe('createWorkshopIslandState', () => {
     expect(gap(corners[0], corners[1])).toBe(gap(corners[0], corners[2]));
     expect(gap(corners[1], corners[3])).toBe(gap(corners[2], corners[3]));
     expect(quests.map((quest) => quest.placeText)).toEqual([
-      '歩道・道路',
-      '歩道・道路',
-      '歩道橋',
       '駅前・広場',
+      '歩道・道路',
+      '水辺の広場',
+      '路地・住宅街',
     ]);
-    const bridge = bugs.find((bug) => bug.placeText === '歩道橋');
-    expect(bridge.placeArchetype).toBe('none');
-    expect(quests.find((quest) => quest.placeText === '歩道橋').placeArchetype).toBe('none');
-    const nearBridge = placedBlocks.filter((block) => {
-      const dx = (block.pos?.[0] ?? 0) - bridge.pos[0];
-      const dz = (block.pos?.[2] ?? 0) - bridge.pos[2];
-      return Math.hypot(dx, dz) < 8;
-    });
-    expect(nearBridge).toEqual([]);
+    expect(workshopPersonaKey({ sourceAnnotationId: 'ws-slope-blind' })).toBe('link');
     expect(workshopPersonaKey({ sourceAnnotationId: 'ar-1792483946203-3yxt010' })).toBe('link');
     expect(workshopPersonaKey({ personaKey: 'place' })).toBe('place');
     placedBlocks.filter((block) => String(block.shape).endsWith('_layout')).forEach((block) => {

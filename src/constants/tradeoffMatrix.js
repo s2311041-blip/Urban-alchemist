@@ -1,3 +1,5 @@
+import { getWorkshopBuildPlanIds } from './workshopChallenges';
+
 /**
  * needType × planId → 予算 & 4属性Δ
  * 出典: docs/改善プラン_満足度増減表.pdf
@@ -69,10 +71,12 @@ export function getSelectablePlansForQuest({
   needType,
   includeIgnore = true,
   includeJoker = true,
+  sourceAnnotationId = null,
 } = {}) {
-  const plans = getAllowedPlansForQuest({ needType });
+  const workshopPlans = getWorkshopBuildPlanIds(sourceAnnotationId);
+  const plans = workshopPlans ? [...workshopPlans] : getAllowedPlansForQuest({ needType });
   const row = TRADEOFF_MATRIX[needType] ?? TRADEOFF_MATRIX.P;
   if (includeJoker) plans.push(JOKER_PLAN_OPTION_ID);
-  if (includeIgnore && row.ignore) plans.push('ignore');
+  if (includeIgnore && (workshopPlans || row.ignore)) plans.push('ignore');
   return plans;
 }
